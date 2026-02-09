@@ -1,0 +1,2019 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "AuthController_register_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Register a new player",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Login user",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Refresh access token",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Logout user",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/websocket-token": {
+      "get": {
+        "operationId": "AuthController_getWebSocketToken_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "WebSocket token returned"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get WebSocket authentication token",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "operationId": "AuthController_forgotPassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset email sent (if user exists)"
+          }
+        },
+        "summary": "Request password reset",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successfully"
+          }
+        },
+        "summary": "Reset password with token",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_getMe_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user",
+        "tags": [
+          "Auth"
+        ]
+      },
+      "put": {
+        "operationId": "AuthController_updateProfile_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update current user profile",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/players/wallet": {
+      "get": {
+        "operationId": "WalletController_getBalance_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get player wallet balance",
+        "tags": [
+          "Wallet"
+        ]
+      }
+    },
+    "/api/v1/players/wallet/transactions": {
+      "get": {
+        "operationId": "WalletController_getTransactions_v1",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get transaction history",
+        "tags": [
+          "Wallet"
+        ]
+      }
+    },
+    "/api/v1/players/statistics/my": {
+      "get": {
+        "operationId": "StatisticsController_getMyStatistics_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get player statistics",
+        "tags": [
+          "Statistics"
+        ]
+      }
+    },
+    "/api/v1/players/stripe/products": {
+      "get": {
+        "operationId": "StripeController_getAvailableProducts_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get available products (subscriptions and coin packs)",
+        "tags": [
+          "Stripe"
+        ]
+      }
+    },
+    "/api/v1/players/stripe/payment-intent": {
+      "post": {
+        "operationId": "StripeController_createPaymentIntent_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create payment intent for coin pack purchase",
+        "tags": [
+          "Stripe"
+        ]
+      }
+    },
+    "/api/v1/players/stripe/payment-status/{paymentIntentId}": {
+      "get": {
+        "description": "Returns payment status. Optionally syncs from Stripe if sync=true query parameter is provided.",
+        "operationId": "StripeController_getPaymentStatus_v1",
+        "parameters": [
+          {
+            "name": "paymentIntentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sync",
+            "required": false,
+            "in": "query",
+            "description": "If true, syncs payment status from Stripe before returning",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check payment status by payment intent ID",
+        "tags": [
+          "Stripe"
+        ]
+      }
+    },
+    "/api/v1/players/stripe/subscription-intent": {
+      "post": {
+        "operationId": "StripeController_createSubscriptionIntent_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create subscription setup intent",
+        "tags": [
+          "Stripe"
+        ]
+      }
+    },
+    "/api/v1/players/stripe/setup-intent": {
+      "post": {
+        "operationId": "StripeController_createSetupIntent_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create setup intent for collecting payment methods",
+        "tags": [
+          "Stripe"
+        ]
+      }
+    },
+    "/api/v1/players/stripe/sync-payment-status": {
+      "post": {
+        "description": "Manually syncs payment status from Stripe API and updates local records. Useful if webhook failed or payment status is out of sync.",
+        "operationId": "StripeController_syncPaymentStatus_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sync payment status from Stripe",
+        "tags": [
+          "Stripe"
+        ]
+      }
+    },
+    "/api/v1/players/stripe/payment-methods": {
+      "get": {
+        "operationId": "StripeController_getPlayerPaymentMethods_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get own payment methods",
+        "tags": [
+          "Stripe"
+        ]
+      },
+      "post": {
+        "operationId": "StripeController_attachPaymentMethod_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Attach a payment method",
+        "tags": [
+          "Stripe"
+        ]
+      }
+    },
+    "/api/v1/players/stripe/payment-methods/{id}": {
+      "delete": {
+        "operationId": "StripeController_detachPaymentMethod_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a payment method",
+        "tags": [
+          "Stripe"
+        ]
+      }
+    },
+    "/api/v1/players/stripe/payment-methods/{id}/default": {
+      "put": {
+        "operationId": "StripeController_setDefaultPaymentMethod_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set a payment method as default",
+        "tags": [
+          "Stripe"
+        ]
+      }
+    },
+    "/api/v1/messages/conversations": {
+      "post": {
+        "operationId": "MessagesController_createConversation_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConversationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new conversation (player only)",
+        "tags": [
+          "Messages"
+        ]
+      },
+      "get": {
+        "operationId": "MessagesController_getConversations_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List user conversations",
+        "tags": [
+          "Messages"
+        ]
+      }
+    },
+    "/api/v1/messages/conversations/{id}": {
+      "get": {
+        "operationId": "MessagesController_getConversation_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get conversation details",
+        "tags": [
+          "Messages"
+        ]
+      }
+    },
+    "/api/v1/messages/conversations/{id}/messages": {
+      "get": {
+        "operationId": "MessagesController_getConversationMessages_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Messages per page (default: 50)",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get paginated messages for a conversation",
+        "tags": [
+          "Messages"
+        ]
+      },
+      "post": {
+        "operationId": "MessagesController_sendMessage_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send a message in a conversation",
+        "tags": [
+          "Messages"
+        ]
+      }
+    },
+    "/api/v1/messages/conversations/{id}/read": {
+      "post": {
+        "operationId": "MessagesController_markAsRead_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a conversation as read",
+        "tags": [
+          "Messages"
+        ]
+      }
+    },
+    "/api/v1/messages/unread-count": {
+      "get": {
+        "operationId": "MessagesController_getUnreadCount_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get total unread messages count",
+        "tags": [
+          "Messages"
+        ]
+      }
+    },
+    "/api/v1/messages/admins": {
+      "get": {
+        "operationId": "MessagesController_getAdmins_v1",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search term to filter by username or email",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get list of admin users for conversation creation (player only)",
+        "tags": [
+          "Messages"
+        ]
+      }
+    },
+    "/api/v1/players/subscription": {
+      "get": {
+        "operationId": "SubscriptionsController_getSubscription_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current subscription status and details",
+        "tags": [
+          "Subscriptions"
+        ]
+      }
+    },
+    "/api/v1/players/subscription/history": {
+      "get": {
+        "operationId": "SubscriptionsController_getSubscriptionHistory_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get subscription history",
+        "tags": [
+          "Subscriptions"
+        ]
+      }
+    },
+    "/api/v1/players/subscription/subscribe": {
+      "post": {
+        "operationId": "SubscriptionsController_subscribe_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Subscribe to Gold tier",
+        "tags": [
+          "Subscriptions"
+        ]
+      }
+    },
+    "/api/v1/players/subscription/cancel": {
+      "post": {
+        "operationId": "SubscriptionsController_cancel_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel subscription",
+        "tags": [
+          "Subscriptions"
+        ]
+      }
+    },
+    "/api/v1/players/devices/register": {
+      "post": {
+        "operationId": "FirebaseController_registerDevice_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register device token",
+        "tags": [
+          "Firebase"
+        ]
+      }
+    },
+    "/api/v1/players/devices": {
+      "get": {
+        "operationId": "FirebaseController_getDevices_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List registered devices",
+        "tags": [
+          "Firebase"
+        ]
+      }
+    },
+    "/api/v1/players/devices/{tokenId}": {
+      "delete": {
+        "operationId": "FirebaseController_unregisterDevice_v1",
+        "parameters": [
+          {
+            "name": "tokenId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unregister device token",
+        "tags": [
+          "Firebase"
+        ]
+      }
+    },
+    "/api/v1/players/notifications/preferences": {
+      "get": {
+        "operationId": "FirebaseController_getPreferences_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get notification preferences",
+        "tags": [
+          "Firebase"
+        ]
+      },
+      "put": {
+        "operationId": "FirebaseController_updatePreferences_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update notification preferences",
+        "tags": [
+          "Firebase"
+        ]
+      }
+    },
+    "/api/v1/verification/request": {
+      "post": {
+        "operationId": "VerificationController_request_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Request verification code",
+        "tags": [
+          "Verification"
+        ]
+      }
+    },
+    "/api/v1/verification/verify": {
+      "post": {
+        "operationId": "VerificationController_verify_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify with code",
+        "tags": [
+          "Verification"
+        ]
+      }
+    },
+    "/api/v1/players/reservations": {
+      "post": {
+        "operationId": "ReservationsController_create_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reserve a slot",
+        "tags": [
+          "Reservations"
+        ]
+      }
+    },
+    "/api/v1/players/reservations/{id}/confirm": {
+      "post": {
+        "operationId": "ReservationsController_confirm_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm reservation",
+        "tags": [
+          "Reservations"
+        ]
+      }
+    },
+    "/api/v1/players/reservations/{id}": {
+      "delete": {
+        "operationId": "ReservationsController_cancel_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel reservation",
+        "tags": [
+          "Reservations"
+        ]
+      }
+    },
+    "/api/v1/players/reservations/my": {
+      "get": {
+        "operationId": "ReservationsController_getMyReservations_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my reservations",
+        "tags": [
+          "Reservations"
+        ]
+      }
+    },
+    "/api/v1/players/games/available": {
+      "get": {
+        "operationId": "PlayersController_getAvailableGames_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List available games",
+        "tags": [
+          "Players"
+        ]
+      }
+    },
+    "/api/v1/players/games/{id}": {
+      "get": {
+        "operationId": "PlayersController_getGame_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get game details",
+        "tags": [
+          "Players"
+        ]
+      }
+    },
+    "/api/v1/players/games/{id}/slots": {
+      "get": {
+        "operationId": "PlayersController_getGameSlots_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get available slots for game",
+        "tags": [
+          "Players"
+        ]
+      }
+    },
+    "/api/v1/players/games/{id}/slots/{slotId}/reserve": {
+      "post": {
+        "operationId": "PlayersController_reserveSlot_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slotId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reserve a slot (player-side validation)",
+        "tags": [
+          "Players"
+        ]
+      }
+    },
+    "/api/v1/players/schedules/today": {
+      "get": {
+        "operationId": "PlayersController_getSchedulesForToday_v1",
+        "parameters": [
+          {
+            "name": "includeCreated",
+            "required": false,
+            "in": "query",
+            "description": "Include games with CREATED status (default: true)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeInProgress",
+            "required": false,
+            "in": "query",
+            "description": "Include games with IN_PROGRESS status (default: true)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeFinished",
+            "required": false,
+            "in": "query",
+            "description": "Include games with FINISHED status (default: true)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeCancelled",
+            "required": false,
+            "in": "query",
+            "description": "Include games with CANCELLED status (default: false)",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get schedules with games for today, grouped by schedule",
+        "tags": [
+          "Players"
+        ]
+      }
+    },
+    "/api/v1/players/tutorials": {
+      "get": {
+        "operationId": "PlayersTutorialsController_findAll_v1",
+        "parameters": [
+          {
+            "name": "featured",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "tagId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List all published tutorials",
+        "tags": [
+          "Players Tutorials"
+        ]
+      }
+    },
+    "/api/v1/players/tutorials/{id}": {
+      "get": {
+        "operationId": "PlayersTutorialsController_findOne_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get published tutorial by ID (increments view count)",
+        "tags": [
+          "Players Tutorials"
+        ]
+      }
+    },
+    "/api/v1/players/tutorials/slug/{slug}": {
+      "get": {
+        "operationId": "PlayersTutorialsController_findBySlug_v1",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get published tutorial by slug (increments view count)",
+        "tags": [
+          "Players Tutorials"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "BTV Player API",
+    "description": "--",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "{baseUrl}",
+      "variables": {
+        "baseUrl": {
+          "default": "http://localhost:3000"
+        }
+      }
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "username": {
+            "type": "string",
+            "example": "johndoe",
+            "description": "Username (3-30 characters, alphanumeric, underscores, and hyphens only)"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123"
+          }
+        },
+        "required": [
+          "email",
+          "username",
+          "password"
+        ]
+      },
+      "AuthResponseDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "user": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "user"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com",
+            "description": "User email address or username"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "ForgotPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "abc123def456...",
+            "description": "Password reset token received via email"
+          },
+          "password": {
+            "type": "string",
+            "example": "newpassword123"
+          }
+        },
+        "required": [
+          "token",
+          "password"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com",
+            "description": "User email address (must be unique)"
+          },
+          "username": {
+            "type": "string",
+            "example": "johndoe",
+            "description": "Username (3-30 characters, alphanumeric, underscores, and hyphens only, must be unique)"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123",
+            "description": "User password (minimum 6 characters)"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "player"
+            ],
+            "default": "player",
+            "description": "User role (admin or player)"
+          },
+          "subscriptionTier": {
+            "type": "string",
+            "enum": [
+              "FREE",
+              "GOLD"
+            ],
+            "default": "FREE",
+            "description": "Subscription tier (FREE or GOLD)"
+          },
+          "isVerified": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether the user is verified"
+          },
+          "fullName": {
+            "type": "string",
+            "example": "John Doe",
+            "description": "Full name of the user"
+          },
+          "addressLine1": {
+            "type": "string",
+            "example": "123 Main Street",
+            "description": "Address line 1"
+          },
+          "addressLine2": {
+            "type": "string",
+            "example": "Apt 4B",
+            "description": "Address line 2"
+          },
+          "city": {
+            "type": "string",
+            "example": "New York",
+            "description": "City"
+          },
+          "state": {
+            "type": "string",
+            "example": "NY",
+            "description": "State or province"
+          },
+          "country": {
+            "type": "string",
+            "example": "United States",
+            "description": "Country"
+          },
+          "zipcode": {
+            "type": "string",
+            "example": "10001",
+            "description": "ZIP or postal code"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "CreateConversationDto": {
+        "type": "object",
+        "properties": {
+          "adminId": {
+            "type": "number",
+            "description": "ID of the admin to start conversation with"
+          }
+        },
+        "required": [
+          "adminId"
+        ]
+      },
+      "CreateConversationFromAdminDto": {
+        "type": "object",
+        "properties": {
+          "targetUserIds": {
+            "description": "Array of user IDs to start conversation with",
+            "example": [
+              1,
+              2,
+              3
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "targetUserIds"
+        ]
+      },
+      "AddAdminDto": {
+        "type": "object",
+        "properties": {
+          "adminId": {
+            "type": "number",
+            "description": "ID of the admin to add to the conversation"
+          }
+        },
+        "required": [
+          "adminId"
+        ]
+      },
+      "SendMessageDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Message content",
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "SlotConfigDto": {
+        "type": "object",
+        "properties": {
+          "slotNumber": {
+            "type": "number",
+            "description": "Slot number (1-based)"
+          },
+          "team": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B"
+            ],
+            "description": "Team (A or B)"
+          },
+          "isGoldOnly": {
+            "type": "boolean",
+            "description": "Is this slot gold-only?"
+          },
+          "coinsCost": {
+            "type": "number",
+            "description": "Coins cost override (null uses schedule default)"
+          },
+          "preAssignedUserId": {
+            "type": "number",
+            "description": "Pre-assigned user ID"
+          }
+        },
+        "required": [
+          "slotNumber",
+          "team"
+        ]
+      },
+      "UpdateScheduleDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Schedule name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Schedule description"
+          },
+          "recurrenceType": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "MONTHLY",
+              "YEARLY",
+              "ONCE"
+            ],
+            "description": "Recurrence type"
+          },
+          "recurrenceDays": {
+            "description": "Recurrence days (array of numbers)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recurrencePattern": {
+            "type": "object",
+            "description": "Recurrence pattern for YEARLY type"
+          },
+          "slotsPerGame": {
+            "type": "number",
+            "description": "Number of slots per game (must be even)"
+          },
+          "reservationCost": {
+            "type": "number",
+            "description": "Reservation cost in coins"
+          },
+          "instantReservationCost": {
+            "type": "number",
+            "description": "Instant reservation cost in coins"
+          },
+          "confirmationWindowMinutes": {
+            "type": "number",
+            "description": "Confirmation window in minutes"
+          },
+          "refundPolicy": {
+            "type": "string",
+            "enum": [
+              "FULL",
+              "PARTIAL",
+              "NONE"
+            ],
+            "description": "Refund policy"
+          },
+          "refundPercentage": {
+            "type": "number",
+            "description": "Refund percentage (if PARTIAL)"
+          },
+          "isExclusiveToGold": {
+            "type": "boolean",
+            "description": "Is exclusive to gold subscribers?"
+          },
+          "firstGameStartTime": {
+            "type": "string",
+            "description": "First game start time (HH:mm format)"
+          },
+          "autoStartNextAfterMinutes": {
+            "type": "number",
+            "description": "Auto start next event after minutes"
+          },
+          "gamesPerDay": {
+            "type": "number",
+            "description": "Number of games per day"
+          },
+          "spacingAfterFinishMinutes": {
+            "type": "number",
+            "description": "Spacing after finish in minutes"
+          },
+          "teamAName": {
+            "type": "string",
+            "description": "Team A name"
+          },
+          "teamBName": {
+            "type": "string",
+            "description": "Team B name"
+          },
+          "reminderMinutesBefore": {
+            "description": "Reminder minutes before event",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "url": {
+            "type": "string",
+            "description": "Schedule URL for notifications"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Is schedule active?"
+          },
+          "slotConfigs": {
+            "description": "Slot configurations",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SlotConfigDto"
+            }
+          },
+          "propagateNow": {
+            "type": "boolean",
+            "description": "Propagate changes now (cancel CREATED events and regenerate)"
+          }
+        }
+      },
+      "UpdateGameDto": {
+        "type": "object",
+        "properties": {
+          "teamAName": {
+            "type": "string",
+            "description": "Team A name"
+          },
+          "teamBName": {
+            "type": "string",
+            "description": "Team B name"
+          },
+          "isExclusiveToGold": {
+            "type": "boolean",
+            "description": "Is exclusive to gold subscribers?"
+          },
+          "url": {
+            "type": "string",
+            "description": "Game URL (inherited from schedule, editable by admin)"
+          },
+          "scheduledStartTime": {
+            "type": "string",
+            "description": "Scheduled start time (ISO datetime string)"
+          }
+        }
+      },
+      "AuditLog": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateTutorialDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "How to Reserve a Game Slot",
+            "description": "Tutorial title",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "slug": {
+            "type": "string",
+            "example": "how-to-reserve-a-game-slot",
+            "description": "URL-friendly slug (auto-generated from title if not provided)"
+          },
+          "body": {
+            "type": "string",
+            "example": "# How to Reserve a Game Slot\n\nThis tutorial will guide you...",
+            "description": "Markdown content body"
+          },
+          "excerpt": {
+            "type": "string",
+            "example": "Learn how to reserve a game slot in just a few steps.",
+            "description": "Short description/excerpt",
+            "maxLength": 500
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED"
+            ],
+            "default": "DRAFT",
+            "description": "Publication status"
+          },
+          "featured": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether tutorial is featured/pinned"
+          },
+          "tagIds": {
+            "example": [
+              1,
+              2,
+              3
+            ],
+            "description": "Array of tag IDs to associate with this tutorial",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "categoryIds": {
+            "example": [
+              1,
+              2
+            ],
+            "description": "Array of category IDs to associate with this tutorial",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ]
+      },
+      "CreateTagDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Getting Started",
+            "description": "Tag name",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateTagDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Getting Started",
+            "description": "Tag name",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        }
+      },
+      "CreateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Game Guides",
+            "description": "Category name",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "example": "Guides and tutorials for game mechanics",
+            "description": "Category description"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Game Guides",
+            "description": "Category name",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "example": "Guides and tutorials for game mechanics",
+            "description": "Category description"
+          }
+        }
+      },
+      "UpdateTutorialDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "How to Reserve a Game Slot",
+            "description": "Tutorial title",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "slug": {
+            "type": "string",
+            "example": "how-to-reserve-a-game-slot",
+            "description": "URL-friendly slug"
+          },
+          "body": {
+            "type": "string",
+            "example": "# How to Reserve a Game Slot\n\nThis tutorial will guide you...",
+            "description": "Markdown content body"
+          },
+          "excerpt": {
+            "type": "string",
+            "example": "Learn how to reserve a game slot in just a few steps.",
+            "description": "Short description/excerpt",
+            "maxLength": 500
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED"
+            ],
+            "description": "Publication status"
+          },
+          "featured": {
+            "type": "boolean",
+            "description": "Whether tutorial is featured/pinned"
+          },
+          "tagIds": {
+            "example": [
+              1,
+              2,
+              3
+            ],
+            "description": "Array of tag IDs to associate with this tutorial",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "categoryIds": {
+            "example": [
+              1,
+              2
+            ],
+            "description": "Array of category IDs to associate with this tutorial",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.baltazartv.client",
+      "sha256_cert_fingerprints": [
+        "42:5D:B4:E9:76:E8:12:1D:54:E5:D5:8D:1A:6B:4F:49:C2:CF:F3:6C:10:CB:BE:0B:39:CB:3C:80:56:D2:00:F7"
+      ]
+    }
+  }
+]
