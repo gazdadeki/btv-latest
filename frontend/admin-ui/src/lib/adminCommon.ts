@@ -44,7 +44,7 @@ export const AdminCommon = {
     if (error instanceof Error) {
       return (
         error.message === 'Request was cancelled' ||
-        (error.message && error.message.includes('cancelled'))
+        error.message.includes('cancelled')
       );
     }
     return false;
@@ -242,7 +242,9 @@ export const AdminCommon = {
 
   showButtonLoader(button: HTMLElement | string, disable = true) {
     const btn =
-      typeof button === 'string' ? document.querySelector(button) : button;
+      typeof button === 'string'
+        ? (document.querySelector(button) as HTMLElement | null)
+        : button;
     if (!btn) return;
 
     if (!btn.dataset.originalHtml) {
@@ -261,7 +263,9 @@ export const AdminCommon = {
 
   hideButtonLoader(button: HTMLElement | string) {
     const btn =
-      typeof button === 'string' ? document.querySelector(button) : button;
+      typeof button === 'string'
+        ? (document.querySelector(button) as HTMLElement | null)
+        : button;
     if (!btn) return;
 
     if (btn.dataset.originalHtml) {
@@ -352,6 +356,7 @@ export const AdminCommon = {
     );
 
     const defaultOptions = {
+      destroy: true,
       paging: true,
       lengthChange: true,
       searching: true,
@@ -370,9 +375,10 @@ export const AdminCommon = {
       return null;
     }
     const table = jquery(selector).DataTable(finalOptions);
-    table.on('length.dt', (_event: unknown, _settings: unknown, len: number) => {
+    table.on('length.dt', ((...args: unknown[]) => {
+      const len = args[2] as number;
       this.setDataTablePageLength(id, len);
-    });
+    }) as (...args: unknown[]) => void);
     return table;
   },
 
