@@ -1,0 +1,8 @@
+{
+  "name": "@btv/types",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts"
+}

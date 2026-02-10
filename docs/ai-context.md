@@ -1,74 +1,92 @@
-# AI Context — BTV
+# AI Context — BTV (Turborepo Monorepo)
 
 This document records verified, repo-based facts to avoid repeated discovery in future sessions.
 
 ## Project overview
-- Event scheduling and reservation system built with NestJS and TypeScript.
-- Key feature areas include auth, scheduling, reservations, subscriptions, Stripe payments, WebSocket updates, Firebase notifications, audit logging, and admin APIs. (See `README.md`.)
 
-## Tech stack (from `package.json` / `README.md`)
+- Event scheduling and reservation system with admin and public-facing frontends.
+- Key feature areas: auth, scheduling, reservations, subscriptions, Stripe payments, WebSocket updates, Firebase notifications, audit logging, admin APIs, messaging, tutorials.
+
+## Tech stack
+
 - Runtime: Node.js 22+
-- Framework: NestJS 11
-- Language: TypeScript
-- ORM/DB: TypeORM with MySQL (`mysql2`)
-- Cache: node-cache (in-memory)
-- Auth: JWT (`@nestjs/jwt`, `passport-jwt`)
-- Realtime: Socket.IO (`@nestjs/platform-socket.io`, `socket.io`)
-- Payments: Stripe
-- Notifications: Firebase Admin
-- Docs: Swagger (`@nestjs/swagger`)
-- Validation: `class-validator`, `class-transformer`
-- Email: Nodemailer
+- Monorepo: Turborepo (`turbo` v2), npm workspaces
+- Backend: NestJS 11, TypeScript, TypeORM (MySQL), JWT auth, Socket.IO, Stripe, Firebase Admin, Nodemailer
+- Web: Next.js 15 (App Router), React 19, Tailwind CSS v4, shadcn/ui patterns, TanStack Table, Socket.IO client, Sonner (toasts)
+- Shared packages: `@btv/types` (shared TypeScript interfaces/enums), `@btv/tsconfig` (shared TS configs)
 
 ## Repository layout
-- `src/` — NestJS application (feature modules per domain).
-- `public/` — static assets, including admin UI pages under `public/admin/`.
-- `frontend/admin-ui/` — Vite-powered admin SPA that builds into `public/admin/`.
-- `test/` — Jest e2e config.
-- `client/` — present but ignored by `.gitignore` and currently empty in this workspace.
 
-## Admin UI (build/runtime notes)
-- Admin UI assets are built from `frontend/admin-ui` into `public/admin/`.
-- Legacy dependencies (jQuery, Bootstrap, AdminLTE, DataTables) are bundled locally to avoid CDN/runtime-order issues.
+```
+btv/
+├── apps/
+│   ├── backend/          # NestJS API server (port 3000)
+│   │   ├── src/          # NestJS feature modules
+│   │   ├── public/       # Static assets (.well-known, etc.)
+│   │   ├── docs/         # Backend-specific docs and ADRs
+│   │   └── .env          # Backend environment variables
+│   └── web/              # Next.js unified frontend (port 3001)
+│       ├── src/app/      # App Router pages and layouts
+│       │   ├── admin/    # Admin dashboard (authenticated)
+│       │   ├── downloads/    # Public downloads page
+│       │   └── reset-password/ # Public password reset
+│       ├── src/lib/      # API client, auth, websocket, utils
+│       ├── src/components/ # Shared UI components
+│       └── .env.local    # Web environment variables
+├── packages/
+│   ├── tsconfig/         # Shared TypeScript configurations
+│   └── types/            # Shared TypeScript types and enums
+├── deploy/               # Production deployment configs (nginx example)
+├── turbo.json            # Turborepo task configuration
+└── package.json          # Root workspace config
+```
 
-## Runtime entrypoint & HTTP behavior (from `src/main.ts`)
-- `.env` is loaded explicitly at startup; process exits if it fails.
-- Required env vars are validated on boot via `EnvValidationService`.
-- Global request validation uses `ValidationPipe` with `whitelist: true` and `forbidNonWhitelisted: true`.
-- Global prefix is `api` with URI versioning enabled (`/api/v1/...` by default).
-- CORS is enabled with credentials and permissive origin.
-- Static assets served from `public/`.
-- Special routes (registered before the global prefix):
-  - `GET /downloads`
-  - `GET /reset-password`
-  - `GET /.well-known/assetlinks.json`
-  - `GET /.well-known/apple-app-site-association`
-- Stripe webhook uses raw body handling at `/api/v1/stripe/webhook`.
-- Swagger is available at `/api` in non-production environments.
-- Graceful shutdown handlers are registered for SIGINT/SIGTERM and unhandled errors.
+## Dev workflow
 
-## Configuration
-- Environment variables are defined in `env.example`.
-- Required vars validated at startup (from `EnvValidationService`):
-  - `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`
-  - `JWT_SECRET`, `JWT_ACCESS_TOKEN_EXPIRY`, `JWT_REFRESH_TOKEN_EXPIRY`
-  - `PORT`, `NODE_ENV`
-  - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-- Optional config includes Stripe publishable key, Firebase service account path, and email provider settings.
+- `npm run dev` — starts all apps (backend + web) via Turbo
+- `npm run dev:backend` — backend only
+- `npm run dev:web` — web frontend only
+- `npm run build` — builds all apps
+- Migration scripts are in `apps/backend/package.json`
 
-## Environments
-- The app expects a remote/shared MySQL or Percona instance for dev/test/prod.
-- Test runs require a dedicated database and truncate tables between tests.
+## Backend runtime behavior (apps/backend/src/main.ts)
 
-## Data access (from `src/database/data-source.ts`)
-- TypeORM `DataSource` uses MySQL and loads entities/migrations from `src/`.
-- `synchronize` is controlled by `TYPEORM_SYNCHRONIZE` (defaults to false); logging is enabled in development.
+- `.env` loaded explicitly at startup; process exits on failure.
+- Required env vars validated via `EnvValidationService`.
+- Global prefix: `api` with URI versioning (`/api/v1/...`).
+- CORS: configurable via `CORS_ORIGINS` env var (comma-separated), defaults to reflect-origin.
+- WebSocket CORS: same `CORS_ORIGINS` env var, defaults to `*`.
+- Static assets served from `public/` (for `.well-known` deep linking files).
+- Stripe webhook: raw body handling at `/api/v1/stripe/webhook`.
+- Swagger: available at `/api` in non-production.
 
-## Common scripts
-- `npm run start:dev` — dev server
-- `npm run migration:run` / `migration:revert` / `migration:generate` — database migrations
-- `npm run migration:reset` — dev-only database reset (requires confirmation flag)
-- `npm run test:e2e` — end-to-end tests
+## Web frontend architecture (apps/web/)
 
-## Known doc gaps
-- `README.md` references `INSTALLATION.md`, `setup-dev.ps1`, and `setup-dev.sh`, but these files are not present in the workspace.
+- Single Next.js App Router app serving both admin and public pages
+- No basePath — routes are filesystem-based:
+  - `/admin/*` — admin dashboard (protected by middleware)
+  - `/downloads` — public downloads page
+  - `/reset-password` — public password reset page
+  - `/` — redirects to `/admin`
+- API calls proxied via Next.js rewrites (`/api/*` → backend `/api/*`)
+- Cookie-based auth (JWT access + refresh tokens)
+- WebSocket connection via Socket.IO client (direct to backend)
+- Route protection via Next.js middleware (only `/admin/*` routes)
+- Auth state via React context (`AuthProvider` / `useAuth`)
+- Admin pages: Dashboard, Calendar, Users, Schedules, Games, Subscriptions, Tutorials, Stripe Products, Messages, Audit Log
+
+## Production deployment
+
+- Two standalone processes: backend (:3000), web (:3001)
+- Nginx reverse proxy routes by path prefix (see `deploy/nginx.conf.example`)
+- `/api/*`, `/socket.io/*`, `/.well-known/*` → backend
+- Everything else → web (Next.js)
+
+## Data access
+
+- TypeORM `DataSource` with MySQL, entities/migrations from `src/`
+- `synchronize` controlled by `TYPEORM_SYNCHRONIZE` (defaults to false)
+
+## Known constraints
+
+- Legacy `frontend/admin-ui/` directory contains reference source files from the old Vite+React+jQuery admin UI (kept for reference, not built)
