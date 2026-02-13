@@ -8,9 +8,12 @@ import { useAuth } from '@/lib/auth-context';
 import { formatDate } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
+import { Dialog } from '@/components/dialog';
+import { UserSearchDialog } from '@/components/user-search-dialog';
 
 interface Conversation {
   id: number;
+  type?: string;
   participants: Array<{ id: number; email: string; username?: string }>;
   lastMessage?: { content: string; createdAt: string };
   unreadCount?: number;
@@ -31,6 +34,9 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showNewConv, setShowNewConv] = useState(false);
+  const [showAddAdmin, setShowAddAdmin] = useState(false);
+  const [addAdminId, setAddAdminId] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const loadConversations = useCallback(async () => {
@@ -50,6 +56,7 @@ export default function MessagesPage() {
       const msgs = Array.isArray(res) ? res : (res as { data?: Message[] }).data || [];
       setMessages(msgs);
       webSocketManager.send('messages:join', { conversationId: convId });
+      api.markConversationAsRead(convId).catch(() => {});
     } catch (err) {
       toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
@@ -92,16 +99,53 @@ export default function MessagesPage() {
     }
   };
 
-  const getOtherParticipant = (conv: Conversation) => {
-    const other = conv.participants.find((p) => p.id !== user?.id);
-    return other?.username || other?.email || 'Unknown';
+  const handleCreateConversation = async (users: { id: number; email: string }[]) => {
+    try {
+      const res = (await api.createConversationFromAdmin(users.map((u) => u.id))) as { id: number };
+      toast.success('Conversation created');
+      setShowNewConv(false);
+      await loadConversations();
+      if (res?.id) setActiveConv(res.id);
+    } catch (err) {
+      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
   };
+
+  const handleAddAdmin = async () => {
+    if (!activeConv || !addAdminId) return;
+    try {
+      await api.addAdminToConversation(activeConv, parseInt(addAdminId, 10));
+      toast.success('Admin added to conversation');
+      setShowAddAdmin(false);
+      setAddAdminId('');
+      loadConversations();
+    } catch (err) {
+      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  };
+
+  const getConversationTitle = (conv: Conversation) => {
+    const others = conv.participants.filter((p) => p.id !== user?.id);
+    if (others.length === 0) return 'Self';
+    if (others.length === 1) return others[0].username || others[0].email;
+    return others.map((p) => p.username || p.email).join(', ');
+  };
+
+  const activeConvData = conversations.find((c) => c.id === activeConv);
+  const isGroup = activeConvData?.type === 'GROUP' || (activeConvData?.participants?.length ?? 0) > 2;
 
   if (loading) return <PageLoading />;
 
   return (
     <div>
-      <PageHeader title="Messages" />
+      <PageHeader
+        title="Messages"
+        actions={
+          <button onClick={() => setShowNewConv(true)} className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+            New Conversation
+          </button>
+        }
+      />
       <div className="bg-white rounded-lg shadow flex" style={{ height: 'calc(100vh - 200px)' }}>
         {/* Conversations list */}
         <div className="w-80 border-r border-gray-200 flex flex-col">
@@ -119,12 +163,15 @@ export default function MessagesPage() {
                   className={`w-full text-left p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${activeConv === conv.id ? 'bg-indigo-50' : ''}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm truncate">{getOtherParticipant(conv)}</span>
-                    {(conv.unreadCount ?? 0) > 0 && (
-                      <span className="bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        {conv.unreadCount}
-                      </span>
-                    )}
+                    <span className="font-medium text-sm truncate max-w-[200px]">{getConversationTitle(conv)}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {conv.type === 'GROUP' && <span className="text-xs text-gray-400">GROUP</span>}
+                      {(conv.unreadCount ?? 0) > 0 && (
+                        <span className="bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                          {conv.unreadCount}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {conv.lastMessage && (
                     <p className="text-xs text-gray-400 truncate mt-1">{conv.lastMessage.content}</p>
@@ -143,6 +190,22 @@ export default function MessagesPage() {
             </div>
           ) : (
             <>
+              {/* Conversation header */}
+              <div className="p-3 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+                <div>
+                  <span className="text-sm font-medium">{activeConvData ? getConversationTitle(activeConvData) : ''}</span>
+                  {activeConvData && (
+                    <span className="text-xs text-gray-400 ml-2">
+                      {activeConvData.participants.length} participant(s)
+                    </span>
+                  )}
+                </div>
+                {isGroup && (
+                  <button onClick={() => { setShowAddAdmin(true); setAddAdminId(''); }} className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700" title="Add Admin">
+                    <i className="fas fa-user-plus mr-1" /> Add Admin
+                  </button>
+                )}
+              </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {messages.map((msg) => {
                   const isMe = msg.senderId === user?.id;
@@ -173,10 +236,7 @@ export default function MessagesPage() {
                     placeholder="Type a message..."
                     className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
-                  <button
-                    onClick={sendMessage}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer"
-                  >
+                  <button onClick={sendMessage} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer">
                     <i className="fas fa-paper-plane" />
                   </button>
                 </div>
@@ -185,6 +245,30 @@ export default function MessagesPage() {
           )}
         </div>
       </div>
+
+      {/* New Conversation Dialog (multi-user search) */}
+      <UserSearchDialog
+        open={showNewConv}
+        onClose={() => setShowNewConv(false)}
+        onSelect={() => {}}
+        multiSelect
+        onMultiSelect={handleCreateConversation}
+        title="New Conversation"
+      />
+
+      {/* Add Admin Dialog */}
+      <Dialog open={showAddAdmin} onClose={() => setShowAddAdmin(false)} title="Add Admin to Conversation">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Admin User ID</label>
+            <input type="number" value={addAdminId} onChange={(e) => setAddAdminId(e.target.value)} placeholder="Enter admin user ID" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={() => setShowAddAdmin(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+            <button onClick={handleAddAdmin} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Add Admin</button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

@@ -1,12 +1,24 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+} from 'chart.js';
+import { Doughnut, Bar } from 'react-chartjs-2';
 import { api } from '@/lib/api';
 import { webSocketManager } from '@/lib/websocket';
 import { formatDate } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 interface DashboardData {
   activeSchedules?: number;
@@ -45,6 +57,83 @@ function StatCard({ icon, iconBg, label, value }: { icon: string; iconBg: string
       <div>
         <p className="text-sm text-gray-500">{label}</p>
         <p className="text-2xl font-bold">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function UserStatsChart({ data }: { data: DashboardData }) {
+  const chartData = useMemo(() => {
+    const verified = data.verifiedUsers || 0;
+    const banned = data.bannedUsers || 0;
+    const total = data.totalUsers || 0;
+    const unverified = Math.max(0, total - verified - banned);
+    return {
+      labels: ['Verified', 'Unverified', 'Banned'],
+      datasets: [
+        {
+          data: [verified, unverified, banned],
+          backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+        },
+      ],
+    };
+  }, [data]);
+
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <div className="p-4 border-b border-gray-200">
+        <h3 className="font-semibold">
+          <i className="fas fa-users mr-2" />
+          User Statistics
+        </h3>
+      </div>
+      <div className="p-4 flex items-center justify-center" style={{ height: 280 }}>
+        <Doughnut
+          data={chartData}
+          options={{
+            maintainAspectRatio: false,
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } },
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SubscriptionChart({ data }: { data: DashboardData }) {
+  const chartData = useMemo(() => ({
+    labels: ['Active', 'Pending', 'Expired'],
+    datasets: [
+      {
+        label: 'Subscriptions',
+        data: [
+          data.activeSubscriptions || 0,
+          data.pendingSubscriptions || 0,
+          data.expiredSubscriptions || 0,
+        ],
+        backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+      },
+    ],
+  }), [data]);
+
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <div className="p-4 border-b border-gray-200">
+        <h3 className="font-semibold">
+          <i className="fas fa-credit-card mr-2" />
+          Subscriptions
+        </h3>
+      </div>
+      <div className="p-4" style={{ height: 280 }}>
+        <Bar
+          data={chartData}
+          options={{
+            maintainAspectRatio: false,
+            responsive: true,
+            scales: { y: { beginAtZero: true } },
+          }}
+        />
       </div>
     </div>
   );
@@ -94,6 +183,8 @@ export default function DashboardPage() {
       webSocketManager.on('game:status_changed', () => loadDashboard()),
       webSocketManager.on('user:activity_changed', () => loadDashboard()),
       webSocketManager.on('reservation:created', () => loadDashboard()),
+      webSocketManager.on('reservation:confirmed', () => loadDashboard()),
+      webSocketManager.on('reservation:cancelled', () => loadDashboard()),
     ];
     return () => unsubs.forEach((u) => u());
   }, [loadDashboard]);
@@ -116,6 +207,12 @@ export default function DashboardPage() {
         <StatCard icon="fas fa-ban" iconBg="bg-red-500" label="Banned Users" value={data.bannedUsers || 0} />
         <StatCard icon="fas fa-coins" iconBg="bg-green-500" label="Total Coins" value={(data.totalCoins || 0).toLocaleString()} />
         <StatCard icon="fas fa-user-check" iconBg="bg-blue-500" label="Online Users" value={data.onlineUsers || 0} />
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <UserStatsChart data={data} />
+        <SubscriptionChart data={data} />
       </div>
 
       {/* Scheduler Status */}
