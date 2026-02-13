@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { Dialog } from '@/components/dialog';
 import { UserSearchDialog } from '@/components/user-search-dialog';
+import { Button } from '@/components/button';
 
 interface Conversation {
   id: number;
@@ -141,9 +142,9 @@ export default function MessagesPage() {
       <PageHeader
         title="Messages"
         actions={
-          <button onClick={() => setShowNewConv(true)} className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+          <Button variant="primary" size="lg" onClick={() => setShowNewConv(true)}>
             New Conversation
-          </button>
+          </Button>
         }
       />
       <div className="bg-white rounded-lg shadow flex" style={{ height: 'calc(100vh - 200px)' }}>
@@ -201,9 +202,9 @@ export default function MessagesPage() {
                   )}
                 </div>
                 {isGroup && (
-                  <button onClick={() => { setShowAddAdmin(true); setAddAdminId(''); }} className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700" title="Add Admin">
+                  <Button size="xs" onClick={() => { setShowAddAdmin(true); setAddAdminId(''); }} title="Add Admin">
                     <i className="fas fa-user-plus mr-1" /> Add Admin
-                  </button>
+                  </Button>
                 )}
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -236,9 +237,9 @@ export default function MessagesPage() {
                     placeholder="Type a message..."
                     className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
-                  <button onClick={sendMessage} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer">
+                  <Button size="lg" onClick={sendMessage}>
                     <i className="fas fa-paper-plane" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             </>
@@ -264,8 +265,8 @@ export default function MessagesPage() {
             <input type="number" value={addAdminId} onChange={(e) => setAddAdminId(e.target.value)} placeholder="Enter admin user ID" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setShowAddAdmin(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-            <button onClick={handleAddAdmin} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Add Admin</button>
+            <Button variant="secondary" onClick={() => setShowAddAdmin(false)}>Cancel</Button>
+            <Button onClick={handleAddAdmin}>Add Admin</Button>
           </div>
         </div>
       </Dialog>

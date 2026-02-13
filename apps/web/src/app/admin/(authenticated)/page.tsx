@@ -17,6 +17,7 @@ import { webSocketManager } from '@/lib/websocket';
 import { formatDate } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
+import { Button } from '@/components/button';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
@@ -219,9 +220,9 @@ export default function DashboardPage() {
       <div className="bg-white rounded-lg shadow mb-6">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <h3 className="font-semibold"><i className="fas fa-clock mr-2" />Cron Scheduler Status</h3>
-          <button onClick={loadScheduler} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+          <Button variant="ghost" size="sm" onClick={loadScheduler}>
             <i className="fas fa-sync" />
-          </button>
+          </Button>
         </div>
         <div className="p-4 grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
           <div>

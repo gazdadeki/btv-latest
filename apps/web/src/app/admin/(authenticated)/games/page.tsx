@@ -13,6 +13,7 @@ import { Dialog } from '@/components/dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Tabs } from '@/components/tabs';
 import { UserSearchDialog } from '@/components/user-search-dialog';
+import { Button } from '@/components/button';
 
 /* ────── Types ────── */
 interface Schedule { id: number; name: string }
@@ -458,15 +459,15 @@ export default function GamesPage() {
         const canModify = g.status === 'CREATED' || g.status === 'IN_PROGRESS';
         return (
           <div className="flex gap-1">
-            <button onClick={() => loadGameDetail(g.id)} className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700" title="View"><i className="fas fa-eye" /></button>
+            <Button variant="primary" size="xs" onClick={() => loadGameDetail(g.id)} title="View"><i className="fas fa-eye" /></Button>
             {g.status === 'CREATED' && (
-              <button onClick={() => handleStart(g.id)} className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700" title="Start"><i className="fas fa-play" /></button>
+              <Button variant="success" size="xs" onClick={() => handleStart(g.id)} title="Start"><i className="fas fa-play" /></Button>
             )}
             {g.status === 'IN_PROGRESS' && (
-              <button onClick={() => openFinish(g.id)} className="px-2 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700" title="Finish"><i className="fas fa-stop" /></button>
+              <Button variant="orange" size="xs" onClick={() => openFinish(g.id)} title="Finish"><i className="fas fa-stop" /></Button>
             )}
             {canModify && (
-              <button onClick={() => handleCancel(g.id)} className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700" title="Cancel"><i className="fas fa-times" /></button>
+              <Button variant="danger" size="xs" onClick={() => handleCancel(g.id)} title="Cancel"><i className="fas fa-times" /></Button>
             )}
           </div>
         );
@@ -486,12 +487,12 @@ export default function GamesPage() {
         title="Games"
         actions={
           <div className="flex items-center gap-2">
-            <button onClick={handleCancelAll} className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700">
+            <Button variant="danger" size="lg" onClick={handleCancelAll}>
               Cancel All Active
-            </button>
-            <button onClick={() => setShowCreate(true)} className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+            </Button>
+            <Button variant="primary" size="lg" onClick={() => setShowCreate(true)}>
               New Game
-            </button>
+            </Button>
           </div>
         }
       />
@@ -524,12 +525,13 @@ export default function GamesPage() {
             <label className="block text-xs text-gray-500 mb-1">To</label>
             <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
           </div>
-          <button
+          <Button
+            variant="secondary"
+            size="lg"
             onClick={() => { setFilterStatus(''); setFilterSchedule(''); setFilterStartDate(''); setFilterEndDate(''); }}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             Clear
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -556,8 +558,8 @@ export default function GamesPage() {
             Exclusive to Gold Subscribers
           </label>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Create Game</button>
+            <Button variant="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button onClick={handleCreate}>Create Game</Button>
           </div>
         </div>
       </Dialog>
@@ -620,9 +622,9 @@ export default function GamesPage() {
                   </tbody>
                 </table>
                 <div className="flex justify-end mt-4">
-                  <button onClick={saveGameDetails} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                  <Button onClick={saveGameDetails}>
                     Save Changes
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -632,9 +634,9 @@ export default function GamesPage() {
               <div>
                 {isModifiable && (
                   <div className="mb-3">
-                    <button onClick={() => handleShuffle(detailGame.id)} className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-700">
+                    <Button variant="purple" size="sm" onClick={() => handleShuffle(detailGame.id)}>
                       Shuffle Players
-                    </button>
+                    </Button>
                     <span className="text-xs text-gray-400 ml-2">Randomly reassign non-admin players</span>
                   </div>
                 )}
@@ -669,14 +671,14 @@ export default function GamesPage() {
                           <td className="px-3 py-2">
                             <div className="flex gap-1">
                               {!slot.isReserved && detailGame.status === 'CREATED' && (
-                                <button onClick={() => setSlotAssign({ gameId: detailGame.id, slotId: slot.id })} className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700" title="Assign User">
+                                <Button variant="success" size="xs" onClick={() => setSlotAssign({ gameId: detailGame.id, slotId: slot.id })} title="Assign User">
                                   <i className="fas fa-user-plus" />
-                                </button>
+                                </Button>
                               )}
                               {slot.isReserved && isModifiable && (
-                                <button onClick={() => handleKick(detailGame.id, slot.id)} className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700" title="Kick User">
+                                <Button variant="danger" size="xs" onClick={() => handleKick(detailGame.id, slot.id)} title="Kick User">
                                   <i className="fas fa-user-times" />
-                                </button>
+                                </Button>
                               )}
                             </div>
                           </td>
@@ -697,14 +699,14 @@ export default function GamesPage() {
                 {isModifiable && (
                   <div className="mb-3 flex gap-2">
                     {reservedCount > 0 && (
-                      <button onClick={() => handleConfirmAll(detailGame.id)} className="px-3 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700">
+                      <Button variant="success" size="sm" onClick={() => handleConfirmAll(detailGame.id)}>
                         Confirm All ({reservedCount})
-                      </button>
+                      </Button>
                     )}
                     {confirmedCount > 0 && (
-                      <button onClick={() => handleCancelAllConfirmations(detailGame.id)} className="px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700">
+                      <Button variant="danger" size="sm" onClick={() => handleCancelAllConfirmations(detailGame.id)}>
                         Cancel All Confirmations ({confirmedCount})
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -737,21 +739,22 @@ export default function GamesPage() {
                           <td className="px-3 py-2">
                             <div className="flex gap-1">
                               {r.status === 'RESERVED' && isModifiable && (
-                                <button onClick={() => handleConfirmReservation(detailGame.id, r.slotId)} className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700" title="Confirm">
+                                <Button variant="success" size="xs" onClick={() => handleConfirmReservation(detailGame.id, r.slotId)} title="Confirm">
                                   <i className="fas fa-check" />
-                                </button>
+                                </Button>
                               )}
                               {(r.status === 'EXPIRED' || r.status === 'CANCELLED') && isModifiable && (
-                                <button
+                                <Button
+                                  variant="primary"
+                                  size="xs"
                                   onClick={() => setReReserve({
                                     gameId: detailGame.id, slotId: r.slotId, userId: r.userId,
                                     email: r.user?.email || `User #${r.userId}`, status: r.status,
                                   })}
-                                  className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
                                   title="Re-reserve"
                                 >
                                   <i className="fas fa-redo" />
-                                </button>
+                                </Button>
                               )}
                             </div>
                           </td>
@@ -792,8 +795,8 @@ export default function GamesPage() {
               <p className="text-xs text-gray-400 mt-1">URL to include in finish notifications</p>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setFinishGame(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-              <button onClick={handleFinish} className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700">Finish Game</button>
+              <Button variant="secondary" onClick={() => setFinishGame(null)}>Cancel</Button>
+              <Button variant="success" onClick={handleFinish}>Finish Game</Button>
             </div>
           </div>
         )}
@@ -803,8 +806,8 @@ export default function GamesPage() {
       <Dialog open={nextGameData !== null} onClose={() => setNextGameData(null)} title="Next Game">
         <p className="text-sm text-gray-600 mb-4">Next game found! How would you like to proceed?</p>
         <div className="flex justify-end gap-2">
-          <button onClick={() => setNextGameData(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Start Manually</button>
-          <button onClick={handleStartNext} className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700">Start Now</button>
+          <Button variant="secondary" onClick={() => setNextGameData(null)}>Start Manually</Button>
+          <Button variant="success" onClick={handleStartNext}>Start Now</Button>
         </div>
       </Dialog>
 
@@ -818,8 +821,8 @@ export default function GamesPage() {
             </div>
             <div className="text-sm"><span className="text-gray-500">Current user:</span> {reReserve.email}</div>
             <div className="flex gap-2">
-              <button onClick={handleReReserveSame} className="flex-1 px-3 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Re-reserve for Same User</button>
-              <button onClick={handleReReserveDifferent} className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Re-reserve for Different User</button>
+              <Button className="flex-1" onClick={handleReReserveSame}>Re-reserve for Same User</Button>
+              <Button variant="secondary" className="flex-1" onClick={handleReReserveDifferent}>Re-reserve for Different User</Button>
             </div>
           </div>
         )}

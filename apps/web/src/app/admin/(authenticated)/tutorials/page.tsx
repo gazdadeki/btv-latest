@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { Dialog } from '@/components/dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Button } from '@/components/button';
 
 /* ────── Types ────── */
 interface Tutorial {
@@ -275,9 +276,9 @@ export default function TutorialsPage() {
       id: 'actions', header: 'Actions',
       cell: (info) => (
         <div className="flex gap-1">
-          <button onClick={() => loadDetail(info.row.original.id)} className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700" title="View"><i className="fas fa-eye" /></button>
-          <button onClick={() => openEdit(info.row.original)} className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700" title="Edit"><i className="fas fa-edit" /></button>
-          <button onClick={() => setDeleteTarget(info.row.original.id)} className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700" title="Delete"><i className="fas fa-trash" /></button>
+          <Button variant="primary" size="xs" onClick={() => loadDetail(info.row.original.id)} title="View"><i className="fas fa-eye" /></Button>
+          <Button size="xs" onClick={() => openEdit(info.row.original)} title="Edit"><i className="fas fa-edit" /></Button>
+          <Button variant="danger" size="xs" onClick={() => setDeleteTarget(info.row.original.id)} title="Delete"><i className="fas fa-trash" /></Button>
         </div>
       ),
     }),
@@ -288,9 +289,9 @@ export default function TutorialsPage() {
   return (
     <div>
       <PageHeader title="Tutorials" actions={
-        <button onClick={openCreate} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+        <Button variant="primary" size="lg" onClick={openCreate}>
           <i className="fas fa-plus mr-1" /> New Tutorial
-        </button>
+        </Button>
       } />
 
       {/* Section Tabs */}
@@ -338,7 +339,7 @@ export default function TutorialsPage() {
                   {tags.map((t) => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
                 </select>
               </div>
-              <button onClick={() => { setFilterStatus(''); setFilterFeatured(''); setFilterCategory(''); setFilterTag(''); }} className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Clear</button>
+              <Button variant="secondary" size="lg" onClick={() => { setFilterStatus(''); setFilterFeatured(''); setFilterCategory(''); setFilterTag(''); }}>Clear</Button>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
@@ -352,7 +353,7 @@ export default function TutorialsPage() {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex gap-2 mb-4">
             <input value={newTagName} onChange={(e) => setNewTagName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addTag()} placeholder="New tag name" className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1" />
-            <button onClick={addTag} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Add</button>
+            <Button variant="primary" size="lg" onClick={addTag}>Add</Button>
           </div>
           <div className="flex flex-wrap gap-2">
             {tags.map((t) => (
@@ -372,7 +373,7 @@ export default function TutorialsPage() {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex gap-2 mb-4">
             <input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCategory()} placeholder="New category name" className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1" />
-            <button onClick={addCategory} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Add</button>
+            <Button variant="primary" size="lg" onClick={addCategory}>Add</Button>
           </div>
           <div className="flex flex-wrap gap-2">
             {categories.map((c) => (
@@ -443,8 +444,8 @@ export default function TutorialsPage() {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setEditOpen(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-            <button onClick={handleSave} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
+            <Button variant="secondary" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave}>Save</Button>
           </div>
         </div>
       </Dialog>
@@ -488,8 +489,8 @@ export default function TutorialsPage() {
             <input value={editTagName} onChange={(e) => setEditTagName(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setEditTag(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-            <button onClick={saveEditTag} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
+            <Button variant="secondary" onClick={() => setEditTag(null)}>Cancel</Button>
+            <Button onClick={saveEditTag}>Save</Button>
           </div>
         </div>
       </Dialog>
@@ -506,8 +507,8 @@ export default function TutorialsPage() {
             <textarea value={editCatDesc} onChange={(e) => setEditCatDesc(e.target.value)} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setEditCat(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-            <button onClick={saveEditCat} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
+            <Button variant="secondary" onClick={() => setEditCat(null)}>Cancel</Button>
+            <Button onClick={saveEditCat}>Save</Button>
           </div>
         </div>
       </Dialog>

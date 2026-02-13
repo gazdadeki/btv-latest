@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { Button } from './button';
 
 interface DialogProps {
   open: boolean;
@@ -24,12 +25,9 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold">{title}</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none cursor-pointer"
-          >
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-xl leading-none">
             &times;
-          </button>
+          </Button>
         </div>
         <div className="p-4">{children}</div>
       </div>

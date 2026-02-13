@@ -9,6 +9,7 @@ import { DataTable } from '@/components/data-table';
 import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Button } from '@/components/button';
 
 interface Subscription {
   id: number;
@@ -96,13 +97,14 @@ export default function SubscriptionsPage() {
       header: 'Actions',
       cell: (info) =>
         info.row.original.status === 'ACTIVE' ? (
-          <button
+          <Button
+            variant="danger"
+            size="xs"
             onClick={() => setCancelTarget(info.row.original.userId)}
-            className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
           >
             <i className="fas fa-times mr-1" />
             Cancel
-          </button>
+          </Button>
         ) : null,
     }),
   ];

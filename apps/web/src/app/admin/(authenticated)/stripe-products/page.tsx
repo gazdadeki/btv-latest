@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { Dialog } from '@/components/dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Button } from '@/components/button';
 
 interface StripeProduct {
   id: number;
@@ -219,18 +220,18 @@ export default function StripeProductsPage() {
         const p = info.row.original;
         return (
           <div className="flex gap-1">
-            <button onClick={() => openEdit(p)} className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700">
+            <Button size="xs" onClick={() => openEdit(p)}>
               <i className="fas fa-edit" />
-            </button>
+            </Button>
             {p.syncStatus !== 'synced' && (
-              <button onClick={() => handleSync(p.id)} className="px-2 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600">
+              <Button variant="warning" size="xs" onClick={() => handleSync(p.id)}>
                 <i className="fas fa-sync" />
-              </button>
+              </Button>
             )}
             {!p.isArchived && (
-              <button onClick={() => setArchiveTarget(p.id)} className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700">
+              <Button variant="danger" size="xs" onClick={() => setArchiveTarget(p.id)}>
                 <i className="fas fa-archive" />
-              </button>
+              </Button>
             )}
           </div>
         );
@@ -254,12 +255,12 @@ export default function StripeProductsPage() {
               <option value="active">Active Only</option>
               <option value="all">All Products</option>
             </select>
-            <button onClick={handleSyncAll} className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700">
+            <Button variant="success" size="lg" onClick={handleSyncAll}>
               <i className="fas fa-sync mr-1" /> Sync from Stripe
-            </button>
-            <button onClick={openCreate} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+            </Button>
+            <Button variant="primary" size="lg" onClick={openCreate}>
               <i className="fas fa-plus mr-1" /> Create Product
-            </button>
+            </Button>
           </div>
         }
       />
@@ -318,8 +319,8 @@ export default function StripeProductsPage() {
             Active
           </label>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-            <button onClick={handleSave} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave}>Save</Button>
           </div>
         </div>
       </Dialog>

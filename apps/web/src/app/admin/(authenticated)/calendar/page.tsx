@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { Dialog } from '@/components/dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Button } from '@/components/button';
 
 /* ────── Types ────── */
 interface CalendarEvent {
@@ -117,7 +118,9 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<ViewType>('month');
   const [detail, setDetail] = useState<CalendarEvent | null>(null);
-  const [generateDialog, setGenerateDialog] = useState<{ scheduleId: number; date: string } | null>(null);
+  const [generateDialog, setGenerateDialog] = useState<{
+    scheduleId: number; date: string; event: CalendarEvent;
+  } | null>(null);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [confirmAction, setConfirmAction] = useState<{
     title: string; message: string; onConfirm: () => void;
@@ -145,8 +148,14 @@ export default function CalendarPage() {
         startDate: start.toISOString().split('T')[0],
         endDate: wide.toISOString().split('T')[0],
       });
-      const list = Array.isArray(res) ? res : (res as { data?: CalendarEvent[] }).data || [];
-      setEvents(list as CalendarEvent[]);
+      const data = res as { dates?: Array<{ date: string; games: CalendarEvent[] }> };
+      const list = data.dates?.flatMap(d =>
+        d.games.map(g => ({
+          ...g,
+          isPseudo: g.status === 'PSEUDO',
+        }))
+      ) || [];
+      setEvents(list);
     } catch (err) {
       toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
@@ -198,6 +207,7 @@ export default function CalendarPage() {
       setGenerateDialog({
         scheduleId: ev.scheduleId || ev.schedule?.id || 0,
         date: new Date(ev.scheduledStartTime).toISOString().split('T')[0],
+        event: ev,
       });
       return;
     }
@@ -224,6 +234,9 @@ export default function CalendarPage() {
   /* ─── Render event pill with status icon ─── */
   const EventPill = ({ ev, compact = false }: { ev: CalendarEvent; compact?: boolean }) => {
     const icon = ev.isPseudo ? STATUS_ICONS.PSEUDO : (STATUS_ICONS[ev.status] || 'fa-circle');
+    const scheduleName = ev.schedule?.name || ev.scheduleName || 'Game';
+    const orderIndex = ev.orderIndex || 1;
+    const label = `${scheduleName} - Game ${orderIndex}`;
     return (
       <button
         onClick={() => handleEventClick(ev)}
@@ -232,8 +245,8 @@ export default function CalendarPage() {
         title={getEventTooltip(ev)}
       >
         <i className={`fas ${icon} text-[9px] shrink-0 opacity-80`} />
-        {compact && <span>{formatHM(ev.scheduledStartTime)}</span>}
-        <span className="truncate">{ev.schedule?.name || ev.scheduleName || `Game #${ev.id}`}</span>
+        <span>{formatHM(ev.scheduledStartTime)}</span>
+        <span className="truncate">{label}</span>
         {ev.isPseudo && <span className="opacity-70">*</span>}
         {ev.isExclusiveToGold && !ev.isPseudo && <i className="fas fa-crown text-[8px] shrink-0 opacity-80" />}
       </button>
@@ -260,20 +273,22 @@ export default function CalendarPage() {
                   {v.charAt(0).toUpperCase() + v.slice(1)}
                 </button>
               ))}
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => {
                   setCurrentDate(new Date());
                   load();
                 }}
-                className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50 cursor-pointer"
               >
                 Today
-              </button>
+              </Button>
             </div>
 
             <div className="w-px h-6 bg-gray-300" />
 
-            <button
+            <Button
+              size="lg"
               onClick={async () => {
                 setRefreshing(true);
                 await load();
@@ -281,11 +296,10 @@ export default function CalendarPage() {
                 toast.success('Calendar refreshed');
               }}
               disabled={refreshing}
-              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer disabled:opacity-50"
             >
               <i className={`fas fa-sync mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
               {refreshing ? 'Refreshing...' : 'Refresh'}
-            </button>
+            </Button>
           </div>
         }
       />
@@ -293,13 +307,13 @@ export default function CalendarPage() {
       <div className="bg-white rounded-lg shadow p-6">
         {/* Navigation */}
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => navigate(-1)} className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer">
+          <Button variant="secondary" size="sm" onClick={() => navigate(-1)}>
             <i className="fas fa-chevron-left" />
-          </button>
+          </Button>
           <h2 className="text-xl font-semibold">{title()}</h2>
-          <button onClick={() => navigate(1)} className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer">
+          <Button variant="secondary" size="sm" onClick={() => navigate(1)}>
             <i className="fas fa-chevron-right" />
-          </button>
+          </Button>
         </div>
 
         {/* ─── Month View ─── */}
@@ -550,18 +564,36 @@ export default function CalendarPage() {
       </Dialog>
 
       {/* ═══ Generate Game Dialog ═══ */}
-      <Dialog open={generateDialog !== null} onClose={() => setGenerateDialog(null)} title="Generate Games">
-        {generateDialog && (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              This is a scheduled (pseudo) event for <strong>{generateDialog.date}</strong>. Would you like to generate actual games for this schedule?
-            </p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setGenerateDialog(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer">Cancel</button>
-              <button onClick={handleGenerate} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer">Generate Games</button>
+      <Dialog open={generateDialog !== null} onClose={() => setGenerateDialog(null)} title="Game Details" className="max-w-2xl">
+        {generateDialog && (() => {
+          const ev = generateDialog.event;
+          return (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                <i className="fas fa-info-circle" />
+                This is a pseudo game (not yet generated).
+              </div>
+
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-gray-100">
+                  <tr><td className="py-2 font-medium w-1/3">Schedule</td><td>{ev.schedule?.name || ev.scheduleName || 'N/A'}</td></tr>
+                  <tr>
+                    <td className="py-2 font-medium">Status</td>
+                    <td><span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">PSEUDO</span></td>
+                  </tr>
+                  <tr><td className="py-2 font-medium">Scheduled Start Time</td><td>{formatDate(ev.scheduledStartTime)}</td></tr>
+                  <tr><td className="py-2 font-medium">Gold Exclusive</td><td>{ev.isExclusiveToGold ? 'Yes' : 'No'}</td></tr>
+                  <tr><td className="py-2 font-medium">Order Index</td><td>Game {ev.orderIndex || 1}</td></tr>
+                </tbody>
+              </table>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setGenerateDialog(null)}>Cancel</Button>
+                <Button onClick={handleGenerate}>Generate Game</Button>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </Dialog>
 
       <ConfirmDialog open={confirmAction !== null} title={confirmAction?.title || ''} message={confirmAction?.message || ''} onConfirm={() => confirmAction?.onConfirm()} onCancel={() => setConfirmAction(null)} />

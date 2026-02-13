@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { Dialog } from '@/components/dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Button } from '@/components/button';
 import { Tabs } from '@/components/tabs';
 
 /* ────── Types ────── */
@@ -324,10 +325,10 @@ export default function SchedulesPage() {
         const s = info.row.original;
         return (
           <div className="flex gap-1">
-            <button onClick={() => loadDetail(s.id)} className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700" title="View"><i className="fas fa-eye" /></button>
-            <button onClick={() => { setGenerateTarget(s.id); setGenerateDate(new Date().toISOString().split('T')[0]); }} className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700" title="Generate Games"><i className="fas fa-calendar-plus" /></button>
-            <button onClick={() => handleCancelGames(s.id)} className="px-2 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700" title="Cancel Games"><i className="fas fa-ban" /></button>
-            <button onClick={() => setDeleteTarget(s.id)} className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700" title="Delete"><i className="fas fa-trash" /></button>
+            <Button variant="primary" size="xs" onClick={() => loadDetail(s.id)} title="View"><i className="fas fa-eye" /></Button>
+            <Button variant="success" size="xs" onClick={() => { setGenerateTarget(s.id); setGenerateDate(new Date().toISOString().split('T')[0]); }} title="Generate Games"><i className="fas fa-calendar-plus" /></Button>
+            <Button variant="orange" size="xs" onClick={() => handleCancelGames(s.id)} title="Cancel Games"><i className="fas fa-ban" /></Button>
+            <Button variant="danger" size="xs" onClick={() => setDeleteTarget(s.id)} title="Delete"><i className="fas fa-trash" /></Button>
           </div>
         );
       },
@@ -451,9 +452,9 @@ export default function SchedulesPage() {
               <option value="inactive">Inactive Only</option>
               <option value="all">All Schedules</option>
             </select>
-            <button onClick={() => { setShowCreate(true); setCreateForm(defaultCreate()); setCreateStep(1); }} className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+            <Button variant="primary" size="lg" onClick={() => { setShowCreate(true); setCreateForm(defaultCreate()); setCreateStep(1); }}>
               New Schedule
-            </button>
+            </Button>
           </div>
         }
       />
@@ -491,7 +492,7 @@ export default function SchedulesPage() {
             {fRow('Reminder Minutes', fInput(createForm, 'reminderMinutes', setCreateForm, 'text', '30,15'))}
             {fCheck(createForm, 'isExclusiveToGold', setCreateForm, 'Exclusive to Gold Subscribers')}
             <div className="flex justify-end pt-2">
-              <button onClick={() => setCreateStep(2)} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Next: Recurrence</button>
+              <Button onClick={() => setCreateStep(2)}>Next: Recurrence</Button>
             </div>
           </div>
         )}
@@ -504,8 +505,8 @@ export default function SchedulesPage() {
               <div className="p-3 bg-indigo-50 text-indigo-800 rounded text-sm">{recurrencePreview}</div>
             )}
             <div className="flex justify-between pt-2">
-              <button onClick={() => setCreateStep(1)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Back</button>
-              <button onClick={() => setCreateStep(3)} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Next: Slots</button>
+              <Button variant="secondary" onClick={() => setCreateStep(1)}>Back</Button>
+              <Button onClick={() => setCreateStep(3)}>Next: Slots</Button>
             </div>
           </div>
         )}
@@ -515,8 +516,8 @@ export default function SchedulesPage() {
           <div className="space-y-4">
             {slotConfigForm(createSlots, setCreateSlots)}
             <div className="flex justify-between pt-2">
-              <button onClick={() => setCreateStep(2)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Back</button>
-              <button onClick={handleCreate} className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700">Create Schedule</button>
+              <Button variant="secondary" onClick={() => setCreateStep(2)}>Back</Button>
+              <Button variant="success" onClick={handleCreate}>Create Schedule</Button>
             </div>
           </div>
         )}
@@ -538,7 +539,7 @@ export default function SchedulesPage() {
                 onTabChange={setDetailTab}
               />
               {!editMode && (
-                <button onClick={enterEdit} className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 mb-4 shrink-0 ml-4">Edit</button>
+                <Button size="sm" className="shrink-0 ml-4 mb-4" onClick={enterEdit}>Edit</Button>
               )}
             </div>
 
@@ -586,8 +587,8 @@ export default function SchedulesPage() {
                   {fCheck({ propagate }, 'propagate', (v) => setPropagate(!!v.propagate), 'Propagate changes now (cancel CREATED games and regenerate)')}
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
-                  <button onClick={() => setEditMode(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-                  <button onClick={handleSaveEdit} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
+                  <Button variant="secondary" onClick={() => setEditMode(false)}>Cancel</Button>
+                  <Button onClick={handleSaveEdit}>Save</Button>
                 </div>
               </div>
             )}
@@ -615,8 +616,8 @@ export default function SchedulesPage() {
               <div className="space-y-3">
                 {recurrenceForm(editForm, setEditForm)}
                 <div className="flex justify-end gap-2 pt-2">
-                  <button onClick={() => setEditMode(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-                  <button onClick={handleSaveEdit} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
+                  <Button variant="secondary" onClick={() => setEditMode(false)}>Cancel</Button>
+                  <Button onClick={handleSaveEdit}>Save</Button>
                 </div>
               </div>
             )}
@@ -655,8 +656,8 @@ export default function SchedulesPage() {
               <div className="space-y-3">
                 {slotConfigForm(editSlots, setEditSlots)}
                 <div className="flex justify-end gap-2 pt-2">
-                  <button onClick={() => setEditMode(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-                  <button onClick={handleSaveEdit} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
+                  <Button variant="secondary" onClick={() => setEditMode(false)}>Cancel</Button>
+                  <Button onClick={handleSaveEdit}>Save</Button>
                 </div>
               </div>
             )}
@@ -703,8 +704,8 @@ export default function SchedulesPage() {
             This will cancel all dangling games for this schedule and generate new games for the selected date.
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setGenerateTarget(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-            <button onClick={handleGenerate} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Generate</button>
+            <Button variant="secondary" onClick={() => setGenerateTarget(null)}>Cancel</Button>
+            <Button onClick={handleGenerate}>Generate</Button>
           </div>
         </div>
       </Dialog>

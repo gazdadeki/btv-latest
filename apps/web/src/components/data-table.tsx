@@ -12,6 +12,7 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
+import { Button } from './button';
 
 interface DataTableProps<TData> {
   columns: ColumnDef<TData, unknown>[];
@@ -50,7 +51,7 @@ export function DataTable<TData>({
           placeholder={searchPlaceholder}
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         <span className="text-sm text-gray-500">
           {table.getFilteredRowModel().rows.length} results
@@ -58,7 +59,7 @@ export function DataTable<TData>({
       </div>
 
       <div className="overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="w-full text-sm">
+        <table className="w-full text-[0.9rem] leading-relaxed">
           <thead className="bg-gray-50 border-b border-gray-200">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
@@ -66,7 +67,7 @@ export function DataTable<TData>({
                   <th
                     key={header.id}
                     className={cn(
-                      'px-4 py-3 text-left font-medium text-gray-600',
+                      'px-5 py-3.5 text-left font-semibold text-gray-600',
                       header.column.getCanSort() && 'cursor-pointer select-none hover:text-gray-900',
                     )}
                     onClick={header.column.getToggleSortingHandler()}
@@ -88,7 +89,7 @@ export function DataTable<TData>({
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-4 py-8 text-center text-gray-400"
+                  className="px-5 py-10 text-center text-gray-400"
                 >
                   No data available
                 </td>
@@ -97,7 +98,7 @@ export function DataTable<TData>({
               table.getRowModel().rows.map((row) => (
                 <tr key={row.id} className="hover:bg-gray-50">
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-3">
+                    <td key={cell.id} className="px-5 py-3.5">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -113,20 +114,22 @@ export function DataTable<TData>({
           Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
         </div>
         <div className="flex gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="md"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50"
           >
             Previous
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            size="md"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50"
           >
             Next
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { Dialog } from '@/components/dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Button } from '@/components/button';
 import { Tabs } from '@/components/tabs';
 
 /* ────── Types ────── */
@@ -349,21 +350,21 @@ export default function UsersPage() {
         const u = info.row.original;
         return (
           <div className="flex gap-1 flex-wrap">
-            <button onClick={() => loadDetail(u.id)} className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700" title="View"><i className="fas fa-eye" /></button>
-            <button onClick={() => openEdit(u)} className="px-2 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600" title="Edit"><i className="fas fa-edit" /></button>
-            <button onClick={() => openStripe(u)} className="px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700" title="Stripe"><i className="fab fa-stripe-s" /></button>
+            <Button variant="primary" size="xs" onClick={() => loadDetail(u.id)} title="View"><i className="fas fa-eye" /></Button>
+            <Button variant="warning" size="xs" onClick={() => openEdit(u)} title="Edit"><i className="fas fa-edit" /></Button>
+            <Button variant="purple" size="xs" onClick={() => openStripe(u)} title="Stripe"><i className="fab fa-stripe-s" /></Button>
             {!u.isVerified && (
               <>
-                <button onClick={() => handleRequestVerification(u)} className="px-2 py-1 text-xs bg-cyan-600 text-white rounded hover:bg-cyan-700" title="Verification Code"><i className="fas fa-envelope" /></button>
-                <button onClick={() => handleVerifyInstantly(u)} className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700" title="Verify"><i className="fas fa-check-circle" /></button>
+                <Button variant="cyan" size="xs" onClick={() => handleRequestVerification(u)} title="Verification Code"><i className="fas fa-envelope" /></Button>
+                <Button variant="success" size="xs" onClick={() => handleVerifyInstantly(u)} title="Verify"><i className="fas fa-check-circle" /></Button>
               </>
             )}
             {u.isBanned ? (
-              <button onClick={() => handleUnban(u.id)} className="px-2 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600" title="Unban"><i className="fas fa-unlock" /></button>
+              <Button variant="warning" size="xs" onClick={() => handleUnban(u.id)} title="Unban"><i className="fas fa-unlock" /></Button>
             ) : (
-              <button onClick={() => { setBanTarget(u.id); setBanType('permanent'); }} className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700" title="Ban"><i className="fas fa-ban" /></button>
+              <Button variant="danger" size="xs" onClick={() => { setBanTarget(u.id); setBanType('permanent'); }} title="Ban"><i className="fas fa-ban" /></Button>
             )}
-            <button onClick={() => { setDeleteTarget(u); setDeleteReason(''); }} className="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700" title="Delete"><i className="fas fa-trash" /></button>
+            <Button size="xs" className="bg-gray-600 text-white hover:bg-gray-700" onClick={() => { setDeleteTarget(u); setDeleteReason(''); }} title="Delete"><i className="fas fa-trash" /></Button>
           </div>
         );
       },
@@ -397,9 +398,9 @@ export default function UsersPage() {
               <option value="true">Verified</option>
               <option value="false">Unverified</option>
             </select>
-            <button onClick={() => setShowCreate(true)} className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+            <Button variant="primary" size="lg" onClick={() => setShowCreate(true)}>
               New User
-            </button>
+            </Button>
           </div>
         }
       />
@@ -434,8 +435,8 @@ export default function UsersPage() {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Create User</button>
+            <Button variant="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button onClick={handleCreate}>Create User</Button>
           </div>
         </div>
       </Dialog>
@@ -466,8 +467,8 @@ export default function UsersPage() {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setEditOpen(false)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-            <button onClick={saveEdit} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
+            <Button variant="secondary" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={saveEdit}>Save</Button>
           </div>
         </div>
       </Dialog>
@@ -536,7 +537,7 @@ export default function UsersPage() {
                   <div className="flex gap-2">
                     <input type="number" value={grantAmount} onChange={(e) => setGrantAmount(e.target.value)} placeholder="Amount" min={1} className="w-24 border border-gray-300 rounded px-2 py-1.5 text-sm" />
                     <input type="text" value={grantDesc} onChange={(e) => setGrantDesc(e.target.value)} placeholder="Description" className="flex-1 border border-gray-300 rounded px-2 py-1.5 text-sm" />
-                    <button onClick={handleGrantCoins} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700">Grant</button>
+                    <Button variant="success" size="sm" onClick={handleGrantCoins}>Grant</Button>
                   </div>
                 </div>
                 <div className="overflow-x-auto border border-gray-200 rounded-lg">
@@ -629,19 +630,19 @@ export default function UsersPage() {
                     {stripeInfo.name && <tr><td className="py-2 font-medium">Name</td><td>{stripeInfo.name}</td></tr>}
                   </tbody>
                 </table>
-                <button onClick={handleUnlinkStripe} className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700">
+                <Button variant="danger" onClick={handleUnlinkStripe}>
                   Unlink Customer
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="space-y-3">
                 <p className="text-sm text-gray-500">No Stripe customer linked.</p>
                 <div className="flex gap-2">
                   <input type="text" value={stripeLinkId} onChange={(e) => setStripeLinkId(e.target.value)} placeholder="Stripe Customer ID (cus_...)" className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm" />
-                  <button onClick={handleLinkStripe} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Link</button>
+                  <Button onClick={handleLinkStripe}>Link</Button>
                 </div>
                 <div className="border-t pt-3">
-                  <button onClick={handleCreateStripeCustomer} className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700">Create New Customer</button>
+                  <Button variant="success" onClick={handleCreateStripeCustomer}>Create New Customer</Button>
                 </div>
               </div>
             )}
@@ -658,8 +659,8 @@ export default function UsersPage() {
           </div>
           {banType === 'temporary' && fRow('Ban for how many days?', <input type="number" value={banDays} onChange={(e) => setBanDays(e.target.value)} min="1" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />)}
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setBanTarget(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-            <button onClick={handleBan} className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700">Ban User</button>
+            <Button variant="secondary" onClick={() => setBanTarget(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleBan}>Ban User</Button>
           </div>
         </div>
       </Dialog>
@@ -674,8 +675,8 @@ export default function UsersPage() {
               <textarea value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Reason for deletion..." />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-              <button onClick={handleDelete} className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700">Delete</button>
+              <Button variant="secondary" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+              <Button variant="danger" onClick={handleDelete}>Delete</Button>
             </div>
           </div>
         )}
@@ -687,9 +688,9 @@ export default function UsersPage() {
           <div className="p-4 bg-gray-50 rounded-lg">
             <p className="text-2xl font-mono font-bold tracking-widest">{verifyCode}</p>
           </div>
-          <button onClick={() => { navigator.clipboard.writeText(verifyCode || ''); toast.success('Copied!'); }} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+          <Button onClick={() => { navigator.clipboard.writeText(verifyCode || ''); toast.success('Copied!'); }}>
             Copy to Clipboard
-          </button>
+          </Button>
         </div>
       </Dialog>
 

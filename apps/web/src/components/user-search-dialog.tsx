@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Dialog } from './dialog';
+import { Button } from './button';
 import { api } from '@/lib/api';
 
 interface User {
@@ -170,19 +171,15 @@ export function UserSearchDialog({
 
         {multiSelect && (
           <div className="flex justify-end gap-2 pt-2 border-t border-gray-200">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-            >
+            <Button variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleConfirmMulti}
               disabled={selectedUsers.length === 0}
-              className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
             >
               Create Conversation ({selectedUsers.length})
-            </button>
+            </Button>
           </div>
         )}
       </div>
