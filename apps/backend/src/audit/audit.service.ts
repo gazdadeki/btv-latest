@@ -82,6 +82,9 @@ export class AuditService {
   }
 
   async findOne(id: number): Promise<AuditLog> {
-    return this.auditLogRepository.findOne({ where: { id } });
+    return this.auditLogRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
   }
 }

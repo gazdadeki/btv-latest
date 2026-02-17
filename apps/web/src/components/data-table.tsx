@@ -19,6 +19,8 @@ interface DataTableProps<TData> {
   data: TData[];
   searchPlaceholder?: string;
   pageSize?: number;
+  hidePagination?: boolean;
+  hideResultCount?: boolean;
 }
 
 export function DataTable<TData>({
@@ -26,6 +28,8 @@ export function DataTable<TData>({
   data,
   searchPlaceholder = 'Search...',
   pageSize = 25,
+  hidePagination = false,
+  hideResultCount = false,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -45,7 +49,7 @@ export function DataTable<TData>({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-end mb-4">
         <input
           type="text"
           placeholder={searchPlaceholder}
@@ -53,9 +57,11 @@ export function DataTable<TData>({
           onChange={(e) => setGlobalFilter(e.target.value)}
           className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
-        <span className="text-sm text-gray-500">
-          {table.getFilteredRowModel().rows.length} results
-        </span>
+        {!hideResultCount && (
+          <span className="text-sm text-gray-500 ml-4">
+            {table.getFilteredRowModel().rows.length} results
+          </span>
+        )}
       </div>
 
       <div className="overflow-x-auto border border-gray-200 rounded-lg">
@@ -109,29 +115,31 @@ export function DataTable<TData>({
         </table>
       </div>
 
-      <div className="flex items-center justify-between mt-4">
-        <div className="text-sm text-gray-500">
-          Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+      {!hidePagination && (
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-sm text-gray-500">
+            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -228,6 +228,13 @@ export default function SchedulesPage() {
     if (!detail) return;
     const f = editForm;
     const reminders = String(f.reminderMinutes || '').split(',').map(Number).filter(Boolean);
+    const cleanSlots = editSlots.map(({ slotNumber, team, isGoldOnly, coinsCost, preAssignedUserId }) => ({
+      slotNumber,
+      team,
+      isGoldOnly: !!isGoldOnly,
+      coinsCost: coinsCost != null ? Number(coinsCost) : null,
+      preAssignedUserId: preAssignedUserId != null ? Number(preAssignedUserId) : null,
+    }));
     try {
       await api.updateSchedule(detail.id, {
         name: f.name, description: f.description || null,
@@ -248,7 +255,7 @@ export default function SchedulesPage() {
         url: f.url || null,
         recurrenceType: f.recurrenceType as string,
         recurrenceDays: (f.recurrenceDays as number[])?.length > 0 ? f.recurrenceDays : null,
-        slotConfigs: editSlots,
+        slotConfigs: cleanSlots,
         propagateNow: propagate,
       });
       toast.success('Schedule updated');

@@ -205,13 +205,13 @@ export const api = {
   createStripeProduct: (data: Record<string, unknown>) =>
     apiRequest('/admin/stripe/products', { method: 'POST', body: JSON.stringify(data) }),
   updateStripeProduct: (id: number, data: Record<string, unknown>) =>
-    apiRequest(`/admin/stripe/products/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    apiRequest(`/admin/stripe/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   archiveStripeProduct: (id: number) =>
-    apiRequest(`/admin/stripe/products/${id}/archive`, { method: 'POST' }),
+    apiRequest(`/admin/stripe/products/${id}`, { method: 'DELETE' }),
   syncStripeProduct: (id: number) =>
     apiRequest(`/admin/stripe/products/${id}/sync`, { method: 'POST' }),
   syncFromStripe: () =>
-    apiRequest('/admin/stripe/sync', { method: 'POST' }),
+    apiRequest('/admin/stripe/products/sync-from-stripe', { method: 'POST' }),
 
   // ─── Tutorials ────────────────────────────────────────
   getTutorials: (params?: Record<string, string | undefined>) =>

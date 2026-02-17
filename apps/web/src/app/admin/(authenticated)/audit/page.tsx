@@ -19,7 +19,7 @@ interface AuditLog {
   userId?: number;
   action: string;
   entityType: string;
-  entityId?: number;
+  entityId?: string;
   details?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
@@ -28,24 +28,40 @@ interface AuditLog {
 
 const columnHelper = createColumnHelper<AuditLog>();
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 export default function AuditPage() {
   const [data, setData] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<AuditLog | null>(null);
   const [detailTab, setDetailTab] = useState('basic');
 
+  // Server-side pagination
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(25);
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
   const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const result = (await api.getAuditLogs()) as { data?: AuditLog[] } | AuditLog[];
-      setData(Array.isArray(result) ? result : (result as { data?: AuditLog[] }).data || []);
+      const result = (await api.getAuditLogs({
+        page: String(page),
+        limit: String(limit),
+      })) as { data: AuditLog[]; total: number };
+      setData(result.data);
+      setTotal(result.total);
     } catch (err) {
       toast.error(`Failed to load audit logs: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, limit]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleViewDetail = async (log: AuditLog) => {
     try {
@@ -105,8 +121,6 @@ export default function AuditPage() {
     }),
   ];
 
-  if (loading) return <PageLoading />;
-
   const tabs = [
     { id: 'basic', label: 'Basic' },
     { id: 'details', label: 'Details' },
@@ -117,8 +131,59 @@ export default function AuditPage() {
   return (
     <div>
       <PageHeader title="Audit Logs" />
+
       <div className="bg-white rounded-lg shadow p-6">
-        <DataTable columns={columns} data={data} searchPlaceholder="Search audit logs..." />
+        {loading ? (
+          <PageLoading />
+        ) : (
+          <>
+            <DataTable columns={columns} data={data} searchPlaceholder="Search audit logs..." pageSize={limit} hidePagination hideResultCount />
+
+            {/* Pagination & per-page controls */}
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center gap-2">
+                <label htmlFor="pageSize" className="text-sm text-gray-500">Show</label>
+                <select
+                  id="pageSize"
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {PAGE_SIZE_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                <span className="text-sm text-gray-500">entries</span>
+              </div>
+
+              <span className="text-sm text-gray-500">
+                Page {page} of {totalPages} ({total} total)
+              </span>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={page <= 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <Dialog
