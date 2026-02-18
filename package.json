@@ -13,6 +13,7 @@
     "dev": "turbo dev",
     "dev:backend": "turbo dev --filter=@btv/backend",
     "dev:web": "turbo dev --filter=@btv/web",
+    "dev:mobile": "turbo dev --filter=@btv/mobile",
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test"
