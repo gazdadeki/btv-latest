@@ -31,8 +31,7 @@ export class SchedulerService {
     private dataSource: DataSource,
   ) {}
 
-  // @Cron('0 6 * * *')
-  @Cron('0,30 17,18 * * *')
+  @Cron(CronExpression.EVERY_10_MINUTES)
   async handleEventGeneration() {
     await this.withDbLock('scheduler:event_generation', 1, async () => {
       const startedAt = Date.now();
@@ -60,7 +59,28 @@ export class SchedulerService {
     });
   }
 
-  // @Cron('* * * * *')
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async handleReservationOpening() {
+    await this.withDbLock('scheduler:reservation_opening', 1, async () => {
+      const startedAt = Date.now();
+      try {
+        this.logger.log('Starting reservation opening check');
+        const openedCount =
+          await this.eventGenerationService.openGamesForReservation();
+        if (openedCount > 0) {
+          this.logger.log(
+            `Reservation opening completed (games opened: ${openedCount}, durationMs: ${Date.now() - startedAt})`,
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          `Reservation opening failed: ${error instanceof Error ? error.message : String(error)}`,
+          error,
+        );
+      }
+    });
+  }
+
   @Cron(CronExpression.EVERY_5_MINUTES)
   async handleConfirmationCheck() {
     await this.withDbLock('scheduler:confirmation_check', 1, async () => {

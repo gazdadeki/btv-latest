@@ -7,6 +7,7 @@ import { WebsocketService } from '../websocket/websocket.service';
 import { GamesBatchChangedPayload, WebsocketEvents } from '../websocket/events';
 import { shouldEmitPerGameEvents } from '../games/bulk-game-event-mode';
 import { AuditService } from '../audit/audit.service';
+import { toUtcDateString } from '../common/date.utils';
 
 @Injectable()
 export class GameGenerationService {
@@ -49,13 +50,7 @@ export class GameGenerationService {
     }
 
     if (createdCount > 0 || cancelledCount > 0) {
-      const dateKey = new Date(
-        targetDate.getFullYear(),
-        targetDate.getMonth(),
-        targetDate.getDate(),
-      )
-        .toISOString()
-        .split('T')[0];
+      const dateKey = toUtcDateString(targetDate);
       const action: GamesBatchChangedPayload['action'] =
         createdCount > 0 ? 'generated' : 'cancelled';
       const payload: GamesBatchChangedPayload = {

@@ -37,15 +37,14 @@ Installation steps above are the current source of truth for this repository sna
 
 Automated setup scripts are not included in this repository snapshot.
 
-## Frontend (React)
+## Frontend
 
-- Admin SPA lives in `frontend/admin-ui` and builds to `public/admin`.
-- Public UI lives in `frontend/public-ui` and builds to `public/ui`.
-- Build steps (run from each app directory):
-  - `npm install`
-  - `npm run build`
-- Dev server (optional): `npm run dev` in each app. The Nest server serves the built files from `public/`.
-- Legacy static files in `public/admin` remain for parity checks; remove once parity is confirmed.
+This backend is part of a Turborepo monorepo. The frontend lives in the monorepo root.
+
+- Admin panel + public pages (`/downloads`, `/reset-password`) are served by `apps/web` (Next.js, port 3001).
+- Run all services from the monorepo root: `npm run dev`
+- Run only the backend: `npm run dev:backend`
+- Build all: `npm run build`
 
 ## Production
 

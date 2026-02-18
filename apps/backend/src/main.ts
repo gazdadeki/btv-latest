@@ -1,26 +1,31 @@
 import { config } from 'dotenv';
 import { join } from 'path';
 
-// Load .env file immediately with explicit path
+// Load .env file if present; in production, env vars are injected by the runtime
 const envPath = join(process.cwd(), '.env');
 const result = config({ path: envPath });
 
 if (result.error) {
-  console.error(
-    `[CRITICAL] Failed to load .env file from ${envPath}: ${result.error.message}`,
-  );
-  console.error(`[CRITICAL] Current working directory: ${process.cwd()}`);
-  process.exit(1);
+  const isFileNotFound =
+    (result.error as NodeJS.ErrnoException).code === 'ENOENT';
+  if (isFileNotFound) {
+    console.warn(
+      `[WARN] No .env file found at ${envPath} — expecting env vars from the runtime environment`,
+    );
+  } else {
+    console.error(
+      `[CRITICAL] Failed to parse .env file at ${envPath}: ${result.error.message}`,
+    );
+    process.exit(1);
+  }
 }
 
-// Verify critical env vars are loaded before proceeding
-if (!process.env.DB_HOST || !process.env.DB_USERNAME) {
-  console.error('[CRITICAL] Environment variables not loaded properly.');
-  console.error(`[CRITICAL] DB_HOST: ${process.env.DB_HOST || 'MISSING'}`);
+const REQUIRED_ENV_VARS = ['DB_HOST', 'DB_USERNAME', 'PORT'] as const;
+const missing = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
+if (missing.length > 0) {
   console.error(
-    `[CRITICAL] DB_USERNAME: ${process.env.DB_USERNAME ? 'SET' : 'MISSING'}`,
+    `[CRITICAL] Missing required environment variables: ${missing.join(', ')}`,
   );
-  console.error(`[CRITICAL] .env file path: ${envPath}`);
   console.error(`[CRITICAL] Current working directory: ${process.cwd()}`);
   process.exit(1);
 }
@@ -129,7 +134,7 @@ async function bootstrap() {
   );
 
   // SPA fallback routes removed — /downloads, /reset-password, /admin
-  // are now served by standalone Next.js servers (public-ui and admin-ui).
+  // are now served by the apps/web Next.js server.
 
   // Serve .well-known files for mobile deep linking (App Links / Universal Links)
   // These files must be served with correct content-type for iOS/Android verification

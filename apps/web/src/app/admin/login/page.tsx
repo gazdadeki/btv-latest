@@ -1,20 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { AuthUtils } from '@/lib/auth';
+
+const ERROR_TIMEOUT_MS = 5000;
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearError = () => {
+    setError('');
+    if (errorTimerRef.current) {
+      clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = null;
+    }
+  };
+
+  const showError = (message: string) => {
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    setError(message);
+    errorTimerRef.current = setTimeout(clearError, ERROR_TIMEOUT_MS);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setError('');
+    clearError();
     if (!email || !password) {
-      setError('Please enter both email and password');
+      showError('Please enter both email and password');
       return;
     }
 
@@ -24,14 +47,14 @@ export default function LoginPage() {
         user?: Record<string, unknown>;
       };
       if (result?.user) {
-        AuthUtils.setUserCookie(result.user as Parameters<typeof AuthUtils.setUserCookie>[0]);
+        AuthUtils.setUserCookie(result.user as unknown as Parameters<typeof AuthUtils.setUserCookie>[0]);
         await new Promise((r) => setTimeout(r, 50));
         window.location.href = '/admin';
       } else {
-        setError('Invalid response from server');
+        showError('Invalid response from server');
       }
     } catch (err) {
-      setError(
+      showError(
         err instanceof Error
           ? err.message
           : 'Login failed. Please check your credentials.',
@@ -64,7 +87,7 @@ export default function LoginPage() {
                   type="email"
                   placeholder="Email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); clearError(); }}
                   required
                   className="w-full h-11 px-3 pr-10 border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
                 />
@@ -79,7 +102,7 @@ export default function LoginPage() {
                   type="password"
                   placeholder="Password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); clearError(); }}
                   required
                   className="w-full h-11 px-3 pr-10 border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
                 />

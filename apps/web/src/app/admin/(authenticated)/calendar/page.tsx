@@ -3,73 +3,25 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
+import { formatDate, toastError } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { Dialog } from '@/components/dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Button } from '@/components/button';
-
-/* ────── Types ────── */
-interface CalendarEvent {
-  id: number;
-  title?: string;
-  scheduledStartTime: string;
-  actualStartTime?: string;
-  actualEndTime?: string;
-  status: string;
-  isPseudo?: boolean;
-  isExclusiveToGold?: boolean;
-  orderIndex?: number;
-  scheduleId?: number;
-  scheduleName?: string;
-  schedule?: { name: string; id: number };
-  teamAName?: string;
-  teamBName?: string;
-  slotsReserved?: number;
-  totalSlots?: number;
-  slotsConfirmed?: number;
-  slotsAvailable?: number;
-  slots?: Array<{ id: number; slotNumber: number; isReserved: boolean }>;
-  reservations?: Array<{
-    id: number;
-    userId: number;
-    status: string;
-    reservedAt?: string;
-    confirmedAt?: string;
-    user?: { email: string };
-    slot?: { slotNumber: number };
-  }>;
-}
+import { StatusBadge } from '@/components/status-badge';
+import {
+  GAME_STATUS_COLORS,
+  CALENDAR_STATUS_HEX,
+  CALENDAR_STATUS_HEX_GOLD,
+  CALENDAR_STATUS_ICONS,
+  WEEKDAY_LABELS_SUNDAY_FIRST,
+  EVENTS_PER_DAY_LIMIT,
+  RESERVATION_STATUS_COLORS,
+} from '@/constants';
+import type { CalendarEvent, ConfirmActionState } from '@/types';
 
 type ViewType = 'month' | 'week' | 'day' | 'list';
-
-const STATUS_COLORS: Record<string, string> = {
-  CREATED: '#3b82f6',
-  IN_PROGRESS: '#f59e0b',
-  FINISHED: '#22c55e',
-  CANCELLED: '#ef4444',
-  PSEUDO: '#9ca3af',
-};
-const STATUS_COLORS_GOLD = '#eab308';
-
-const STATUS_BG: Record<string, string> = {
-  CREATED: 'bg-blue-100 text-blue-700',
-  IN_PROGRESS: 'bg-yellow-100 text-yellow-700',
-  FINISHED: 'bg-green-100 text-green-700',
-  CANCELLED: 'bg-red-100 text-red-700',
-};
-
-const STATUS_ICONS: Record<string, string> = {
-  CREATED: 'fa-circle',
-  IN_PROGRESS: 'fa-play-circle',
-  FINISHED: 'fa-check-circle',
-  CANCELLED: 'fa-times-circle',
-  PSEUDO: 'fa-question-circle',
-};
-
-const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const EVENTS_PER_DAY_LIMIT = 5;
 
 function addDays(d: Date, n: number) {
   const r = new Date(d);
@@ -88,9 +40,9 @@ function formatHM(d: string) {
   return new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 function getEventColor(ev: CalendarEvent): string {
-  if (ev.isPseudo) return STATUS_COLORS.PSEUDO;
-  if (ev.isExclusiveToGold) return STATUS_COLORS_GOLD;
-  return STATUS_COLORS[ev.status] || '#6b7280';
+  if (ev.isPseudo) return CALENDAR_STATUS_HEX.PSEUDO;
+  if (ev.isExclusiveToGold) return CALENDAR_STATUS_HEX_GOLD;
+  return CALENDAR_STATUS_HEX[ev.status] || '#6b7280';
 }
 function getEventTooltip(ev: CalendarEvent): string {
   const parts: string[] = [];
@@ -122,11 +74,8 @@ export default function CalendarPage() {
     scheduleId: number; date: string; event: CalendarEvent;
   } | null>(null);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
-  const [confirmAction, setConfirmAction] = useState<{
-    title: string; message: string; onConfirm: () => void;
-  } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmActionState | null>(null);
 
-  /* ─── Date range for current view ─── */
   const getRange = useCallback((): { start: Date; end: Date } => {
     if (view === 'month') {
       const s = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
@@ -145,8 +94,8 @@ export default function CalendarPage() {
       const { start, end } = getRange();
       const wide = view === 'list' ? addDays(start, 30) : end;
       const res = await api.getCalendarEvents({
-        startDate: start.toISOString().split('T')[0],
-        endDate: wide.toISOString().split('T')[0],
+        startDate: start.toISOString(),
+        endDate: wide.toISOString(),
       });
       const data = res as { dates?: Array<{ date: string; games: CalendarEvent[] }> };
       const list = data.dates?.flatMap(d =>
@@ -157,7 +106,7 @@ export default function CalendarPage() {
       ) || [];
       setEvents(list);
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     } finally {
       setLoading(false);
     }
@@ -165,7 +114,6 @@ export default function CalendarPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  /* ─── Navigation ─── */
   const navigate = (dir: number) => {
     const d = new Date(currentDate);
     if (view === 'month') d.setMonth(d.getMonth() + dir);
@@ -190,7 +138,6 @@ export default function CalendarPage() {
       .filter((e) => isSameDay(new Date(e.scheduledStartTime), date))
       .sort((a, b) => new Date(a.scheduledStartTime).getTime() - new Date(b.scheduledStartTime).getTime());
 
-  /* ─── Expand/collapse day events ─── */
   const toggleExpand = (date: Date) => {
     const key = dateKey(date);
     setExpandedDates((prev) => {
@@ -201,12 +148,13 @@ export default function CalendarPage() {
     });
   };
 
-  /* ─── Click event ─── */
   const handleEventClick = async (ev: CalendarEvent) => {
     if (ev.isPseudo) {
+      // Store the UTC date string (YYYY-MM-DD) for display; it will be sent as UTC midnight on generate.
+      const utcDateStr = new Date(ev.scheduledStartTime).toISOString().split('T')[0];
       setGenerateDialog({
         scheduleId: ev.scheduleId || ev.schedule?.id || 0,
-        date: new Date(ev.scheduledStartTime).toISOString().split('T')[0],
+        date: utcDateStr,
         event: ev,
       });
       return;
@@ -222,18 +170,19 @@ export default function CalendarPage() {
   const handleGenerate = async () => {
     if (!generateDialog) return;
     try {
-      const res = (await api.generateGamesForSchedule(generateDialog.scheduleId, generateDialog.date)) as { gamesCreated?: number };
+      // Convert the UTC date string to a UTC midnight ISO string before sending.
+      const utcDate = new Date(generateDialog.date + 'T00:00:00Z').toISOString();
+      const res = (await api.generateGamesForSchedule(generateDialog.scheduleId, utcDate)) as { gamesCreated?: number };
       toast.success(`Generated ${res.gamesCreated || 0} game(s)`);
       setGenerateDialog(null);
       load();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
-  /* ─── Render event pill with status icon ─── */
   const EventPill = ({ ev, compact = false }: { ev: CalendarEvent; compact?: boolean }) => {
-    const icon = ev.isPseudo ? STATUS_ICONS.PSEUDO : (STATUS_ICONS[ev.status] || 'fa-circle');
+    const icon = ev.isPseudo ? CALENDAR_STATUS_ICONS.PSEUDO : (CALENDAR_STATUS_ICONS[ev.status] || 'fa-circle');
     const scheduleName = ev.schedule?.name || ev.scheduleName || 'Game';
     const orderIndex = ev.orderIndex || 1;
     const label = `${scheduleName} - Game ${orderIndex}`;
@@ -305,7 +254,6 @@ export default function CalendarPage() {
       />
 
       <div className="bg-white rounded-lg shadow p-6">
-        {/* Navigation */}
         <div className="flex items-center justify-between mb-4">
           <Button variant="secondary" size="sm" onClick={() => navigate(-1)}>
             <i className="fas fa-chevron-left" />
@@ -316,13 +264,12 @@ export default function CalendarPage() {
           </Button>
         </div>
 
-        {/* ─── Month View ─── */}
         {view === 'month' && (() => {
           const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
           const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
           return (
             <div className="grid grid-cols-7 gap-px bg-gray-200 rounded overflow-hidden">
-              {WEEKDAY_LABELS.map((d) => (
+              {WEEKDAY_LABELS_SUNDAY_FIRST.map((d) => (
                 <div key={d} className="bg-gray-50 p-2 text-center text-sm font-medium text-gray-600">{d}</div>
               ))}
               {Array.from({ length: firstDay }, (_, i) => (
@@ -360,7 +307,6 @@ export default function CalendarPage() {
           );
         })()}
 
-        {/* ─── Week View ─── */}
         {view === 'week' && (() => {
           const weekStart = startOfWeek(currentDate);
           const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -368,7 +314,7 @@ export default function CalendarPage() {
             <div className="grid grid-cols-7 gap-px bg-gray-200 rounded overflow-hidden">
               {days.map((d) => (
                 <div key={d.toISOString()} className="bg-gray-50 p-2 text-center text-sm font-medium text-gray-600">
-                  {WEEKDAY_LABELS[d.getDay()]} {d.getDate()}
+                  {WEEKDAY_LABELS_SUNDAY_FIRST[d.getDay()]} {d.getDate()}
                 </div>
               ))}
               {days.map((d) => {
@@ -391,14 +337,13 @@ export default function CalendarPage() {
           );
         })()}
 
-        {/* ─── Day View ─── */}
         {view === 'day' && (() => {
           const dayEvents = getEventsFor(currentDate);
           return (
             <div className="space-y-2">
               {dayEvents.length === 0 && <p className="text-center text-gray-400 py-8">No events for this day</p>}
               {dayEvents.map((e) => {
-                const icon = e.isPseudo ? STATUS_ICONS.PSEUDO : (STATUS_ICONS[e.status] || 'fa-circle');
+                const icon = e.isPseudo ? CALENDAR_STATUS_ICONS.PSEUDO : (CALENDAR_STATUS_ICONS[e.status] || 'fa-circle');
                 return (
                   <button
                     key={e.id}
@@ -427,7 +372,6 @@ export default function CalendarPage() {
           );
         })()}
 
-        {/* ─── List View ─── */}
         {view === 'list' && (
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="w-full text-sm">
@@ -446,15 +390,13 @@ export default function CalendarPage() {
                     <td className="px-3 py-2">{new Date(e.scheduledStartTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                     <td className="px-3 py-2">{formatHM(e.scheduledStartTime)}</td>
                     <td className="px-3 py-2">
-                      <i className={`fas ${e.isPseudo ? STATUS_ICONS.PSEUDO : (STATUS_ICONS[e.status] || 'fa-circle')} mr-1`} style={{ color: getEventColor(e), fontSize: 10 }} />
+                      <i className={`fas ${e.isPseudo ? CALENDAR_STATUS_ICONS.PSEUDO : (CALENDAR_STATUS_ICONS[e.status] || 'fa-circle')} mr-1`} style={{ color: getEventColor(e), fontSize: 10 }} />
                       {e.schedule?.name || e.scheduleName || `Game #${e.id}`}
                       {e.isPseudo && <span className="text-gray-400 ml-1">(scheduled)</span>}
                       {e.isExclusiveToGold && <i className="fas fa-crown text-yellow-500 text-xs ml-1" />}
                     </td>
                     <td className="px-3 py-2">
-                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_BG[e.status] || 'bg-gray-100 text-gray-500'}`}>
-                        {e.isPseudo ? 'SCHEDULED' : e.status}
-                      </span>
+                      <StatusBadge status={e.isPseudo ? 'SCHEDULED' : e.status} colorMap={GAME_STATUS_COLORS} fallback="bg-gray-100 text-gray-500" />
                     </td>
                     <td className="px-3 py-2">{e.isPseudo ? '-' : `${e.slotsReserved || 0}/${e.totalSlots || '?'}`}</td>
                   </tr>
@@ -466,7 +408,6 @@ export default function CalendarPage() {
         )}
       </div>
 
-      {/* ═══ Game Detail Dialog ═══ */}
       <Dialog open={detail !== null} onClose={() => setDetail(null)} title="Game Details" className="max-w-2xl">
         {detail && (
           <div className="space-y-4">
@@ -477,7 +418,7 @@ export default function CalendarPage() {
                 <tr><td className="py-2 font-medium">Schedule</td><td>{detail.schedule?.name || detail.scheduleName || 'N/A'}</td></tr>
                 <tr>
                   <td className="py-2 font-medium">Status</td>
-                  <td><span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_BG[detail.status] || ''}`}>{detail.status}</span></td>
+                  <td><StatusBadge status={detail.status} colorMap={GAME_STATUS_COLORS} /></td>
                 </tr>
                 <tr><td className="py-2 font-medium">Scheduled Start</td><td>{formatDate(detail.scheduledStartTime)}</td></tr>
                 <tr><td className="py-2 font-medium">Actual Start</td><td>{detail.actualStartTime ? formatDate(detail.actualStartTime) : 'N/A'}</td></tr>
@@ -533,14 +474,7 @@ export default function CalendarPage() {
                           <td className="px-2 py-1.5">{r.user?.email || `User #${r.userId}`}</td>
                           <td className="px-2 py-1.5">Slot {r.slot?.slotNumber || r.id}</td>
                           <td className="px-2 py-1.5">
-                            <span className={`px-1 py-0.5 rounded text-xs ${
-                              r.status === 'CONFIRMED' ? 'bg-green-100 text-green-700'
-                                : r.status === 'CANCELLED' ? 'bg-red-100 text-red-700'
-                                : r.status === 'EXPIRED' ? 'bg-gray-100 text-gray-500'
-                                : 'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {r.status}
-                            </span>
+                            <StatusBadge status={r.status} colorMap={RESERVATION_STATUS_COLORS} fallback="bg-yellow-100 text-yellow-700" />
                           </td>
                           <td className="px-2 py-1.5">{r.reservedAt ? formatDate(r.reservedAt) : 'N/A'}</td>
                           <td className="px-2 py-1.5">{r.confirmedAt ? formatDate(r.confirmedAt) : 'N/A'}</td>
@@ -563,7 +497,6 @@ export default function CalendarPage() {
         )}
       </Dialog>
 
-      {/* ═══ Generate Game Dialog ═══ */}
       <Dialog open={generateDialog !== null} onClose={() => setGenerateDialog(null)} title="Game Details" className="max-w-2xl">
         {generateDialog && (() => {
           const ev = generateDialog.event;

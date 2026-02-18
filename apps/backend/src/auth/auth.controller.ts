@@ -24,6 +24,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
 @Controller({ path: 'auth', version: '1' })
@@ -59,6 +60,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Register a new player' })
   @ApiResponse({
     status: 201,
@@ -120,6 +122,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({
     status: 200,
@@ -174,6 +177,68 @@ export class AuthController {
     } catch (error) {
       this.logger.error(
         `Login request failed for email: ${loginDto.email} from IP: ${ipAddress}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @Post('admin/login')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'Admin login — restricted to users with ADMIN role' })
+  @ApiResponse({
+    status: 200,
+    description: 'Admin login successful',
+    type: AuthResponseDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Access restricted to administrators',
+  })
+  async adminLogin(
+    @Body() loginDto: LoginDto,
+    @Request() req: any,
+    @Response() res: ExpressResponse,
+  ) {
+    const ipAddress = this.extractIpAddress(req);
+    const userAgent = req.get('user-agent') || 'unknown';
+
+    this.logger.log(
+      `Admin login request received for email: ${loginDto.email} from IP: ${ipAddress}`,
+    );
+
+    try {
+      const result = await this.authService.adminLogin(
+        loginDto,
+        ipAddress,
+        userAgent,
+      );
+
+      const isProduction = process.env.NODE_ENV === 'production';
+      const cookieOptions = {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'lax' as const,
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      };
+
+      res.cookie('admin_access_token', result.accessToken, {
+        ...cookieOptions,
+        maxAge: 15 * 60 * 1000,
+      });
+
+      res.cookie('admin_refresh_token', result.refreshToken, cookieOptions);
+
+      this.logger.log(
+        `Admin login request completed successfully for email: ${loginDto.email}`,
+      );
+      return res.json({
+        user: result.user,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Admin login request failed for email: ${loginDto.email} from IP: ${ipAddress}: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -299,6 +364,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 300000 } })
   @ApiOperation({ summary: 'Request password reset' })
   @ApiResponse({
     status: 200,
@@ -335,6 +401,7 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Reset password with token' })
   @ApiResponse({
     status: 200,

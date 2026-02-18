@@ -14,8 +14,9 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from './button';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface DataTableProps<TData> {
-  columns: ColumnDef<TData, unknown>[];
+  columns: ColumnDef<TData, any>[];
   data: TData[];
   searchPlaceholder?: string;
   pageSize?: number;

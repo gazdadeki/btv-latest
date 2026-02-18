@@ -5,7 +5,7 @@ import { DownloadsService } from './downloads.service';
  * Downloads Controller
  *
  * Public API controller for download-related data.
- * The downloads page is now served by the public-ui Next.js app.
+ * The downloads page is served by the apps/web Next.js app at /downloads.
  */
 @Controller({ path: 'downloads', version: '1' })
 export class DownloadsController {

@@ -36,7 +36,7 @@ export function UserSearchDialog({
   const [loading, setLoading] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     if (open) {

@@ -7,6 +7,7 @@ import { Schedule } from '../schedules/entities/schedule.entity';
 import { SlotConfig } from '../schedules/entities/slot-config.entity';
 import { SlotConfigService } from '../schedules/slot-config.service';
 import { GameCancellationService } from './game-cancellation.service';
+import { utcStartOfDay, utcEndOfDay } from '../common/date.utils';
 
 export interface BulkGenerationResult {
   createdGames: Game[];
@@ -29,11 +30,7 @@ export class GameBulkWriteService {
     targetDate: Date,
   ): Promise<BulkGenerationResult> {
     const correlationId = randomUUID();
-    const normalizedDate = new Date(
-      targetDate.getFullYear(),
-      targetDate.getMonth(),
-      targetDate.getDate(),
-    );
+    const normalizedDate = utcStartOfDay(targetDate);
 
     const cancelledCount =
       await this.gameCancellationService.cancelCreatedGamesForSchedule(
@@ -72,7 +69,7 @@ export class GameBulkWriteService {
           .split(':')
           .map(Number);
         const baseStartTime = new Date(normalizedDate);
-        baseStartTime.setHours(hours, minutes, 0, 0);
+        baseStartTime.setUTCHours(hours, minutes, 0, 0);
 
         const gamesToCreate: Game[] = [];
         for (let i = 0; i < schedule.gamesPerDay; i += 1) {
@@ -84,10 +81,15 @@ export class GameBulkWriteService {
             );
           }
 
+          // If no reservationOpenTime is set, games open for reservations immediately.
+          const initialStatus = schedule.reservationOpenTime
+            ? GameStatus.CREATED
+            : GameStatus.OPEN;
+
           gamesToCreate.push(
             manager.create(Game, {
               scheduleId: schedule.id,
-              status: GameStatus.CREATED,
+              status: initialStatus,
               scheduledStartTime: gameStartTime,
               teamAName: schedule.teamAName,
               teamBName: schedule.teamBName,
@@ -185,9 +187,6 @@ export class GameBulkWriteService {
   }
 
   private getDateBounds(date: Date): { start: Date; end: Date } {
-    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const end = new Date(start);
-    end.setHours(23, 59, 59, 999);
-    return { start, end };
+    return { start: utcStartOfDay(date), end: utcEndOfDay(date) };
   }
 }

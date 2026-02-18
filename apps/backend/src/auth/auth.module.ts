@@ -5,7 +5,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
-import { RefreshTokenService } from './refresh-token.strategy';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { VerificationCode } from '../verification/entities/verification-code.entity';
@@ -15,6 +14,7 @@ import { StatisticsModule } from '../statistics/statistics.module';
 import { ConfigModule } from '../config/config.module';
 import { AuditModule } from '../audit/audit.module';
 import { EmailModule } from '../email/email.module';
+import { ProfanityModule } from '../common/profanity/profanity.module';
 
 @Module({
   imports: [
@@ -37,8 +37,9 @@ import { EmailModule } from '../email/email.module';
     ConfigModule,
     AuditModule,
     EmailModule,
+    ProfanityModule,
   ],
-  providers: [AuthService, JwtStrategy, RefreshTokenService],
+  providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
   exports: [AuthService],
 })

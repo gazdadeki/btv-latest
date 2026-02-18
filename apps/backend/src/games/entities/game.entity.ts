@@ -14,6 +14,7 @@ import { Reservation } from '../../reservations/entities/reservation.entity';
 
 export enum GameStatus {
   CREATED = 'CREATED',
+  OPEN = 'OPEN',
   IN_PROGRESS = 'IN_PROGRESS',
   FINISHED = 'FINISHED',
   CANCELLED = 'CANCELLED',

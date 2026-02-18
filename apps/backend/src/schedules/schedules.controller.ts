@@ -61,6 +61,12 @@ export class SchedulesController {
     return this.schedulesService.update(+id, body, req.user.id);
   }
 
+  @Put(':id/activate')
+  @ApiOperation({ summary: 'Activate a schedule, deactivating all others' })
+  async activate(@Param('id') id: string, @Request() req: any) {
+    return this.schedulesService.activate(+id, req.user.id);
+  }
+
   @Put(':id/cancel-games')
   @ApiOperation({ summary: 'Cancel all CREATED games for a schedule' })
   async cancelGames(@Param('id') id: string, @Request() req: any) {

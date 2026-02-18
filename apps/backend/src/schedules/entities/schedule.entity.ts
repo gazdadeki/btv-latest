@@ -52,7 +52,7 @@ export class Schedule {
   recurrenceDays: number[] | null;
 
   @Column({ type: 'json', nullable: true })
-  recurrencePattern: { month: number; day: number } | null;
+  recurrencePattern: { year?: number; month: number; day: number } | null;
 
   @Column()
   slotsPerGame: number;
@@ -81,6 +81,12 @@ export class Schedule {
 
   @Column({ type: 'time' })
   firstGameStartTime: string;
+
+  @Column({ type: 'time', default: '06:00' })
+  gameCreationTime: string;
+
+  @Column({ type: 'time', nullable: true })
+  reservationOpenTime: string | null;
 
   @Column({ type: 'int', nullable: true })
   autoStartNextAfterMinutes: number | null;
@@ -114,6 +120,12 @@ export class Schedule {
     default: 'https://youtube.com',
   })
   url: string | null;
+
+  @Column({ type: 'date', nullable: true })
+  scheduleStartDate: string | null;
+
+  @Column({ type: 'date', nullable: true })
+  scheduleEndDate: string | null;
 
   @Column({ default: true })
   isActive: boolean;

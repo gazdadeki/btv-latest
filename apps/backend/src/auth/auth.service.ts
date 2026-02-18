@@ -3,6 +3,8 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  ForbiddenException,
+  BadRequestException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -22,10 +24,11 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ConfigService } from '../config/config.service';
 import { AuditService } from '../audit/audit.service';
-import { User, SubscriptionTier } from '../users/entities/user.entity';
+import { User, UserRole, SubscriptionTier } from '../users/entities/user.entity';
 import { Inject } from '@nestjs/common';
 import { IEmailService } from '../email/email.service.interface';
 import * as crypto from 'crypto';
+import { ProfanityService } from '../common/profanity/profanity.service';
 
 /**
  * Service for handling user authentication and authorization.
@@ -57,6 +60,7 @@ export class AuthService {
     private verificationCodeRepository: Repository<VerificationCode>,
     @Inject('IEmailService')
     private emailService: IEmailService,
+    private profanityService: ProfanityService,
   ) {}
 
   /**
@@ -100,6 +104,13 @@ export class AuthService {
       throw new ConflictException(
         `User with username ${registerDto.username} already exists`,
       );
+    }
+
+    if (this.profanityService.isProfane(registerDto.username)) {
+      this.logger.warn(
+        `Registration failed: Username rejected by profanity filter: ${registerDto.username} from IP: ${ipAddress || 'unknown'}`,
+      );
+      throw new BadRequestException('Username is not allowed');
     }
 
     this.logger.debug(
@@ -227,9 +238,7 @@ export class AuthService {
         ipAddress,
         userAgent,
       });
-      throw new UnauthorizedException(
-        `User not found with email or username: ${loginDto.email}`,
-      );
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     this.logger.debug(`User found with ID: ${user.id}, validating password`);
@@ -251,9 +260,7 @@ export class AuthService {
         ipAddress,
         userAgent,
       });
-      throw new UnauthorizedException(
-        `Invalid password for user: ${user.email || user.username}`,
-      );
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     this.logger.debug(
@@ -272,6 +279,125 @@ export class AuthService {
     const tokens = await this.generateTokens(user);
     this.logger.log(
       `Login successful for user ID: ${user.id}, email: ${user.email} from IP: ${ipAddress || 'unknown'}`,
+    );
+
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        subscriptionTier: user.subscriptionTier,
+        isVerified: user.isVerified,
+        isBanned: user.isBanned,
+        bannedUntil: user.bannedUntil ? user.bannedUntil.toISOString() : null,
+        fullName: user.fullName,
+        addressLine1: user.addressLine1,
+        addressLine2: user.addressLine2,
+        city: user.city,
+        state: user.state,
+        country: user.country,
+        zipcode: user.zipcode,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
+      },
+    };
+  }
+
+  /**
+   * Authenticates a user and generates tokens only if the user has the ADMIN role.
+   * Identical to login() but rejects non-admin users before issuing tokens.
+   *
+   * @param loginDto - Login credentials (email or username, password)
+   * @param ipAddress - Optional IP address for audit logging
+   * @param userAgent - Optional user agent for audit logging
+   * @returns Authentication tokens and user information
+   * @throws UnauthorizedException if credentials are invalid
+   * @throws ForbiddenException if user is not an admin
+   */
+  async adminLogin(
+    loginDto: LoginDto,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<any> {
+    this.logger.log(
+      `Admin login attempt for identifier: ${loginDto.email} from IP: ${ipAddress || 'unknown'}, User-Agent: ${userAgent || 'unknown'}`,
+    );
+
+    const user = await this.usersService.findByEmailOrUsername(loginDto.email);
+    if (!user) {
+      this.logger.warn(
+        `Admin login failed: User not found with email or username: ${loginDto.email} from IP: ${ipAddress || 'unknown'}`,
+      );
+      await this.auditService.log({
+        action: 'ADMIN_LOGIN_FAILED',
+        entityType: 'User',
+        details: {
+          identifier: loginDto.email,
+          reason: 'User not found',
+        },
+        ipAddress,
+        userAgent,
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    this.logger.debug(`User found with ID: ${user.id}, validating password`);
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
+    if (!isPasswordValid) {
+      this.logger.warn(
+        `Admin login failed: Invalid password for user ID: ${user.id}, email: ${user.email} from IP: ${ipAddress || 'unknown'}`,
+      );
+      await this.auditService.log({
+        userId: user.id,
+        userEmail: user.email,
+        action: 'ADMIN_LOGIN_FAILED',
+        entityType: 'User',
+        entityId: user.id.toString(),
+        details: { reason: 'Invalid password' },
+        ipAddress,
+        userAgent,
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.role !== UserRole.ADMIN) {
+      this.logger.warn(
+        `Admin login failed: User ID: ${user.id}, email: ${user.email} does not have ADMIN role (role: ${user.role}) from IP: ${ipAddress || 'unknown'}`,
+      );
+      await this.auditService.log({
+        userId: user.id,
+        userEmail: user.email,
+        action: 'ADMIN_LOGIN_FAILED',
+        entityType: 'User',
+        entityId: user.id.toString(),
+        details: { reason: 'Insufficient role', role: user.role },
+        ipAddress,
+        userAgent,
+      });
+      throw new ForbiddenException('Validation failed');
+    }
+
+    this.logger.debug(
+      `Admin credentials validated for user ID: ${user.id}, generating tokens`,
+    );
+    await this.auditService.log({
+      userId: user.id,
+      userEmail: user.email,
+      action: 'ADMIN_LOGIN',
+      entityType: 'User',
+      entityId: user.id.toString(),
+      ipAddress,
+      userAgent,
+    });
+
+    const tokens = await this.generateTokens(user);
+    this.logger.log(
+      `Admin login successful for user ID: ${user.id}, email: ${user.email} from IP: ${ipAddress || 'unknown'}`,
     );
 
     return {
@@ -770,6 +896,13 @@ export class AuthService {
     const user = await this.usersService.findOne(userId);
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    if (data.fullName && this.profanityService.isProfane(data.fullName)) {
+      this.logger.warn(
+        `Profile update rejected: Display name rejected by profanity filter for user ID: ${userId}`,
+      );
+      throw new BadRequestException('Display name is not allowed');
     }
 
     const updatedUser = await this.usersService.update(userId, data);

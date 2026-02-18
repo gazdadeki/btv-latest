@@ -1,0 +1,25 @@
+{
+  "blacklist": [
+    "ass", "arse", "asshole", "arsehole",
+    "bastard", "bitch", "bollocks", "bugger",
+    "cock", "coon", "crap", "cum", "cunt",
+    "dick", "dildo", "dyke",
+    "fag", "faggot", "fuck", "fucker", "fucking",
+    "goddamn",
+    "homo",
+    "jizz",
+    "kike",
+    "milf",
+    "nigga", "nigger",
+    "piss", "porn", "prick", "pussy",
+    "rape", "retard",
+    "sex", "shit", "skank", "slut", "spic",
+    "tit", "twat",
+    "vagina",
+    "wank", "whore"
+  ],
+  "protected": [
+    "balta",
+    "baltazar"
+  ]
+}

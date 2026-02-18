@@ -79,7 +79,7 @@ export class ReservationsService {
       relations: ['schedule'],
     });
 
-    if (!game || game.status !== GameStatus.CREATED) {
+    if (!game || game.status !== GameStatus.OPEN) {
       throw new BadRequestException('Game not available for reservation');
     }
 
@@ -102,7 +102,7 @@ export class ReservationsService {
         status: ReservationStatus.RESERVED,
       })
       .andWhere('game.status IN (:...gameStatuses)', {
-        gameStatuses: [GameStatus.CREATED, GameStatus.IN_PROGRESS],
+        gameStatuses: [GameStatus.OPEN, GameStatus.IN_PROGRESS],
       })
       .getCount();
 
@@ -144,7 +144,7 @@ export class ReservationsService {
       const hasOtherActiveReservation = allOtherReservations.some(
         (r) =>
           r.gameId !== gameId &&
-          (r.game.status === GameStatus.CREATED ||
+          (r.game.status === GameStatus.OPEN ||
             r.game.status === GameStatus.IN_PROGRESS),
       );
 

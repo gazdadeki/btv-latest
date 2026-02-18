@@ -4,27 +4,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { createColumnHelper } from '@tanstack/react-table';
 import { api } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
+import { formatDate, toastError } from '@/lib/utils';
 import { DataTable } from '@/components/data-table';
 import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { Dialog } from '@/components/dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Button } from '@/components/button';
+import { TUTORIAL_STATUSES } from '@/constants';
+import type { Tutorial, TutorialTag, TutorialCategory } from '@/types';
 
-/* ────── Types ────── */
-interface Tutorial {
-  id: number; title: string; slug?: string; excerpt?: string;
-  content: string; status?: string; isPublished: boolean;
-  isFeatured?: boolean; createdAt: string;
-  tags?: Array<{ id: number; name: string }>;
-  category?: { id: number; name: string };
-  categoryId?: number; tagIds?: number[];
-}
-interface Tag { id: number; name: string }
-interface Category { id: number; name: string; description?: string }
-
-const STATUSES = ['DRAFT', 'PUBLISHED'];
 const columnHelper = createColumnHelper<Tutorial>();
 
 function slugify(text: string): string {
@@ -32,18 +21,15 @@ function slugify(text: string): string {
 }
 
 export default function TutorialsPage() {
-  /* ─── State ─── */
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<TutorialTag[]>([]);
+  const [categories, setCategories] = useState<TutorialCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'tutorials' | 'tags' | 'categories'>('tutorials');
-  // Filters
   const [filterStatus, setFilterStatus] = useState('');
   const [filterFeatured, setFilterFeatured] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterTag, setFilterTag] = useState('');
-  // Create/Edit
   const [editOpen, setEditOpen] = useState(false);
   const [editingTutorial, setEditingTutorial] = useState<Tutorial | null>(null);
   const [form, setForm] = useState<Record<string, unknown>>({
@@ -51,20 +37,16 @@ export default function TutorialsPage() {
     status: 'DRAFT', isFeatured: false,
     categoryId: '', tagIds: [] as number[],
   });
-  // Detail
   const [detailTutorial, setDetailTutorial] = useState<Tutorial | null>(null);
-  // Delete
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
-  // Tags & Categories
   const [newTagName, setNewTagName] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [editTag, setEditTag] = useState<Tag | null>(null);
+  const [editTag, setEditTag] = useState<TutorialTag | null>(null);
   const [editTagName, setEditTagName] = useState('');
-  const [editCat, setEditCat] = useState<Category | null>(null);
+  const [editCat, setEditCat] = useState<TutorialCategory | null>(null);
   const [editCatName, setEditCatName] = useState('');
   const [editCatDesc, setEditCatDesc] = useState('');
 
-  /* ─── Load ─── */
   const loadAll = useCallback(async () => {
     try {
       const params: Record<string, string | undefined> = {};
@@ -75,30 +57,28 @@ export default function TutorialsPage() {
 
       const [t, tg, cat] = await Promise.all([
         api.getTutorials(params) as Promise<Tutorial[]>,
-        api.getTutorialTags() as Promise<Tag[]>,
-        api.getTutorialCategories() as Promise<Category[]>,
+        api.getTutorialTags() as Promise<TutorialTag[]>,
+        api.getTutorialCategories() as Promise<TutorialCategory[]>,
       ]);
       setTutorials(Array.isArray(t) ? t : []);
       setTags(Array.isArray(tg) ? tg : []);
       setCategories(Array.isArray(cat) ? cat : []);
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     } finally { setLoading(false); }
   }, [filterStatus, filterFeatured, filterCategory, filterTag]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  /* ─── Detail ─── */
   const loadDetail = async (id: number) => {
     try {
       const t = (await api.getTutorial(id)) as Tutorial;
       setDetailTutorial(t);
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
-  /* ─── Create / Edit ─── */
   const openCreate = () => {
     setEditingTutorial(null);
     setForm({ title: '', slug: '', excerpt: '', content: '', status: 'DRAFT', isFeatured: false, categoryId: '', tagIds: [] });
@@ -151,7 +131,7 @@ export default function TutorialsPage() {
       setEditOpen(false);
       loadAll();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
@@ -163,11 +143,10 @@ export default function TutorialsPage() {
       setDeleteTarget(null);
       loadAll();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
-  /* ─── Tags ─── */
   const addTag = async () => {
     if (!newTagName.trim()) return;
     try {
@@ -176,7 +155,7 @@ export default function TutorialsPage() {
       setNewTagName('');
       loadAll();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
@@ -188,7 +167,7 @@ export default function TutorialsPage() {
       setEditTag(null);
       loadAll();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
@@ -198,11 +177,10 @@ export default function TutorialsPage() {
       toast.success('Tag deleted');
       loadAll();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
-  /* ─── Categories ─── */
   const addCategory = async () => {
     if (!newCategoryName.trim()) return;
     try {
@@ -211,7 +189,7 @@ export default function TutorialsPage() {
       setNewCategoryName('');
       loadAll();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
@@ -223,7 +201,7 @@ export default function TutorialsPage() {
       setEditCat(null);
       loadAll();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
@@ -233,7 +211,7 @@ export default function TutorialsPage() {
       toast.success('Category deleted');
       loadAll();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
@@ -245,7 +223,6 @@ export default function TutorialsPage() {
     });
   };
 
-  /* ─── Columns ─── */
   const tutorialColumns = [
     columnHelper.accessor('id', { header: 'ID' }),
     columnHelper.accessor('title', { header: 'Title' }),
@@ -294,7 +271,6 @@ export default function TutorialsPage() {
         </Button>
       } />
 
-      {/* Section Tabs */}
       <div className="flex gap-2 mb-4">
         {(['tutorials', 'tags', 'categories'] as const).map((tab) => (
           <button key={tab} onClick={() => setActiveTab(tab)}
@@ -304,17 +280,15 @@ export default function TutorialsPage() {
         ))}
       </div>
 
-      {/* Tutorials Tab */}
       {activeTab === 'tutorials' && (
         <>
-          {/* Filters */}
           <div className="bg-white rounded-lg shadow p-4 mb-4">
             <div className="flex flex-wrap items-end gap-3">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Status</label>
                 <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
                   <option value="">All</option>
-                  {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {TUTORIAL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
@@ -348,7 +322,6 @@ export default function TutorialsPage() {
         </>
       )}
 
-      {/* Tags Tab */}
       {activeTab === 'tags' && (
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex gap-2 mb-4">
@@ -368,7 +341,6 @@ export default function TutorialsPage() {
         </div>
       )}
 
-      {/* Categories Tab */}
       {activeTab === 'categories' && (
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex gap-2 mb-4">
@@ -388,7 +360,6 @@ export default function TutorialsPage() {
         </div>
       )}
 
-      {/* ═══ Create / Edit Tutorial ═══ */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} title={editingTutorial ? 'Edit Tutorial' : 'Create Tutorial'} className="max-w-3xl">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
@@ -413,7 +384,7 @@ export default function TutorialsPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Status</label>
               <select value={String(form.status)} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                {TUTORIAL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>
@@ -450,7 +421,6 @@ export default function TutorialsPage() {
         </div>
       </Dialog>
 
-      {/* ═══ Tutorial Detail ═══ */}
       <Dialog open={detailTutorial !== null} onClose={() => setDetailTutorial(null)} title="Tutorial Details" className="max-w-3xl">
         {detailTutorial && (
           <div className="space-y-4">
@@ -481,7 +451,6 @@ export default function TutorialsPage() {
         )}
       </Dialog>
 
-      {/* ═══ Edit Tag ═══ */}
       <Dialog open={editTag !== null} onClose={() => setEditTag(null)} title="Edit Tag">
         <div className="space-y-4">
           <div>
@@ -495,7 +464,6 @@ export default function TutorialsPage() {
         </div>
       </Dialog>
 
-      {/* ═══ Edit Category ═══ */}
       <Dialog open={editCat !== null} onClose={() => setEditCat(null)} title="Edit Category">
         <div className="space-y-4">
           <div>

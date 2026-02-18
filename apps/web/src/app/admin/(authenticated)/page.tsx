@@ -14,40 +14,13 @@ import {
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { api } from '@/lib/api';
 import { webSocketManager } from '@/lib/websocket';
-import { formatDate } from '@/lib/utils';
+import { formatDate, toastError } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { Button } from '@/components/button';
+import type { DashboardData, SchedulerStatus, AuditLog } from '@/types';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
-
-interface DashboardData {
-  activeSchedules?: number;
-  upcomingGames?: number;
-  totalUsers?: number;
-  verifiedUsers?: number;
-  bannedUsers?: number;
-  totalCoins?: number;
-  activeSubscriptions?: number;
-  onlineUsers?: number;
-  pendingSubscriptions?: number;
-  expiredSubscriptions?: number;
-}
-
-interface SchedulerStatus {
-  lastExecutionTime?: string;
-  lastExecutionStatus?: string;
-  executionCount?: number;
-  lastExecutionError?: string;
-}
-
-interface AuditLog {
-  createdAt: string;
-  action: string;
-  userEmail?: string;
-  entityType: string;
-  entityId?: number;
-}
 
 function StatCard({ icon, iconBg, label, value }: { icon: string; iconBg: string; label: string; value: string | number }) {
   return (
@@ -151,7 +124,7 @@ export default function DashboardPage() {
       const stats = (await api.getDashboardStats()) as DashboardData;
       setData(stats);
     } catch (err) {
-      toast.error(`Failed to load dashboard: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err, 'Failed to load dashboard');
     }
   }, []);
 
@@ -210,13 +183,11 @@ export default function DashboardPage() {
         <StatCard icon="fas fa-user-check" iconBg="bg-blue-500" label="Online Users" value={data.onlineUsers || 0} />
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <UserStatsChart data={data} />
         <SubscriptionChart data={data} />
       </div>
 
-      {/* Scheduler Status */}
       <div className="bg-white rounded-lg shadow mb-6">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <h3 className="font-semibold"><i className="fas fa-clock mr-2" />Cron Scheduler Status</h3>
@@ -248,7 +219,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Activity */}
       <div className="bg-white rounded-lg shadow">
         <div className="p-4 border-b border-gray-200">
           <h3 className="font-semibold">Recent Activity</h3>

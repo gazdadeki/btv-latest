@@ -4,31 +4,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { createColumnHelper } from '@tanstack/react-table';
 import { api } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
+import { formatDate, toastError } from '@/lib/utils';
 import { DataTable } from '@/components/data-table';
 import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { Dialog } from '@/components/dialog';
 import { Tabs } from '@/components/tabs';
 import { Button } from '@/components/button';
-
-interface AuditLog {
-  id: number;
-  createdAt: string;
-  userEmail?: string;
-  userId?: number;
-  action: string;
-  entityType: string;
-  entityId?: string;
-  details?: Record<string, unknown>;
-  ipAddress?: string;
-  userAgent?: string;
-  user?: { id: number; email: string; username?: string; role?: string };
-}
+import { PAGE_SIZE_OPTIONS } from '@/constants';
+import type { AuditLog } from '@/types';
 
 const columnHelper = createColumnHelper<AuditLog>();
-
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 export default function AuditPage() {
   const [data, setData] = useState<AuditLog[]>([]);
@@ -36,7 +22,6 @@ export default function AuditPage() {
   const [selected, setSelected] = useState<AuditLog | null>(null);
   const [detailTab, setDetailTab] = useState('basic');
 
-  // Server-side pagination
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(25);
@@ -53,7 +38,7 @@ export default function AuditPage() {
       setData(result.data);
       setTotal(result.total);
     } catch (err) {
-      toast.error(`Failed to load audit logs: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err, 'Failed to load audit logs');
     } finally {
       setLoading(false);
     }
@@ -139,7 +124,6 @@ export default function AuditPage() {
           <>
             <DataTable columns={columns} data={data} searchPlaceholder="Search audit logs..." pageSize={limit} hidePagination hideResultCount />
 
-            {/* Pagination & per-page controls */}
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
               <div className="flex items-center gap-2">
                 <label htmlFor="pageSize" className="text-sm text-gray-500">Show</label>

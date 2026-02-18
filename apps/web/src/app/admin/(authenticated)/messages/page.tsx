@@ -5,34 +5,19 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { webSocketManager } from '@/lib/websocket';
 import { useAuth } from '@/lib/auth-context';
-import { formatDate } from '@/lib/utils';
+import { formatDate, toastError } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { Dialog } from '@/components/dialog';
 import { UserSearchDialog } from '@/components/user-search-dialog';
 import { Button } from '@/components/button';
-
-interface Conversation {
-  id: number;
-  type?: string;
-  participants: Array<{ id: number; email: string; username?: string }>;
-  lastMessage?: { content: string; createdAt: string };
-  unreadCount?: number;
-}
-
-interface Message {
-  id: number;
-  content: string;
-  senderId: number;
-  createdAt: string;
-  sender?: { email: string; username?: string };
-}
+import type { Conversation, ChatMessage } from '@/types';
 
 export default function MessagesPage() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConv, setActiveConv] = useState<number | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [showNewConv, setShowNewConv] = useState(false);
@@ -45,7 +30,7 @@ export default function MessagesPage() {
       const res = (await api.getConversations()) as Conversation[];
       setConversations(Array.isArray(res) ? res : []);
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     } finally {
       setLoading(false);
     }
@@ -53,13 +38,13 @@ export default function MessagesPage() {
 
   const loadMessages = useCallback(async (convId: number) => {
     try {
-      const res = (await api.getConversationMessages(convId)) as { data?: Message[] } | Message[];
-      const msgs = Array.isArray(res) ? res : (res as { data?: Message[] }).data || [];
+      const res = (await api.getConversationMessages(convId)) as { data?: ChatMessage[] } | ChatMessage[];
+      const msgs = Array.isArray(res) ? res : (res as { data?: ChatMessage[] }).data || [];
       setMessages(msgs);
       webSocketManager.send('messages:join', { conversationId: convId });
       api.markConversationAsRead(convId).catch(() => {});
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   }, []);
 
@@ -75,7 +60,7 @@ export default function MessagesPage() {
   useEffect(() => {
     const unsubs = [
       webSocketManager.on('message:received', (data) => {
-        const msg = data as Message & { conversationId?: number };
+        const msg = data as ChatMessage & { conversationId?: number };
         if (msg.conversationId === activeConv) {
           setMessages((prev) => [...prev, msg]);
         }
@@ -96,7 +81,7 @@ export default function MessagesPage() {
       await api.sendMessage(activeConv, newMessage.trim());
       setNewMessage('');
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
@@ -108,7 +93,7 @@ export default function MessagesPage() {
       await loadConversations();
       if (res?.id) setActiveConv(res.id);
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
@@ -121,7 +106,7 @@ export default function MessagesPage() {
       setAddAdminId('');
       loadConversations();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err);
     }
   };
 
@@ -148,7 +133,6 @@ export default function MessagesPage() {
         }
       />
       <div className="bg-white rounded-lg shadow flex" style={{ height: 'calc(100vh - 200px)' }}>
-        {/* Conversations list */}
         <div className="w-80 border-r border-gray-200 flex flex-col">
           <div className="p-3 border-b border-gray-200">
             <h3 className="font-semibold text-sm">Conversations</h3>
@@ -183,7 +167,6 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* Messages area */}
         <div className="flex-1 flex flex-col">
           {!activeConv ? (
             <div className="flex-1 flex items-center justify-center text-gray-400">
@@ -191,7 +174,6 @@ export default function MessagesPage() {
             </div>
           ) : (
             <>
-              {/* Conversation header */}
               <div className="p-3 border-b border-gray-200 flex items-center justify-between bg-gray-50">
                 <div>
                   <span className="text-sm font-medium">{activeConvData ? getConversationTitle(activeConvData) : ''}</span>
@@ -247,7 +229,6 @@ export default function MessagesPage() {
         </div>
       </div>
 
-      {/* New Conversation Dialog (multi-user search) */}
       <UserSearchDialog
         open={showNewConv}
         onClose={() => setShowNewConv(false)}
@@ -257,7 +238,6 @@ export default function MessagesPage() {
         title="New Conversation"
       />
 
-      {/* Add Admin Dialog */}
       <Dialog open={showAddAdmin} onClose={() => setShowAddAdmin(false)} title="Add Admin to Conversation">
         <div className="space-y-4">
           <div>

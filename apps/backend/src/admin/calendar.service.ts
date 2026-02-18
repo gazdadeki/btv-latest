@@ -6,6 +6,11 @@ import {
   RecurrenceType,
 } from '../schedules/entities/schedule.entity';
 import { Game } from '../games/entities/game.entity';
+import {
+  toUtcDateString,
+  utcStartOfDay,
+  utcEndOfDay,
+} from '../common/date.utils';
 
 /**
  * Service for generating calendar views of games.
@@ -36,12 +41,9 @@ export class CalendarService {
    * @returns Calendar data with dates and associated games
    */
   async generateCalendar(startDate: Date, endDate: Date): Promise<any> {
-    const startOfRange = new Date(startDate);
-    startOfRange.setHours(0, 0, 0, 0);
-    const endOfRange = new Date(endDate);
-    endOfRange.setHours(23, 59, 59, 999);
-    const endDay = new Date(endDate);
-    endDay.setHours(0, 0, 0, 0);
+    const startOfRange = utcStartOfDay(new Date(startDate));
+    const endOfRange = utcEndOfDay(new Date(endDate));
+    const endDay = utcStartOfDay(new Date(endDate));
 
     const [activeSchedules, realGames] = await Promise.all([
       this.scheduleRepository.find({ where: { isActive: true } }),
@@ -54,8 +56,7 @@ export class CalendarService {
     ]);
 
     const scheduleMeta = activeSchedules.map((schedule) => {
-      const createdDate = new Date(schedule.createdAt);
-      createdDate.setHours(0, 0, 0, 0);
+      const createdDate = utcStartOfDay(new Date(schedule.createdAt));
       const [startHours, startMinutes] = schedule.firstGameStartTime
         .split(':')
         .map(Number);
@@ -66,10 +67,10 @@ export class CalendarService {
     const dates: Date[] = [];
     const currentDate = new Date(startOfRange);
     while (currentDate <= endDay) {
-      const dateKey = currentDate.toISOString().split('T')[0];
+      const dateKey = toUtcDateString(currentDate);
       gamesByDate.set(dateKey, []);
       dates.push(new Date(currentDate));
-      currentDate.setDate(currentDate.getDate() + 1);
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
 
     const realGamesByDate = new Map<
@@ -79,7 +80,7 @@ export class CalendarService {
 
     for (const game of realGames) {
       const gameDate = new Date(game.scheduledStartTime);
-      const dateKey = gameDate.toISOString().split('T')[0];
+      const dateKey = toUtcDateString(gameDate);
       if (!realGamesByDate.has(dateKey)) {
         realGamesByDate.set(dateKey, new Map());
       }
@@ -89,11 +90,13 @@ export class CalendarService {
       }
       const bucket = scheduleMap.get(game.scheduleId)!;
       bucket.games.push(game);
-      bucket.timeKeys.add(`${gameDate.getHours()}:${gameDate.getMinutes()}`);
+      bucket.timeKeys.add(
+        `${gameDate.getUTCHours()}:${gameDate.getUTCMinutes()}`,
+      );
     }
 
     for (const date of dates) {
-      const dateKey = date.toISOString().split('T')[0];
+      const dateKey = toUtcDateString(date);
       const scheduleMap = realGamesByDate.get(dateKey);
 
       if (scheduleMap) {
@@ -138,18 +141,18 @@ export class CalendarService {
         }
 
         const baseStartTime = new Date(date);
-        baseStartTime.setHours(startHours, startMinutes, 0, 0);
+        baseStartTime.setUTCHours(startHours, startMinutes, 0, 0);
 
         for (let i = 0; i < schedule.gamesPerDay; i++) {
           const scheduledStartTime = new Date(baseStartTime);
           if (i > 0 && schedule.spacingAfterFinishMinutes) {
-            scheduledStartTime.setMinutes(
-              scheduledStartTime.getMinutes() +
+            scheduledStartTime.setUTCMinutes(
+              scheduledStartTime.getUTCMinutes() +
                 i * schedule.spacingAfterFinishMinutes,
             );
           }
 
-          const timeKey = `${scheduledStartTime.getHours()}:${scheduledStartTime.getMinutes()}`;
+          const timeKey = `${scheduledStartTime.getUTCHours()}:${scheduledStartTime.getUTCMinutes()}`;
           const gameExists = scheduleMap
             ?.get(schedule.id)
             ?.timeKeys.has(timeKey);
@@ -196,8 +199,17 @@ export class CalendarService {
    * @private
    */
   private shouldCreateGameOnDate(schedule: Schedule, date: Date): boolean {
-    const dayOfWeek = date.getDay();
-    const dayOfMonth = date.getDate();
+    if (schedule.scheduleStartDate) {
+      const start = new Date(schedule.scheduleStartDate + 'T00:00:00Z');
+      if (date < start) return false;
+    }
+    if (schedule.scheduleEndDate) {
+      const end = new Date(schedule.scheduleEndDate + 'T00:00:00Z');
+      if (date > end) return false;
+    }
+
+    const dayOfWeek = date.getUTCDay();
+    const dayOfMonth = date.getUTCDate();
 
     switch (schedule.recurrenceType) {
       case RecurrenceType.WEEKLY:
@@ -207,8 +219,19 @@ export class CalendarService {
       case RecurrenceType.YEARLY:
         if (schedule.recurrencePattern) {
           return (
-            date.getMonth() + 1 === schedule.recurrencePattern.month &&
-            date.getDate() === schedule.recurrencePattern.day
+            date.getUTCMonth() + 1 === schedule.recurrencePattern.month &&
+            date.getUTCDate() === schedule.recurrencePattern.day
+          );
+        }
+        return false;
+      case RecurrenceType.ONCE:
+        if (schedule.recurrencePattern) {
+          const { year, month, day } = schedule.recurrencePattern;
+          const yearMatch = !year || date.getUTCFullYear() === year;
+          return (
+            yearMatch &&
+            date.getUTCMonth() + 1 === month &&
+            date.getUTCDate() === day
           );
         }
         return false;

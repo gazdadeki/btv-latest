@@ -51,7 +51,7 @@ export class GameCancellationService {
   ): Promise<number> {
     return this.cancelGames({
       scheduleId,
-      statuses: [GameStatus.CREATED],
+      statuses: [GameStatus.CREATED, GameStatus.OPEN],
       ...options,
     });
   }
@@ -265,9 +265,11 @@ export class GameCancellationService {
   }
 
   private getDateBounds(date: Date): { start: Date; end: Date } {
-    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const start = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    );
     const end = new Date(start);
-    end.setHours(23, 59, 59, 999);
+    end.setUTCHours(23, 59, 59, 999);
     return { start, end };
   }
 }

@@ -122,6 +122,7 @@ function getDatabaseConfig() {
     password,
     database,
     synchronize: shouldSynchronize,
+    timezone: 'Z',
     retryAttempts,
     retryDelay,
     maxQueryExecutionTime: enableSlowQueryLogging

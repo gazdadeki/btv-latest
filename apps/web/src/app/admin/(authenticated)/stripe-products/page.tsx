@@ -4,37 +4,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { createColumnHelper } from '@tanstack/react-table';
 import { api } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
+import { formatDate, toastError } from '@/lib/utils';
 import { DataTable } from '@/components/data-table';
 import { PageHeader } from '@/components/page-header';
 import { PageLoading } from '@/components/loading';
 import { Dialog } from '@/components/dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Button } from '@/components/button';
-
-interface StripeProduct {
-  id: number;
-  name: string;
-  description?: string;
-  type: 'SUBSCRIPTION' | 'COIN_PACK';
-  isActive: boolean;
-  isArchived: boolean;
-  syncStatus?: string;
-  productData: { price: number; coins?: number; billingPeriod?: string; tier?: string };
-  stripeProductId?: string;
-  stripePriceId?: string;
-  displayOrder?: number;
-  createdAt: string;
-  updatedAt: string;
-}
+import { BILLING_PERIOD_LABELS } from '@/constants';
+import type { StripeProduct } from '@/types';
 
 const columnHelper = createColumnHelper<StripeProduct>();
-
-const periodMap: Record<string, string> = {
-  MONTHLY: '/month',
-  SIX_MONTHS: '/6 months',
-  YEARLY: '/year',
-};
 
 export default function StripeProductsPage() {
   const [data, setData] = useState<StripeProduct[]>([]);
@@ -44,7 +24,6 @@ export default function StripeProductsPage() {
   const [archiveTarget, setArchiveTarget] = useState<number | null>(null);
   const [editingProduct, setEditingProduct] = useState<StripeProduct | null>(null);
 
-  // Form state
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formType, setFormType] = useState<'SUBSCRIPTION' | 'COIN_PACK' | ''>('');
@@ -61,7 +40,7 @@ export default function StripeProductsPage() {
       if (showActive) products = products.filter((p) => p.isActive && !p.isArchived);
       setData(products);
     } catch (err) {
-      toast.error(`Failed to load products: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err, 'Failed to load products');
     } finally {
       setLoading(false);
     }
@@ -130,7 +109,7 @@ export default function StripeProductsPage() {
       setModalOpen(false);
       load();
     } catch (err) {
-      toast.error(`Failed to save: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err, 'Failed to save');
     }
   };
 
@@ -142,7 +121,7 @@ export default function StripeProductsPage() {
       setArchiveTarget(null);
       load();
     } catch (err) {
-      toast.error(`Failed to archive: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err, 'Failed to archive');
     }
   };
 
@@ -152,7 +131,7 @@ export default function StripeProductsPage() {
       toast.success('Product synced');
       load();
     } catch (err) {
-      toast.error(`Failed to sync: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err, 'Failed to sync');
     }
   };
 
@@ -162,7 +141,7 @@ export default function StripeProductsPage() {
       toast.success(`Sync complete: ${result.created} created, ${result.updated} updated`);
       load();
     } catch (err) {
-      toast.error(`Failed to sync: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toastError(err, 'Failed to sync');
     }
   };
 
@@ -184,7 +163,7 @@ export default function StripeProductsPage() {
         const p = info.row.original;
         let s = `$${p.productData.price.toFixed(2)}`;
         if (p.type === 'COIN_PACK' && p.productData.coins) s += ` (${p.productData.coins} coins)`;
-        else if (p.type === 'SUBSCRIPTION' && p.productData.billingPeriod) s += periodMap[p.productData.billingPeriod] || '';
+        else if (p.type === 'SUBSCRIPTION' && p.productData.billingPeriod) s += BILLING_PERIOD_LABELS[p.productData.billingPeriod] || '';
         return s;
       },
     }),

@@ -42,6 +42,11 @@ export class SchedulesService {
       createdBy,
     });
 
+    // If the new schedule is active, deactivate all others first
+    if (schedule.isActive !== false) {
+      await this.deactivateAll();
+    }
+
     const saved = await this.scheduleRepository.save(schedule);
 
     // Create default slot configs if not provided
@@ -146,6 +151,12 @@ export class SchedulesService {
 
     const { slotConfigs, propagateNow, ...scheduleData } = data;
     const schedule = await this.findOne(id);
+
+    // If this update activates the schedule, deactivate all others first
+    if (scheduleData.isActive === true && !schedule.isActive) {
+      await this.deactivateAll();
+    }
+
     Object.assign(schedule, scheduleData);
     await this.scheduleRepository.save(schedule);
 
@@ -172,6 +183,33 @@ export class SchedulesService {
       entityType: 'Schedule',
       entityId: id.toString(),
       details: { propagateNow: propagateNow || false },
+    });
+
+    return this.findOne(id);
+  }
+
+  /**
+   * Activate a schedule, deactivating all others.
+   * Only one schedule can be active at a time.
+   */
+  async activate(
+    id: number,
+    adminId: number,
+  ): Promise<Schedule> {
+    const schedule = await this.scheduleRepository.findOne({ where: { id, deletedAt: null } });
+    if (!schedule) {
+      throw new BadRequestException('Schedule not found');
+    }
+
+    await this.deactivateAll();
+    await this.scheduleRepository.update({ id }, { isActive: true });
+
+    await this.auditService.log({
+      userId: adminId,
+      action: 'SCHEDULE_ACTIVATED',
+      entityType: 'Schedule',
+      entityId: id.toString(),
+      details: { scheduleName: schedule.name },
     });
 
     return this.findOne(id);
@@ -240,13 +278,32 @@ export class SchedulesService {
     };
   }
 
+  private async deactivateAll(): Promise<void> {
+    await this.scheduleRepository
+      .createQueryBuilder()
+      .update(Schedule)
+      .set({ isActive: false })
+      .where('1=1')
+      .execute();
+  }
+
   shouldCreateGameToday(schedule: Schedule): boolean {
     return this.shouldCreateGameOnDate(schedule, new Date());
   }
 
   shouldCreateGameOnDate(schedule: Schedule, date: Date): boolean {
-    const dayOfWeek = date.getDay();
-    const dayOfMonth = date.getDate();
+    // Enforce optional schedule date window (dates stored as 'YYYY-MM-DD' UTC).
+    if (schedule.scheduleStartDate) {
+      const start = new Date(schedule.scheduleStartDate + 'T00:00:00Z');
+      if (date < start) return false;
+    }
+    if (schedule.scheduleEndDate) {
+      const end = new Date(schedule.scheduleEndDate + 'T00:00:00Z');
+      if (date > end) return false;
+    }
+
+    const dayOfWeek = date.getUTCDay();
+    const dayOfMonth = date.getUTCDate();
 
     switch (schedule.recurrenceType) {
       case RecurrenceType.WEEKLY:
@@ -256,13 +313,21 @@ export class SchedulesService {
       case RecurrenceType.YEARLY:
         if (schedule.recurrencePattern) {
           return (
-            date.getMonth() + 1 === schedule.recurrencePattern.month &&
-            date.getDate() === schedule.recurrencePattern.day
+            date.getUTCMonth() + 1 === schedule.recurrencePattern.month &&
+            date.getUTCDate() === schedule.recurrencePattern.day
           );
         }
         return false;
       case RecurrenceType.ONCE:
-        // Check if game already exists
+        if (schedule.recurrencePattern) {
+          const { year, month, day } = schedule.recurrencePattern;
+          const yearMatch = !year || date.getUTCFullYear() === year;
+          return (
+            yearMatch &&
+            date.getUTCMonth() + 1 === month &&
+            date.getUTCDate() === day
+          );
+        }
         return false;
       default:
         return false;

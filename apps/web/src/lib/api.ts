@@ -82,7 +82,7 @@ function buildQuery(params?: Record<string, string | undefined>): string {
 export const api = {
   // Auth
   login: (email: string, password: string) =>
-    apiRequest('/auth/login', {
+    apiRequest('/auth/admin/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
@@ -149,6 +149,8 @@ export const api = {
     apiRequest(`/admin/schedules/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteSchedule: (id: number) =>
     apiRequest(`/admin/schedules/${id}`, { method: 'DELETE' }),
+  activateSchedule: (id: number) =>
+    apiRequest(`/admin/schedules/${id}/activate`, { method: 'PUT' }),
   cancelScheduleGames: (id: number) =>
     apiRequest(`/admin/schedules/${id}/cancel-games`, { method: 'PUT' }),
   generateGamesForSchedule: (id: number, date: string) =>
