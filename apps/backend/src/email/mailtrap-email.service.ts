@@ -3,7 +3,7 @@
  * Sends transactional emails via SMTP using Nodemailer with Mailtrap configuration.
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { Transporter } from 'nodemailer';
 import { IEmailService } from './email.service.interface';
@@ -30,7 +30,7 @@ import {
  * - FRONTEND_URL: Frontend URL for email links
  */
 @Injectable()
-export class MailtrapEmailService implements IEmailService {
+export class MailtrapEmailService implements IEmailService, OnModuleInit {
   private readonly logger = new Logger(MailtrapEmailService.name);
   private transporter: Transporter;
   private readonly fromName: string;
@@ -52,6 +52,17 @@ export class MailtrapEmailService implements IEmailService {
     });
 
     this.logger.log('Mailtrap email service initialized');
+  }
+
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.transporter.verify();
+      this.logger.log('SMTP connection verified successfully');
+    } catch (error) {
+      this.logger.error(
+        `SMTP connection verification failed: ${error.message}. Emails will not be delivered.`,
+      );
+    }
   }
 
   /**

@@ -12,9 +12,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private usersService: UsersService) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        // Extract from cookie first (preferred)
+        // Check player cookie first, then admin cookie (both are valid sessions)
         (request: Request) => {
-          return request?.cookies?.admin_access_token || null;
+          return (
+            request?.cookies?.player_access_token ||
+            request?.cookies?.admin_access_token ||
+            null
+          );
         },
         // Fallback to Authorization header (for backward compatibility)
         ExtractJwt.fromAuthHeaderAsBearerToken(),

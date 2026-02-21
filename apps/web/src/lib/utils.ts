@@ -42,3 +42,27 @@ export function formatDateOnly(dateString: string): string {
     return dateString;
   }
 }
+
+/**
+ * Converts a UTC HH:MM time string (as stored in the database) to the
+ * equivalent local HH:MM string for display in time inputs.
+ */
+export function utcTimeToLocal(hhmm: string): string {
+  if (!hhmm) return '';
+  const [hours, minutes] = hhmm.split(':').map(Number);
+  const d = new Date();
+  d.setUTCHours(hours, minutes, 0, 0);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * Converts a local HH:MM time string (from a time input) to the equivalent
+ * UTC HH:MM string for storage in the database.
+ */
+export function localTimeToUtc(hhmm: string): string {
+  if (!hhmm) return '';
+  const [hours, minutes] = hhmm.split(':').map(Number);
+  const d = new Date();
+  d.setHours(hours, minutes, 0, 0);
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+}

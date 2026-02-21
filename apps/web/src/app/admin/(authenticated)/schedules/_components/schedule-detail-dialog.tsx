@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import { formatDate, toastError } from '@/lib/utils';
+import { formatDate, toastError, utcTimeToLocal, localTimeToUtc } from '@/lib/utils';
 import { Dialog } from '@/components/dialog';
 import { Button } from '@/components/button';
 import { Tabs } from '@/components/tabs';
@@ -31,9 +31,9 @@ export function ScheduleDetailDialog({ schedule, onClose, onMutated }: ScheduleD
     if (!schedule) return;
     setEditForm({
       name: schedule.name, description: schedule.description || '',
-      firstGameStartTime: schedule.firstGameStartTime || '',
-      gameCreationTime: schedule.gameCreationTime || '06:00',
-      reservationOpenTime: schedule.reservationOpenTime || '',
+      firstGameStartTime: schedule.firstGameStartTime ? utcTimeToLocal(schedule.firstGameStartTime) : '',
+      gameCreationTime: schedule.gameCreationTime ? utcTimeToLocal(schedule.gameCreationTime) : '06:00',
+      reservationOpenTime: schedule.reservationOpenTime ? utcTimeToLocal(schedule.reservationOpenTime) : '',
       scheduleStartDate: schedule.scheduleStartDate || '',
       scheduleEndDate: schedule.scheduleEndDate || '',
       gamesPerDay: schedule.gamesPerDay, spacingAfterFinishMinutes: schedule.spacingAfterFinishMinutes || 0,
@@ -86,9 +86,11 @@ export function ScheduleDetailDialog({ schedule, onClose, onMutated }: ScheduleD
     try {
       await api.updateSchedule(schedule.id, {
         name: f.name, description: f.description || null,
-        firstGameStartTime: f.firstGameStartTime,
-        gameCreationTime: (f.gameCreationTime as string) || '06:00',
-        reservationOpenTime: (f.reservationOpenTime as string)?.trim() || null,
+        firstGameStartTime: localTimeToUtc(f.firstGameStartTime as string),
+        gameCreationTime: localTimeToUtc((f.gameCreationTime as string) || '06:00'),
+        reservationOpenTime: (f.reservationOpenTime as string)?.trim()
+          ? localTimeToUtc((f.reservationOpenTime as string).trim())
+          : null,
         scheduleStartDate: (f.scheduleStartDate as string)?.trim() || null,
         scheduleEndDate: (f.scheduleEndDate as string)?.trim() || null,
         gamesPerDay: Number(f.gamesPerDay),
@@ -160,9 +162,9 @@ export function ScheduleDetailDialog({ schedule, onClose, onMutated }: ScheduleD
             <tr><td className="py-2 font-medium">Active</td><td>{schedule.isActive ? 'Yes' : 'No'}</td></tr>
             <tr><td className="py-2 font-medium">Schedule Start Date</td><td>{schedule.scheduleStartDate || 'No limit'}</td></tr>
             <tr><td className="py-2 font-medium">Schedule End Date</td><td>{schedule.scheduleEndDate || 'No limit'}</td></tr>
-            <tr><td className="py-2 font-medium">Game Creation Time (UTC)</td><td>{schedule.gameCreationTime || 'N/A'}</td></tr>
-            <tr><td className="py-2 font-medium">Reservation Open Time (UTC)</td><td>{schedule.reservationOpenTime || 'Immediate (on creation)'}</td></tr>
-            <tr><td className="py-2 font-medium">First Game Start Time (UTC)</td><td>{schedule.firstGameStartTime || 'N/A'}</td></tr>
+            <tr><td className="py-2 font-medium">Game Creation Time</td><td>{schedule.gameCreationTime ? utcTimeToLocal(schedule.gameCreationTime) : 'N/A'}</td></tr>
+            <tr><td className="py-2 font-medium">Reservation Open Time</td><td>{schedule.reservationOpenTime ? utcTimeToLocal(schedule.reservationOpenTime) : 'Immediate (on creation)'}</td></tr>
+            <tr><td className="py-2 font-medium">First Game Start Time</td><td>{schedule.firstGameStartTime ? utcTimeToLocal(schedule.firstGameStartTime) : 'N/A'}</td></tr>
             <tr><td className="py-2 font-medium">Games/Day</td><td>{schedule.gamesPerDay}</td></tr>
             <tr><td className="py-2 font-medium">Slots/Game</td><td>{schedule.slotsPerGame}</td></tr>
             <tr><td className="py-2 font-medium">Reservation Cost</td><td>{schedule.reservationCost} coins</td></tr>
@@ -182,9 +184,9 @@ export function ScheduleDetailDialog({ schedule, onClose, onMutated }: ScheduleD
           <div className="grid grid-cols-2 gap-3">
             <FormRow label="Schedule Start Date" title="First day games may be generated (optional)"><input type="date" value={String(editForm.scheduleStartDate || '')} onChange={(e) => setEditForm({ ...editForm, scheduleStartDate: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
             <FormRow label="Schedule End Date" title="Last day games may be generated (optional — leave blank for no end)"><input type="date" value={String(editForm.scheduleEndDate || '')} onChange={(e) => setEditForm({ ...editForm, scheduleEndDate: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
-            <FormRow label="Game Creation Time (UTC)" title="Time at which games are auto-generated each period"><input type="time" value={String(editForm.gameCreationTime || '')} onChange={(e) => setEditForm({ ...editForm, gameCreationTime: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
-            <FormRow label="Reservation Open Time (UTC)" title="Time at which reservations open; leave blank to open immediately"><input type="time" value={String(editForm.reservationOpenTime || '')} onChange={(e) => setEditForm({ ...editForm, reservationOpenTime: e.target.value || '' })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
-            <FormRow label="First Game Start Time (UTC)"><input type="time" value={String(editForm.firstGameStartTime || '')} onChange={(e) => setEditForm({ ...editForm, firstGameStartTime: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
+            <FormRow label="Game Creation Time" title="Time at which games are auto-generated each period (your local time)"><input type="time" value={String(editForm.gameCreationTime || '')} onChange={(e) => setEditForm({ ...editForm, gameCreationTime: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
+            <FormRow label="Reservation Open Time" title="Time at which reservations open in your local time; leave blank to open immediately"><input type="time" value={String(editForm.reservationOpenTime || '')} onChange={(e) => setEditForm({ ...editForm, reservationOpenTime: e.target.value || '' })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
+            <FormRow label="First Game Start Time"><input type="time" value={String(editForm.firstGameStartTime || '')} onChange={(e) => setEditForm({ ...editForm, firstGameStartTime: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
             <FormRow label="Games/Day"><FormInput form={editForm} field="gamesPerDay" setForm={setEditForm} type="number" /></FormRow>
             <FormRow label="Spacing (min)"><FormInput form={editForm} field="spacingAfterFinishMinutes" setForm={setEditForm} type="number" /></FormRow>
             <FormRow label="Confirm Window"><FormInput form={editForm} field="confirmationWindowMinutes" setForm={setEditForm} type="number" /></FormRow>

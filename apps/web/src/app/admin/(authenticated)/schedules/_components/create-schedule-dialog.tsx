@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import { toastError } from '@/lib/utils';
+import { toastError, localTimeToUtc } from '@/lib/utils';
 import { Dialog } from '@/components/dialog';
 import { Button } from '@/components/button';
 import { FormRow, FormInput, FormSelect, FormCheckbox } from '@/components/form-fields';
@@ -97,9 +97,11 @@ export function CreateScheduleDialog({ open, onClose, onCreated }: CreateSchedul
         refundPolicy: f.refundPolicy,
         refundPercentage: f.refundPolicy === 'PARTIAL' ? Number(f.refundPercentage) : null,
         isExclusiveToGold: !!f.isExclusiveToGold,
-        firstGameStartTime: f.firstGameStartTime,
-        gameCreationTime: f.gameCreationTime || '06:00',
-        reservationOpenTime: (f.reservationOpenTime as string)?.trim() || null,
+        firstGameStartTime: localTimeToUtc(f.firstGameStartTime as string),
+        gameCreationTime: localTimeToUtc((f.gameCreationTime as string) || '06:00'),
+        reservationOpenTime: (f.reservationOpenTime as string)?.trim()
+          ? localTimeToUtc((f.reservationOpenTime as string).trim())
+          : null,
         scheduleStartDate: (f.scheduleStartDate as string)?.trim() || null,
         scheduleEndDate: (f.scheduleEndDate as string)?.trim() || null,
         gamesPerDay: Number(f.gamesPerDay),
@@ -138,11 +140,11 @@ export function CreateScheduleDialog({ open, onClose, onCreated }: CreateSchedul
           <FormRow label="Name (optional)"><FormInput form={form} field="name" setForm={setForm} placeholder="Auto-generated if empty" /></FormRow>
           <FormRow label="Description"><FormInput form={form} field="description" setForm={setForm} /></FormRow>
           <div className="grid grid-cols-2 gap-3">
-            <FormRow label="Game Creation Time (UTC)" title="Time at which games are auto-generated each period"><input type="time" value={String(form.gameCreationTime || '')} onChange={(e) => setForm({ ...form, gameCreationTime: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
-            <FormRow label="Reservation Open Time (UTC)" title="Time at which reservations open; leave blank to open immediately"><input type="time" value={String(form.reservationOpenTime || '')} onChange={(e) => setForm({ ...form, reservationOpenTime: e.target.value || '' })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
+            <FormRow label="Game Creation Time" title="Time at which games are auto-generated each period (your local time)"><input type="time" value={String(form.gameCreationTime || '')} onChange={(e) => setForm({ ...form, gameCreationTime: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
+            <FormRow label="Reservation Open Time" title="Time at which reservations open in your local time; leave blank to open immediately"><input type="time" value={String(form.reservationOpenTime || '')} onChange={(e) => setForm({ ...form, reservationOpenTime: e.target.value || '' })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
             <FormRow label="Schedule Start Date" title="First day games may be generated (optional)"><input type="date" value={String(form.scheduleStartDate || '')} onChange={(e) => setForm({ ...form, scheduleStartDate: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
             <FormRow label="Schedule End Date" title="Last day games may be generated (optional — leave blank for no end)"><input type="date" value={String(form.scheduleEndDate || '')} onChange={(e) => setForm({ ...form, scheduleEndDate: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
-            <FormRow label="First Game Start Time (UTC)"><input type="time" value={String(form.firstGameStartTime || '')} onChange={(e) => setForm({ ...form, firstGameStartTime: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
+            <FormRow label="First Game Start Time"><input type="time" value={String(form.firstGameStartTime || '')} onChange={(e) => setForm({ ...form, firstGameStartTime: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></FormRow>
             <FormRow label="Games Per Day"><FormInput form={form} field="gamesPerDay" setForm={setForm} type="number" /></FormRow>
             <FormRow label="Spacing (min)"><FormInput form={form} field="spacingAfterFinishMinutes" setForm={setForm} type="number" /></FormRow>
             <FormRow label="Confirm Window (min)"><FormInput form={form} field="confirmationWindowMinutes" setForm={setForm} type="number" /></FormRow>

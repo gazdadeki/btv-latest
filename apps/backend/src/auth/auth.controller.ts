@@ -96,14 +96,13 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       };
 
-      // Set access token cookie
-      res.cookie('admin_access_token', result.accessToken, {
+      // Set player-scoped HTTP-only cookies
+      res.cookie('player_access_token', result.accessToken, {
         ...cookieOptions,
         maxAge: 15 * 60 * 1000, // 15 minutes (access token expiry)
       });
 
-      // Set refresh token cookie
-      res.cookie('admin_refresh_token', result.refreshToken, cookieOptions);
+      res.cookie('player_refresh_token', result.refreshToken, cookieOptions);
 
       // Return user data only (no tokens in JSON)
       this.logger.log(
@@ -158,14 +157,13 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       };
 
-      // Set access token cookie
-      res.cookie('admin_access_token', result.accessToken, {
+      // Set player-scoped HTTP-only cookies
+      res.cookie('player_access_token', result.accessToken, {
         ...cookieOptions,
         maxAge: 15 * 60 * 1000, // 15 minutes (access token expiry)
       });
 
-      // Set refresh token cookie
-      res.cookie('admin_refresh_token', result.refreshToken, cookieOptions);
+      res.cookie('player_refresh_token', result.refreshToken, cookieOptions);
 
       // Return user data only (no tokens in JSON)
       this.logger.log(
@@ -250,15 +248,18 @@ export class AuthController {
   async refresh(@Request() req: any, @Response() res: ExpressResponse) {
     const ipAddress = this.extractIpAddress(req);
 
-    // Get refresh token from cookie or body (for backward compatibility)
+    // Detect whether this is a player or admin session by which cookie is present
+    const isPlayerSession = !!req.cookies?.player_refresh_token;
     const refreshToken =
-      req.cookies?.admin_refresh_token || req.body?.refreshToken;
+      req.cookies?.player_refresh_token ||
+      req.cookies?.admin_refresh_token ||
+      req.body?.refreshToken;
     const tokenPrefix = refreshToken
       ? refreshToken.substring(0, 10) + '...'
       : 'null';
 
     this.logger.log(
-      `Token refresh request received (token prefix: ${tokenPrefix}) from IP: ${ipAddress}`,
+      `Token refresh request received (token prefix: ${tokenPrefix}, session: ${isPlayerSession ? 'player' : 'admin'}) from IP: ${ipAddress}`,
     );
 
     if (!refreshToken) {
@@ -271,7 +272,6 @@ export class AuthController {
     try {
       const result = await this.authService.refresh(refreshToken);
 
-      // Set HTTP-only cookies
       const isProduction = process.env.NODE_ENV === 'production';
       const cookieOptions = {
         httpOnly: true,
@@ -281,15 +281,16 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       };
 
-      // Set access token cookie
-      res.cookie('admin_access_token', result.accessToken, {
+      const accessCookie = isPlayerSession ? 'player_access_token' : 'admin_access_token';
+      const refreshCookie = isPlayerSession ? 'player_refresh_token' : 'admin_refresh_token';
+
+      res.cookie(accessCookie, result.accessToken, {
         ...cookieOptions,
         maxAge: 15 * 60 * 1000, // 15 minutes (access token expiry)
       });
 
-      // Set refresh token cookie (if new refresh token was generated)
       if (result.refreshToken && result.refreshToken !== refreshToken) {
-        res.cookie('admin_refresh_token', result.refreshToken, cookieOptions);
+        res.cookie(refreshCookie, result.refreshToken, cookieOptions);
       }
 
       // Return user data only if available (no tokens in JSON)
@@ -320,8 +321,11 @@ export class AuthController {
     const ipAddress = this.extractIpAddress(req);
     const userId = req.user?.id;
 
-    // Get refresh token from cookie or body
-    const refreshToken = req.cookies?.admin_refresh_token || body?.refreshToken;
+    // Get refresh token from either player or admin cookie
+    const refreshToken =
+      req.cookies?.player_refresh_token ||
+      req.cookies?.admin_refresh_token ||
+      body?.refreshToken;
 
     this.logger.log(
       `Logout request received for user ID: ${userId} from IP: ${ipAddress}`,
@@ -330,7 +334,10 @@ export class AuthController {
     try {
       await this.authService.logout(userId, refreshToken);
 
-      // Clear cookies
+      // Clear all session cookies (player and admin)
+      res.clearCookie('player_access_token', { path: '/' });
+      res.clearCookie('player_refresh_token', { path: '/' });
+      res.clearCookie('player_user', { path: '/' });
       res.clearCookie('admin_access_token', { path: '/' });
       res.clearCookie('admin_refresh_token', { path: '/' });
       res.clearCookie('admin_user', { path: '/' });
@@ -354,9 +361,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Get WebSocket authentication token' })
   @ApiResponse({ status: 200, description: 'WebSocket token returned' })
   async getWebSocketToken(@Request() req: any) {
-    // Return the access token from cookie for WebSocket authentication
-    // This is safe because the user is already authenticated via JWT guard
-    const token = req.cookies?.admin_access_token;
+    // Check player cookie first, then admin — both are valid for WebSocket auth.
+    const token =
+      req.cookies?.player_access_token || req.cookies?.admin_access_token;
     if (!token) {
       throw new UnauthorizedException('No access token found');
     }

@@ -17,9 +17,7 @@ function deleteCookie(name: string) {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 }
 
-// ─── Auth cookie names (player app — no admin_ prefix) ───────────────────────
-
-const COOKIE_USER = 'user';
+const COOKIE_USER = 'player_user';
 
 // ─── Auth utilities ───────────────────────────────────────────────────────────
 
@@ -46,9 +44,7 @@ export const AuthUtils = {
 
   clearAuth() {
     deleteCookie(COOKIE_USER);
-    // The httpOnly access_token and refresh_token are cleared server-side on logout.
-    // We also attempt to clear them client-side in case they're not httpOnly in dev.
-    deleteCookie('access_token');
-    deleteCookie('refresh_token');
+    deleteCookie('player_access_token');
+    deleteCookie('player_refresh_token');
   },
 };

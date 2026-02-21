@@ -75,8 +75,8 @@ export class GameBulkWriteService {
         for (let i = 0; i < schedule.gamesPerDay; i += 1) {
           const gameStartTime = new Date(baseStartTime);
           if (i > 0 && schedule.spacingAfterFinishMinutes) {
-            gameStartTime.setMinutes(
-              gameStartTime.getMinutes() +
+            gameStartTime.setUTCMinutes(
+              gameStartTime.getUTCMinutes() +
                 i * schedule.spacingAfterFinishMinutes,
             );
           }

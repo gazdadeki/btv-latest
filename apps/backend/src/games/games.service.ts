@@ -245,9 +245,9 @@ export class GamesService {
 
     // Check if another game is IN_PROGRESS for same schedule/day
     const gameDate = new Date(game.scheduledStartTime);
-    gameDate.setHours(0, 0, 0, 0);
+    gameDate.setUTCHours(0, 0, 0, 0);
     const nextDay = new Date(gameDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
     const inProgressGame = await this.gameRepository.findOne({
       where: {
@@ -258,7 +258,7 @@ export class GamesService {
 
     if (inProgressGame && inProgressGame.id !== id) {
       const inProgressDate = new Date(inProgressGame.scheduledStartTime);
-      inProgressDate.setHours(0, 0, 0, 0);
+      inProgressDate.setUTCHours(0, 0, 0, 0);
       if (inProgressDate.getTime() === gameDate.getTime()) {
         throw new BadRequestException(
           'Another game is already in progress for this schedule/day. Only one game can be in progress at a time.',
@@ -303,7 +303,7 @@ export class GamesService {
     date: Date,
   ): Promise<boolean> {
     const nextDay = new Date(date);
-    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
     const earlierGames = await this.gameRepository.find({
       where: {
@@ -316,7 +316,7 @@ export class GamesService {
     for (const earlierGame of earlierGames) {
       if (earlierGame.id === gameId) continue;
       const earlierDate = new Date(earlierGame.scheduledStartTime);
-      earlierDate.setHours(0, 0, 0, 0);
+      earlierDate.setUTCHours(0, 0, 0, 0);
       if (
         earlierDate.getTime() === date.getTime() &&
         earlierGame.actualStartTime
@@ -341,7 +341,7 @@ export class GamesService {
     date: Date,
   ): Promise<boolean> {
     const nextDay = new Date(date);
-    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
     // Find all CREATED games for the same schedule/day that come after this game
     const laterGames = await this.gameRepository.find({
@@ -358,7 +358,7 @@ export class GamesService {
     for (const laterGame of laterGames) {
       if (laterGame.id === gameId) continue;
       const laterDate = new Date(laterGame.scheduledStartTime);
-      laterDate.setHours(0, 0, 0, 0);
+      laterDate.setUTCHours(0, 0, 0, 0);
       if (
         laterDate.getTime() === date.getTime() &&
         laterGame.scheduledStartTime > new Date()
@@ -438,9 +438,9 @@ export class GamesService {
 
     // Check if there's a next game for the same schedule/day
     const gameDate = new Date(game.scheduledStartTime);
-    gameDate.setHours(0, 0, 0, 0);
+    gameDate.setUTCHours(0, 0, 0, 0);
     const nextDay = new Date(gameDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
     const nextGame = await this.gameRepository.findOne({
       where: {
@@ -455,7 +455,7 @@ export class GamesService {
     let isLastGame = true;
     if (nextGame) {
       const nextGameDate = new Date(nextGame.scheduledStartTime);
-      nextGameDate.setHours(0, 0, 0, 0);
+      nextGameDate.setUTCHours(0, 0, 0, 0);
       if (nextGameDate.getTime() === gameDate.getTime()) {
         isLastGame = false;
       }
@@ -473,7 +473,7 @@ export class GamesService {
     const isFirstFinished =
       finishedGamesForDay.filter((g) => {
         const gDate = new Date(g.scheduledStartTime);
-        gDate.setHours(0, 0, 0, 0);
+        gDate.setUTCHours(0, 0, 0, 0);
         return gDate.getTime() === gameDate.getTime() && g.id !== id;
       }).length === 0;
 
@@ -883,9 +883,9 @@ export class GamesService {
     const game = await this.findOne(gameId);
 
     const gameDate = new Date(game.scheduledStartTime);
-    gameDate.setHours(0, 0, 0, 0);
+    gameDate.setUTCHours(0, 0, 0, 0);
     const nextDay = new Date(gameDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
     const nextGame = await this.gameRepository.findOne({
       where: {
@@ -902,7 +902,7 @@ export class GamesService {
     }
 
     const nextGameDate = new Date(nextGame.scheduledStartTime);
-    nextGameDate.setHours(0, 0, 0, 0);
+    nextGameDate.setUTCHours(0, 0, 0, 0);
     if (nextGameDate.getTime() !== gameDate.getTime()) {
       throw new BadRequestException('Next game is not for the same day');
     }

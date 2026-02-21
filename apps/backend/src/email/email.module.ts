@@ -19,14 +19,16 @@ const logger = new Logger('EmailModule');
  */
 const emailServiceProvider = {
   provide: 'IEmailService',
-  useFactory: () => {
+  useFactory: async () => {
     const provider = process.env.EMAIL_SERVICE_PROVIDER || 'console';
 
     switch (provider.toLowerCase()) {
-      case 'mailtrap':
+      case 'mailtrap': {
         logger.log('Using MailtrapEmailService for email delivery');
-        return new MailtrapEmailService();
-
+        const service = new MailtrapEmailService();
+        await service.onModuleInit();
+        return service;
+      }
       case 'console':
       default:
         logger.log(
@@ -37,7 +39,10 @@ const emailServiceProvider = {
   },
 };
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 @Module({
+  controllers: isDev ? [] : [],
   providers: [emailServiceProvider],
   exports: [emailServiceProvider],
 })
