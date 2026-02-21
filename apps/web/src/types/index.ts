@@ -60,7 +60,7 @@ export interface Schedule {
   description?: string;
   recurrenceType: string;
   recurrenceDays?: number[] | null;
-  recurrencePattern?: { month: number; day: number } | null;
+  recurrencePattern?: { year?: number; month: number; day: number } | null;
   isActive: boolean;
   slotsPerGame: number;
   reservationCost: number;

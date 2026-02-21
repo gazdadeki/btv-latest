@@ -2,13 +2,15 @@ import React from 'react';
 
 export function FormRow({
   label,
+  title,
   children,
 }: {
   label: string;
+  title?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div>
+    <div title={title}>
       <label className="block text-sm font-medium mb-1">{label}</label>
       {children}
     </div>
