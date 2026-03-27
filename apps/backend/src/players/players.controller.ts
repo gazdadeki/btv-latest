@@ -13,6 +13,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequireVerified } from '../common/decorators/require-verified.decorator';
@@ -33,24 +34,43 @@ export class PlayersController {
 
   @Get('games/available')
   @ApiOperation({ summary: 'List available games' })
+  @ApiResponse({ status: 200, description: 'List of available games' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
   async getAvailableGames(@Request() req: any) {
     return this.playersService.getAvailableGames(req.user);
   }
 
   @Get('games/:id')
   @ApiOperation({ summary: 'Get game details' })
+  @ApiResponse({ status: 200, description: 'Game details' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
+  @ApiResponse({ status: 404, description: 'Game not found' })
   async getGame(@Param('id') id: string, @Request() req: any) {
     return this.playersService.getGameDetails(+id, req.user);
   }
 
   @Get('games/:id/slots')
   @ApiOperation({ summary: 'Get available slots for game' })
+  @ApiResponse({ status: 200, description: 'Available slots for game' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
+  @ApiResponse({ status: 404, description: 'Game not found' })
   async getGameSlots(@Param('id') id: string, @Request() req: any) {
     return this.playersService.getGameSlots(+id, req.user);
   }
 
   @Post('games/:id/slots/:slotId/reserve')
   @ApiOperation({ summary: 'Reserve a slot (player-side validation)' })
+  @ApiResponse({ status: 201, description: 'Slot reserved' })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request or slot unavailable',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
+  @ApiResponse({ status: 404, description: 'Game or slot not found' })
   async reserveSlot(
     @Param('id') id: string,
     @Param('slotId') slotId: string,
@@ -70,6 +90,9 @@ export class PlayersController {
   @ApiOperation({
     summary: 'Get schedules with games for today, grouped by schedule',
   })
+  @ApiResponse({ status: 200, description: 'Schedules with games for today' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
   @ApiQuery({
     name: 'includeCreated',
     required: false,

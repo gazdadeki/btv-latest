@@ -16,6 +16,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -46,6 +47,9 @@ export class TutorialsController {
 
   @Get()
   @ApiOperation({ summary: 'List all tutorials with optional filters' })
+  @ApiResponse({ status: 200, description: 'List of tutorials' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   @ApiQuery({ name: 'status', required: false, enum: TutorialStatus })
   @ApiQuery({ name: 'featured', required: false, type: Boolean })
   @ApiQuery({ name: 'categoryId', required: false, type: Number })
@@ -70,6 +74,10 @@ export class TutorialsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new tutorial' })
+  @ApiResponse({ status: 201, description: 'Tutorial created' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async create(
     @Request() req: any,
     @Body() createTutorialDto: CreateTutorialDto,
@@ -80,18 +88,30 @@ export class TutorialsController {
 
   @Get('tags')
   @ApiOperation({ summary: 'List all tags' })
+  @ApiResponse({ status: 200, description: 'List of tags' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async findAllTags() {
     return this.tutorialsService.findAllTags();
   }
 
   @Post('tags')
   @ApiOperation({ summary: 'Create a new tag' })
+  @ApiResponse({ status: 201, description: 'Tag created' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async createTag(@Body() createTagDto: CreateTagDto) {
     return this.tutorialsService.createTag(createTagDto);
   }
 
   @Put('tags/:id')
   @ApiOperation({ summary: 'Update a tag' })
+  @ApiResponse({ status: 200, description: 'Tag updated' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Tag not found' })
   async updateTag(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateTagDto: UpdateTagDto,
@@ -101,6 +121,10 @@ export class TutorialsController {
 
   @Delete('tags/:id')
   @ApiOperation({ summary: 'Delete a tag' })
+  @ApiResponse({ status: 200, description: 'Tag deleted' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Tag not found' })
   async removeTag(@Param('id', ParseIntPipe) id: number) {
     await this.tutorialsService.removeTag(id);
     return { message: 'Tag deleted successfully' };
@@ -108,6 +132,9 @@ export class TutorialsController {
 
   @Get('categories')
   @ApiOperation({ summary: 'List all categories' })
+  @ApiResponse({ status: 200, description: 'List of categories' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async findAllCategories() {
     return this.tutorialsService.findAllCategories();
   }

@@ -31,7 +31,9 @@
     "migration:show": "typeorm-ts-node-commonjs migration:show -d src/database/data-source.ts",
     "docs:export:openapi": "node scripts/export-player-api.js --target openapi",
     "docs:export:postman": "node scripts/export-player-api.js --target postman --openapi-file docs/external/player-api/openapi.v1.json",
-    "docs:export:player-pack": "node scripts/export-player-api.js"
+    "docs:export:player-pack": "node scripts/export-player-api.js",
+    "docs:export:admin": "node scripts/export-admin-api.js",
+    "docs:check-drift": "node scripts/check-spec-drift.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.12",

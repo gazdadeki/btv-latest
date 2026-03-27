@@ -12,7 +12,12 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { SchedulesService } from './schedules.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -35,24 +40,40 @@ export class SchedulesController {
 
   @Post()
   @ApiOperation({ summary: 'Create schedule' })
+  @ApiResponse({ status: 201, description: 'Schedule created' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async create(@Body() body: any, @Request() req: any) {
     return this.schedulesService.create(body, req.user.id);
   }
 
   @Get()
   @ApiOperation({ summary: 'List all schedules' })
+  @ApiResponse({ status: 200, description: 'List of schedules' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async findAll() {
     return this.schedulesService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get schedule details' })
+  @ApiResponse({ status: 200, description: 'Schedule details' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Schedule not found' })
   async findOne(@Param('id') id: string) {
     return this.schedulesService.findOne(+id);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update schedule' })
+  @ApiResponse({ status: 200, description: 'Schedule updated' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Schedule not found' })
   async update(
     @Param('id') id: string,
     @Body() body: UpdateScheduleDto,
@@ -63,12 +84,20 @@ export class SchedulesController {
 
   @Put(':id/activate')
   @ApiOperation({ summary: 'Activate a schedule, deactivating all others' })
+  @ApiResponse({ status: 200, description: 'Schedule activated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Schedule not found' })
   async activate(@Param('id') id: string, @Request() req: any) {
     return this.schedulesService.activate(+id, req.user.id);
   }
 
   @Put(':id/cancel-games')
   @ApiOperation({ summary: 'Cancel all CREATED games for a schedule' })
+  @ApiResponse({ status: 200, description: 'Games cancelled' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Schedule not found' })
   async cancelGames(@Param('id') id: string, @Request() req: any) {
     const cancelledCount = await this.schedulesService.cancelScheduleGames(
       +id,
@@ -79,6 +108,10 @@ export class SchedulesController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete schedule (soft delete)' })
+  @ApiResponse({ status: 200, description: 'Schedule deleted' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Schedule not found' })
   async remove(@Param('id') id: string, @Request() req: any) {
     return this.schedulesService.remove(+id, req.user.id);
   }
@@ -87,6 +120,11 @@ export class SchedulesController {
   @ApiOperation({
     summary: 'Manually generate games for a schedule on a specific date',
   })
+  @ApiResponse({ status: 201, description: 'Games generated' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Schedule not found' })
   async generateGames(
     @Param('id') id: string,
     @Body() body: { date: string },

@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager, In } from 'typeorm';
 import { Wallet } from './entities/wallet.entity';
@@ -40,7 +45,7 @@ export class WalletService {
   async getWallet(userId: number): Promise<Wallet> {
     const wallet = await this.walletRepository.findOne({ where: { userId } });
     if (!wallet) {
-      throw new BadRequestException('Wallet not found');
+      throw new NotFoundException('Wallet not found');
     }
     return wallet;
   }
@@ -70,7 +75,7 @@ export class WalletService {
       lock: { mode: 'pessimistic_write' },
     });
     if (!wallet) {
-      throw new BadRequestException('Wallet not found');
+      throw new NotFoundException('Wallet not found');
     }
 
     await manager
@@ -177,7 +182,7 @@ export class WalletService {
     if (!updateResult.affected) {
       const wallet = await manager.findOne(Wallet, { where: { id: walletId } });
       if (!wallet) {
-        throw new BadRequestException('Wallet not found');
+        throw new NotFoundException('Wallet not found');
       }
       throw new BadRequestException('Insufficient balance');
     }

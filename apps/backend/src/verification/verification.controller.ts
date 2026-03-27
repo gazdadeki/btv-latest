@@ -8,7 +8,13 @@ import {
   Request,
   Body,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiBody,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { VerificationService } from './verification.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -24,6 +30,9 @@ export class VerificationController {
 
   @Post('request')
   @ApiOperation({ summary: 'Request verification code' })
+  @ApiResponse({ status: 200, description: 'Verification code sent' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   async request(@Request() req: any) {
     return this.verificationService.requestVerification(
       req.user.id,
@@ -34,6 +43,9 @@ export class VerificationController {
 
   @Post('verify')
   @ApiOperation({ summary: 'Verify with code' })
+  @ApiResponse({ status: 200, description: 'Account verified' })
+  @ApiResponse({ status: 400, description: 'Invalid code' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiBody({ schema: { properties: { code: { type: 'string' } } } })
   async verify(@Request() req: any, @Body() body: { code: string }) {
     return this.verificationService.verify(
@@ -48,6 +60,10 @@ export class VerificationController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Request verification for user (admin only)' })
+  @ApiResponse({ status: 200, description: 'Verification requested' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async adminRequest(@Param('id') userId: string, @Request() req: any) {
     const ipAddress =
       req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
@@ -68,6 +84,10 @@ export class VerificationController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Manually verify user (admin only)' })
+  @ApiResponse({ status: 200, description: 'User verified' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async adminVerify(@Param('id') userId: string, @Request() req: any) {
     await this.verificationService.adminVerify(+userId, req.user.id);
     return { success: true, message: 'User verified successfully' };
@@ -79,6 +99,10 @@ export class VerificationController {
   @ApiOperation({
     summary: 'Get latest verification code for user (admin only)',
   })
+  @ApiResponse({ status: 200, description: 'Latest verification code' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getLatestCode(@Param('id') userId: string) {
     const code = await this.verificationService.getLatestCode(+userId);
     if (!code) {

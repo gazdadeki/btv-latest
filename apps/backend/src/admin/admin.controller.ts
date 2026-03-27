@@ -1,5 +1,10 @@
 import { Controller, Get, UseGuards, Query } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
@@ -22,12 +27,18 @@ export class AdminController {
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Get dashboard overview' })
+  @ApiResponse({ status: 200, description: 'Dashboard data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async getDashboard() {
     return this.adminService.getDashboard();
   }
 
   @Get('calendar')
   @ApiOperation({ summary: 'Get calendar view' })
+  @ApiResponse({ status: 200, description: 'Calendar data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async getCalendar(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -41,6 +52,9 @@ export class AdminController {
 
   @Get('scheduler/status')
   @ApiOperation({ summary: 'Get cron scheduler execution status' })
+  @ApiResponse({ status: 200, description: 'Scheduler status' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async getSchedulerStatus() {
     return this.schedulerService.getStatus();
   }
