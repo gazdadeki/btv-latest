@@ -120,7 +120,7 @@ function writeYaml(filePath, data) {
 async function fetchOpenApiSpec(baseUrl, openApiPath) {
   const trimmedBase = baseUrl.replace(/\/$/, '');
   const url = `${trimmedBase}${openApiPath}`;
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
   if (!response.ok) {
     throw new Error(`Failed to fetch OpenAPI spec (${response.status} ${url})`);
   }
