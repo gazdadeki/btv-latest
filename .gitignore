@@ -32,6 +32,7 @@ lerna-debug.log*
 /.idea
 /.cursor/
 .cursorignore
+/.claude/settings.local.json
 .project
 .classpath
 .c9/

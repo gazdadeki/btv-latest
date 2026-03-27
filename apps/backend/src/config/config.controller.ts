@@ -1,5 +1,10 @@
 import { Controller, Get, Put, Param, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { ConfigService } from './config.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
@@ -15,6 +20,9 @@ export class ConfigController {
 
   @Get()
   @ApiOperation({ summary: 'Get all configuration' })
+  @ApiResponse({ status: 200, description: 'All configuration' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async getAll() {
     const keys = [
       'jwt_access_token_expiry',
@@ -38,12 +46,21 @@ export class ConfigController {
 
   @Get(':key')
   @ApiOperation({ summary: 'Get specific configuration' })
+  @ApiResponse({ status: 200, description: 'Configuration value' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Config key not found' })
   async get(@Param('key') key: string) {
     return { key, value: await this.configService.get(key) };
   }
 
   @Put(':key')
   @ApiOperation({ summary: 'Update configuration' })
+  @ApiResponse({ status: 200, description: 'Configuration updated' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Config key not found' })
   async update(
     @Param('key') key: string,
     @Body() body: { value: string; description?: string },

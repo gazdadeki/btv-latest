@@ -14,6 +14,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -48,6 +49,10 @@ export class MessagesController {
 
   @Post('conversations')
   @ApiOperation({ summary: 'Create a new conversation (player only)' })
+  @ApiResponse({ status: 201, description: 'Conversation created' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
   @Roles(UserRole.PLAYER)
   async createConversation(
     @Body() createConversationDto: CreateConversationDto,
@@ -64,6 +69,10 @@ export class MessagesController {
     summary:
       'Create a new conversation from admin to one or more users (admin only)',
   })
+  @ApiResponse({ status: 201, description: 'Conversation created' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   @Roles(UserRole.ADMIN)
   async createConversationFromAdmin(
     @Body() createConversationDto: CreateConversationFromAdminDto,
@@ -77,6 +86,10 @@ export class MessagesController {
 
   @Post('conversations/:id/admins')
   @ApiOperation({ summary: 'Add an admin to a conversation (admin only)' })
+  @ApiResponse({ status: 200, description: 'Admin added' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Conversation not found' })
   @Roles(UserRole.ADMIN)
   async addAdminToConversation(
     @Param('id', ParseIntPipe) conversationId: number,
@@ -90,12 +103,19 @@ export class MessagesController {
 
   @Get('conversations')
   @ApiOperation({ summary: 'List user conversations' })
+  @ApiResponse({ status: 200, description: 'List of conversations' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async getConversations(@Request() req: any) {
     return this.messagesService.getUserConversations(req.user.id);
   }
 
   @Get('conversations/:id')
   @ApiOperation({ summary: 'Get conversation details' })
+  @ApiResponse({ status: 200, description: 'Conversation details' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Conversation not found' })
   async getConversation(
     @Param('id', ParseIntPipe) conversationId: number,
     @Request() req: any,
@@ -105,6 +125,10 @@ export class MessagesController {
 
   @Get('conversations/:id/messages')
   @ApiOperation({ summary: 'Get paginated messages for a conversation' })
+  @ApiResponse({ status: 200, description: 'Conversation messages' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Conversation not found' })
   @ApiQuery({
     name: 'page',
     required: false,
@@ -135,6 +159,11 @@ export class MessagesController {
 
   @Post('conversations/:id/messages')
   @ApiOperation({ summary: 'Send a message in a conversation' })
+  @ApiResponse({ status: 201, description: 'Message sent' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Conversation not found' })
   async sendMessage(
     @Param('id', ParseIntPipe) conversationId: number,
     @Body() sendMessageDto: SendMessageDto,
@@ -149,6 +178,10 @@ export class MessagesController {
 
   @Post('conversations/:id/read')
   @ApiOperation({ summary: 'Mark a conversation as read' })
+  @ApiResponse({ status: 200, description: 'Conversation marked as read' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Conversation not found' })
   async markAsRead(
     @Param('id', ParseIntPipe) conversationId: number,
     @Request() req: any,
@@ -158,6 +191,9 @@ export class MessagesController {
 
   @Get('unread-count')
   @ApiOperation({ summary: 'Get total unread messages count' })
+  @ApiResponse({ status: 200, description: 'Unread count' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async getUnreadCount(@Request() req: any) {
     const count = await this.messagesService.getUnreadCount(req.user.id);
     return { count };
@@ -167,6 +203,9 @@ export class MessagesController {
   @ApiOperation({
     summary: 'Get list of admin users for conversation creation (player only)',
   })
+  @ApiResponse({ status: 200, description: 'List of admins' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiQuery({
     name: 'search',
     required: false,

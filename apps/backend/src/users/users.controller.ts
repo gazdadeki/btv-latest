@@ -16,6 +16,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UserRole, SubscriptionTier } from './entities/user.entity';
@@ -59,6 +60,9 @@ export class UsersController {
 
   @Get()
   @ApiOperation({ summary: 'List all users' })
+  @ApiResponse({ status: 200, description: 'List of users' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   @ApiQuery({ name: 'role', required: false, enum: UserRole })
   @ApiQuery({ name: 'isVerified', required: false, type: Boolean })
   @ApiQuery({ name: 'isBanned', required: false, type: Boolean })
@@ -86,6 +90,11 @@ export class UsersController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new user (admin only)' })
+  @ApiResponse({ status: 201, description: 'User created' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 409, description: 'Email already exists' })
   async create(@Request() req: any, @Body() createUserDto: CreateUserDto) {
     const ipAddress = this.extractIpAddress(req);
     const adminId = req.user?.id;
@@ -98,24 +107,41 @@ export class UsersController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get user details' })
+  @ApiResponse({ status: 200, description: 'User details' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async findOne(@Param('id') id: string) {
     return this.usersService.findOne(+id);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update user information' })
+  @ApiResponse({ status: 200, description: 'User updated' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async update(@Param('id') id: string, @Body() body: any) {
     return this.usersService.update(+id, body);
   }
 
   @Put(':id/role')
   @ApiOperation({ summary: 'Change user role' })
+  @ApiResponse({ status: 200, description: 'Role updated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async updateRole(@Param('id') id: string, @Body() body: { role: UserRole }) {
     return this.usersService.update(+id, { role: body.role });
   }
 
   @Put(':id/ban')
   @ApiOperation({ summary: 'Ban user' })
+  @ApiResponse({ status: 200, description: 'User banned' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async ban(
     @Param('id') id: string,
     @Body() body: { isBanned: boolean; bannedUntil?: string },
@@ -128,6 +154,10 @@ export class UsersController {
 
   @Put(':id/unban')
   @ApiOperation({ summary: 'Unban user' })
+  @ApiResponse({ status: 200, description: 'User unbanned' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async unban(@Param('id') id: string) {
     return this.usersService.update(+id, {
       isBanned: false,
@@ -137,6 +167,10 @@ export class UsersController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete (void) user (soft delete)' })
+  @ApiResponse({ status: 200, description: 'User deleted' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async delete(
     @Request() req: any,
     @Param('id') id: string,
@@ -154,6 +188,10 @@ export class UsersController {
 
   @Get(':id/stripe')
   @ApiOperation({ summary: 'Get Stripe customer information for user' })
+  @ApiResponse({ status: 200, description: 'Stripe customer info' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getStripeInfo(@Param('id') id: string) {
     const user = await this.usersService.findOne(+id);
     if (!user.stripeCustomerId) {
@@ -176,6 +214,10 @@ export class UsersController {
 
   @Post(':id/stripe/link')
   @ApiOperation({ summary: 'Link user to Stripe customer' })
+  @ApiResponse({ status: 200, description: 'Stripe customer linked' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async linkStripeCustomer(
     @Param('id') id: string,
     @Body() body: { customerId: string },
@@ -192,6 +234,10 @@ export class UsersController {
 
   @Post(':id/stripe/unlink')
   @ApiOperation({ summary: 'Unlink Stripe customer from user' })
+  @ApiResponse({ status: 200, description: 'Stripe customer unlinked' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async unlinkStripeCustomer(@Param('id') id: string) {
     return this.usersService.update(+id, {
       stripeCustomerId: null,
@@ -200,6 +246,10 @@ export class UsersController {
 
   @Post(':id/stripe/create-customer')
   @ApiOperation({ summary: 'Create new Stripe customer for user' })
+  @ApiResponse({ status: 201, description: 'Stripe customer created' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async createStripeCustomer(@Param('id') id: string) {
     const user = await this.usersService.findOne(+id);
 

@@ -13,6 +13,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { WalletService } from './wallet.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -30,6 +31,8 @@ export class WalletController {
 
   @Get('players/wallet')
   @ApiOperation({ summary: 'Get player wallet balance' })
+  @ApiResponse({ status: 200, description: 'Wallet balance' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getBalance(@Request() req: any) {
     const wallet = await this.walletService.getBalance(req.user.id);
     return { balance: wallet };
@@ -37,6 +40,8 @@ export class WalletController {
 
   @Get('players/wallet/transactions')
   @ApiOperation({ summary: 'Get transaction history' })
+  @ApiResponse({ status: 200, description: 'Transaction history' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getTransactions(
@@ -77,6 +82,11 @@ export class WalletController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Grant coins to user (admin only)' })
+  @ApiResponse({ status: 200, description: 'Coins granted' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async grantCoins(
     @Param('id') userId: string,
     @Body() body: { amount: number; description?: string },
@@ -105,6 +115,10 @@ export class WalletController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user wallet transactions (admin only)' })
+  @ApiResponse({ status: 200, description: 'User transactions' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getAdminTransactions(@Param('id') userId: string) {
     const wallet = await this.walletService.getWallet(+userId);
     return this.walletService.getTransactionHistory(wallet.id, 1, 50);
@@ -115,6 +129,9 @@ export class WalletController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all transactions with filters (admin only)' })
+  @ApiResponse({ status: 200, description: 'All transactions' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   @ApiQuery({ name: 'userId', required: false, type: Number })
   @ApiQuery({ name: 'type', required: false, enum: TransactionType })
   @ApiQuery({ name: 'startDate', required: false, type: String })

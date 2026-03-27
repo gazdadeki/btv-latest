@@ -7,7 +7,12 @@ import {
   Request,
   Body,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -30,6 +35,9 @@ export class SubscriptionsController {
   @RequireVerified()
   @RequireNotBanned()
   @ApiOperation({ summary: 'Get current subscription status and details' })
+  @ApiResponse({ status: 200, description: 'Subscription status' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
   async getSubscription(@Request() req: any) {
     const subscription = await this.subscriptionsService.getCurrentSubscription(
       req.user.id,
@@ -42,6 +50,9 @@ export class SubscriptionsController {
   @RequireVerified()
   @RequireNotBanned()
   @ApiOperation({ summary: 'Get subscription history' })
+  @ApiResponse({ status: 200, description: 'Subscription history' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async getSubscriptionHistory(@Request() req: any) {
     const subscriptions =
       await this.subscriptionsService.getSubscriptionHistory(req.user.id);
@@ -53,6 +64,10 @@ export class SubscriptionsController {
   @RequireVerified()
   @RequireNotBanned()
   @ApiOperation({ summary: 'Subscribe to Gold tier' })
+  @ApiResponse({ status: 201, description: 'Subscribed' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async subscribe(@Request() req: any, @Body() body: { productId: number }) {
     const subscription = await this.subscriptionsService.createSubscription(
       req.user.id,
@@ -66,6 +81,9 @@ export class SubscriptionsController {
   @RequireVerified()
   @RequireNotBanned()
   @ApiOperation({ summary: 'Cancel subscription' })
+  @ApiResponse({ status: 200, description: 'Subscription cancelled' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async cancel(@Request() req: any) {
     await this.subscriptionsService.cancelSubscription(req.user.id);
     return { message: 'Subscription cancelled successfully' };
@@ -75,6 +93,9 @@ export class SubscriptionsController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'List all subscriptions (admin only)' })
+  @ApiResponse({ status: 200, description: 'List of subscriptions' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async findAllAdmin() {
     const subscriptions = await this.subscriptionsService.findAll();
     return { subscriptions };
@@ -84,6 +105,10 @@ export class SubscriptionsController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user subscription details (admin only)' })
+  @ApiResponse({ status: 200, description: 'User subscription' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getUserSubscription(@Param('userId') userId: string) {
     const subscription = await this.subscriptionsService.findByUserId(+userId);
     return { subscription };
@@ -93,6 +118,10 @@ export class SubscriptionsController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Cancel user subscription (admin only)' })
+  @ApiResponse({ status: 200, description: 'Subscription cancelled' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async cancelAdmin(@Param('userId') userId: string) {
     await this.subscriptionsService.cancelSubscription(+userId);
     return { message: 'Subscription cancelled successfully' };

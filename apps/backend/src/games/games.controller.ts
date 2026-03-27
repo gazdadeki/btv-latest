@@ -14,6 +14,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { GamesService } from './games.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -37,6 +38,9 @@ export class GamesController {
   @ApiQuery({ name: 'scheduleId', required: false, type: Number })
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'List of games' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async findAll(
     @Query('status') status?: GameStatus,
     @Query('scheduleId') scheduleId?: string,
@@ -53,12 +57,20 @@ export class GamesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get game details' })
+  @ApiResponse({ status: 200, description: 'Game details' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game not found' })
   async findOne(@Param('id') id: string) {
     return this.gamesService.findOne(+id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Manually create a game' })
+  @ApiResponse({ status: 201, description: 'Game created' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async create(@Body() body: any, @Request() req: any) {
     return this.gamesService.createManually(body, req.user.id);
   }
@@ -67,18 +79,30 @@ export class GamesController {
   @ApiOperation({
     summary: 'Cancel all active games (CREATED and IN_PROGRESS)',
   })
+  @ApiResponse({ status: 200, description: 'All active games cancelled' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async cancelAllActive(@Request() req: any) {
     return this.gamesService.cancelAllActiveGames(req.user.id);
   }
 
   @Put(':id/start')
   @ApiOperation({ summary: 'Start game manually' })
+  @ApiResponse({ status: 200, description: 'Game started' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game not found' })
   async start(@Param('id') id: string, @Request() req: any) {
     return this.gamesService.start(+id, req.user.id);
   }
 
   @Put(':id/finish')
   @ApiOperation({ summary: 'Finish game' })
+  @ApiResponse({ status: 200, description: 'Game finished' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game not found' })
   async finish(
     @Param('id') id: string,
     @Body() body: { winningTeam: 'A' | 'B'; mvpUserId?: number },
@@ -89,12 +113,21 @@ export class GamesController {
 
   @Put(':id/cancel')
   @ApiOperation({ summary: 'Cancel game (soft delete)' })
+  @ApiResponse({ status: 200, description: 'Game cancelled' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game not found' })
   async cancel(@Param('id') id: string, @Request() req: any) {
     return this.gamesService.cancel(+id, req.user.id);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update game details' })
+  @ApiResponse({ status: 200, description: 'Game updated' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game not found' })
   async update(
     @Param('id') id: string,
     @Body() body: UpdateGameDto,
@@ -105,6 +138,10 @@ export class GamesController {
 
   @Put(':id/slots/:slotId/assign')
   @ApiOperation({ summary: 'Assign user to slot' })
+  @ApiResponse({ status: 200, description: 'User assigned to slot' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game or slot not found' })
   async assignUserToSlot(
     @Param('id') id: string,
     @Param('slotId') slotId: string,
@@ -121,6 +158,10 @@ export class GamesController {
 
   @Put(':id/slots/:slotId/kick')
   @ApiOperation({ summary: 'Remove user from slot' })
+  @ApiResponse({ status: 200, description: 'User removed from slot' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game or slot not found' })
   async kickUserFromSlot(
     @Param('id') id: string,
     @Param('slotId') slotId: string,
@@ -134,6 +175,10 @@ export class GamesController {
     summary:
       'Admin confirm reservation for slot (bypasses confirmation window and costs)',
   })
+  @ApiResponse({ status: 200, description: 'Reservation confirmed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game or slot not found' })
   async confirmSlotReservation(
     @Param('id') id: string,
     @Param('slotId') slotId: string,
@@ -147,6 +192,10 @@ export class GamesController {
     summary:
       'Admin confirm all reserved slots in a game (bypasses confirmation window and costs)',
   })
+  @ApiResponse({ status: 200, description: 'All reservations confirmed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game not found' })
   async confirmAllSlotReservations(
     @Param('id') id: string,
     @Request() req: any,
@@ -158,12 +207,20 @@ export class GamesController {
   @ApiOperation({
     summary: 'Admin cancel all confirmed reservations in a game',
   })
+  @ApiResponse({ status: 200, description: 'All confirmations cancelled' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game not found' })
   async cancelAllConfirmations(@Param('id') id: string, @Request() req: any) {
     return this.gamesService.cancelAllConfirmations(+id, req.user.id);
   }
 
   @Post(':id/auto-start-next')
   @ApiOperation({ summary: 'Auto-start next game after delay' })
+  @ApiResponse({ status: 200, description: 'Auto-start scheduled' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game not found' })
   async autoStartNext(
     @Param('id') id: string,
     @Body() body: { delayMinutes: number },
@@ -181,6 +238,10 @@ export class GamesController {
     summary:
       'Shuffle players in game (excludes admin users and gold-only slots)',
   })
+  @ApiResponse({ status: 200, description: 'Players shuffled' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game not found' })
   async shufflePlayers(@Param('id') id: string, @Request() req: any) {
     return this.gamesService.shufflePlayers(+id, req.user.id);
   }

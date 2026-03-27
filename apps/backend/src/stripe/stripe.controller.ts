@@ -19,6 +19,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { StripeService } from './stripe.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -48,6 +49,9 @@ export class StripeController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List all Stripe products with sync status' })
+  @ApiResponse({ status: 200, description: 'List of products' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async getProducts() {
     const products = await this.stripeService.findAllProducts();
     return { products };
@@ -58,6 +62,10 @@ export class StripeController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create Stripe product (syncs to Stripe)' })
+  @ApiResponse({ status: 201, description: 'Product created' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async createProduct(
     @Body()
     body: {
@@ -89,6 +97,11 @@ export class StripeController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update Stripe product (syncs to Stripe)' })
+  @ApiResponse({ status: 200, description: 'Product updated' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
   async updateProduct(
     @Param('id') id: string,
     @Body()
@@ -125,6 +138,10 @@ export class StripeController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Archive Stripe product (syncs to Stripe)' })
+  @ApiResponse({ status: 200, description: 'Product archived' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
   async archiveProduct(@Param('id') id: string) {
     await this.stripeService.archiveProduct(+id);
     return { message: 'Product archived successfully' };
@@ -135,6 +152,10 @@ export class StripeController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Manually sync product to Stripe' })
+  @ApiResponse({ status: 200, description: 'Product synced' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
   async syncProduct(@Param('id') id: string) {
     const product = await this.stripeService.syncProductToStripe(+id);
     return { message: 'Product synced successfully', product };
@@ -152,6 +173,9 @@ export class StripeController {
   @ApiQuery({ name: 'endDate', required: false, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'List of payments' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async getPayments(
     @Query('userId') userId?: string,
     @Query('status') status?: StripePaymentStatus,
@@ -180,6 +204,10 @@ export class StripeController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get Stripe payment details' })
+  @ApiResponse({ status: 200, description: 'Payment details' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Payment not found' })
   async getPayment(@Param('id') id: string) {
     return this.stripeService.findPaymentById(+id);
   }
@@ -192,6 +220,9 @@ export class StripeController {
   @ApiOperation({
     summary: 'Get available products (subscriptions and coin packs)',
   })
+  @ApiResponse({ status: 200, description: 'Available products' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
   async getAvailableProducts() {
     const products = await this.stripeService.findAllProducts();
     // Filter to only active, non-archived products
@@ -207,6 +238,10 @@ export class StripeController {
   @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create payment intent for coin pack purchase' })
+  @ApiResponse({ status: 201, description: 'Payment intent created' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
   async createPaymentIntent(
     @Request() req: any,
     @Body()
@@ -241,6 +276,10 @@ export class StripeController {
     type: Boolean,
     description: 'If true, syncs payment status from Stripe before returning',
   })
+  @ApiResponse({ status: 200, description: 'Payment status' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
+  @ApiResponse({ status: 404, description: 'Payment not found' })
   async getPaymentStatus(
     @Request() req: any,
     @Param('paymentIntentId') paymentIntentId: string,
@@ -304,6 +343,10 @@ export class StripeController {
   @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create subscription setup intent' })
+  @ApiResponse({ status: 201, description: 'Subscription intent created' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
   async createSubscriptionIntent(
     @Request() req: any,
     @Body()
@@ -331,6 +374,9 @@ export class StripeController {
   @ApiOperation({
     summary: 'Create setup intent for collecting payment methods',
   })
+  @ApiResponse({ status: 201, description: 'Setup intent created' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
   async createSetupIntent(
     @Request() req: any,
     @Body() body?: { customerId?: string },
@@ -352,6 +398,10 @@ export class StripeController {
     description:
       'Manually syncs payment status from Stripe API and updates local records. Useful if webhook failed or payment status is out of sync.',
   })
+  @ApiResponse({ status: 200, description: 'Payment status synced' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
   async syncPaymentStatus(
     @Request() req: any,
     @Body() body: { paymentIntentId: string },
@@ -397,6 +447,10 @@ export class StripeController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get payment methods for a user (admin)' })
+  @ApiResponse({ status: 200, description: 'Payment methods' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getAdminUserPaymentMethods(@Param('id') id: string) {
     const paymentMethods = await this.stripeService.getUserPaymentMethods(+id);
     return { paymentMethods };
@@ -408,6 +462,9 @@ export class StripeController {
   @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get own payment methods' })
+  @ApiResponse({ status: 200, description: 'Payment methods' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
   async getPlayerPaymentMethods(@Request() req: any) {
     const paymentMethods = await this.stripeService.getUserPaymentMethods(
       req.user.id,
@@ -421,6 +478,10 @@ export class StripeController {
   @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Attach a payment method' })
+  @ApiResponse({ status: 200, description: 'Payment method attached' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
   async attachPaymentMethod(
     @Request() req: any,
     @Body() body: { paymentMethodId: string },
@@ -438,6 +499,10 @@ export class StripeController {
   @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Remove a payment method' })
+  @ApiResponse({ status: 200, description: 'Payment method removed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
+  @ApiResponse({ status: 404, description: 'Payment method not found' })
   async detachPaymentMethod(@Param('id') id: string) {
     await this.stripeService.detachPaymentMethod(id);
     return { success: true };
@@ -449,6 +514,10 @@ export class StripeController {
   @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Set a payment method as default' })
+  @ApiResponse({ status: 200, description: 'Default payment method set' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Account not verified or banned' })
+  @ApiResponse({ status: 404, description: 'Payment method not found' })
   async setDefaultPaymentMethod(@Request() req: any, @Param('id') id: string) {
     await this.stripeService.setDefaultPaymentMethod(req.user.id, id);
     return { success: true };
@@ -459,6 +528,9 @@ export class StripeController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Sync products from Stripe to local database' })
+  @ApiResponse({ status: 200, description: 'Products synced from Stripe' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async syncProductsFromStripe() {
     const result = await this.stripeService.syncProductsFromStripe();
     return result;
@@ -466,6 +538,8 @@ export class StripeController {
 
   @Post('stripe/webhook')
   @ApiOperation({ summary: 'Stripe webhook endpoint' })
+  @ApiResponse({ status: 200, description: 'Webhook processed' })
+  @ApiResponse({ status: 400, description: 'Invalid webhook signature' })
   async webhook(
     @Headers('stripe-signature') signature: string,
     @Request() req: RawBodyRequest<Request>,
