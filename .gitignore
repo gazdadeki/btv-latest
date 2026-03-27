@@ -67,5 +67,8 @@ firebase.json
 # Next.js auto-generated
 next-env.d.ts
 
+# Spec drift temp files
+.spec-drift-*
+
 # Misc
 *.tsbuildinfo

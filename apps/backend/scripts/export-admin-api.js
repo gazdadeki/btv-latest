@@ -41,6 +41,10 @@ const OPENAPI_FILE = getArgValue('openapi-file') || process.env.OPENAPI_FILE;
 // Player-facing prefixes (to exclude from admin spec)
 const PLAYER_PREFIXES = ['/auth/', '/verification/', '/players/', '/messages/'];
 const PLAYER_DENY_PREFIXES = ['/verification/admin/'];
+const PLAYER_DENY_PATHS = new Set([
+  '/messages/conversations/from-admin',
+  '/messages/conversations/{id}/admins',
+]);
 
 function normalizePath(openApiPath) {
   return openApiPath.replace(/^\/api\/v\d+\//, '/').replace(/^\/api\//, '/');
@@ -50,6 +54,9 @@ function isPlayerPath(openApiPath) {
   const normalized = normalizePath(openApiPath);
   // Paths denied from player export are admin paths
   if (PLAYER_DENY_PREFIXES.some((prefix) => normalized.startsWith(prefix))) {
+    return false;
+  }
+  if (PLAYER_DENY_PATHS.has(normalized)) {
     return false;
   }
   return PLAYER_PREFIXES.some((prefix) => normalized.startsWith(prefix));

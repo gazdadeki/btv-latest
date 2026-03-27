@@ -68,6 +68,37 @@ function filterPaths(spec) {
   return filtered;
 }
 
+function collectRefs(obj, refs = new Set()) {
+  if (!obj || typeof obj !== 'object') return refs;
+  if (obj.$ref && typeof obj.$ref === 'string') {
+    const match = obj.$ref.match(/^#\/components\/schemas\/(.+)$/);
+    if (match) refs.add(match[1]);
+  }
+  for (const value of Object.values(obj)) {
+    collectRefs(value, refs);
+  }
+  return refs;
+}
+
+function pruneSchemas(filteredPaths, allSchemas) {
+  // Walk filtered paths to find all directly and transitively referenced schemas
+  const reachable = new Set();
+  const queue = [...collectRefs(filteredPaths)];
+  while (queue.length) {
+    const name = queue.pop();
+    if (reachable.has(name) || !allSchemas[name]) continue;
+    reachable.add(name);
+    for (const ref of collectRefs(allSchemas[name])) {
+      if (!reachable.has(ref)) queue.push(ref);
+    }
+  }
+  const pruned = {};
+  for (const name of [...reachable].sort()) {
+    pruned[name] = allSchemas[name];
+  }
+  return pruned;
+}
+
 // ── Main ───────────────────────────────────────────────────────────────
 
 async function main() {
@@ -88,7 +119,8 @@ async function main() {
   }
 
   // Generate full OpenAPI spec by booting the app in a child process
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'btv-spec-'));
+  // Script must live inside backendRoot so require() resolves node_modules and ./dist
+  const tempDir = fs.mkdtempSync(path.join(backendRoot, '.spec-drift-'));
   const tempSpecPath = path.join(tempDir, 'openapi.v1.json');
 
   const generatorScript = `
@@ -148,7 +180,10 @@ async function main() {
 
   const fullSpec = JSON.parse(fs.readFileSync(tempSpecPath, 'utf-8'));
   const currentPaths = filterPaths(fullSpec);
-  const currentSchemas = fullSpec.components?.schemas || {};
+  const currentSchemas = pruneSchemas(
+    currentPaths,
+    fullSpec.components?.schemas || {},
+  );
 
   const committedSpec = JSON.parse(
     fs.readFileSync(COMMITTED_SPEC_PATH, 'utf-8'),
@@ -158,37 +193,58 @@ async function main() {
 
   let hasDrift = false;
 
-  // Compare path keys
+  // Compare paths (keys + content)
   const currentPathKeys = Object.keys(currentPaths).sort();
   const committedPathKeys = Object.keys(committedPaths).sort();
 
-  if (JSON.stringify(currentPathKeys) !== JSON.stringify(committedPathKeys)) {
+  const addedPaths = currentPathKeys.filter(
+    (p) => !committedPathKeys.includes(p),
+  );
+  const removedPaths = committedPathKeys.filter(
+    (p) => !currentPathKeys.includes(p),
+  );
+
+  if (addedPaths.length || removedPaths.length) {
     console.error('[spec-drift] PATH DRIFT DETECTED');
-    const added = currentPathKeys.filter((p) => !committedPathKeys.includes(p));
-    const removed = committedPathKeys.filter(
-      (p) => !currentPathKeys.includes(p),
+    if (addedPaths.length) console.error('  Added:', addedPaths);
+    if (removedPaths.length) console.error('  Removed:', removedPaths);
+    hasDrift = true;
+  } else if (JSON.stringify(currentPaths) !== JSON.stringify(committedPaths)) {
+    console.error('[spec-drift] PATH CONTENT DRIFT DETECTED');
+    const changed = currentPathKeys.filter(
+      (p) =>
+        JSON.stringify(currentPaths[p]) !== JSON.stringify(committedPaths[p]),
     );
-    if (added.length) console.error('  Added:', added);
-    if (removed.length) console.error('  Removed:', removed);
+    if (changed.length) console.error('  Changed:', changed);
     hasDrift = true;
   }
 
-  // Compare schema keys
+  // Compare schemas (keys + content)
   const currentSchemaKeys = Object.keys(currentSchemas).sort();
   const committedSchemaKeys = Object.keys(committedSchemas).sort();
 
-  if (
-    JSON.stringify(currentSchemaKeys) !== JSON.stringify(committedSchemaKeys)
-  ) {
+  const addedSchemas = currentSchemaKeys.filter(
+    (s) => !committedSchemaKeys.includes(s),
+  );
+  const removedSchemas = committedSchemaKeys.filter(
+    (s) => !currentSchemaKeys.includes(s),
+  );
+
+  if (addedSchemas.length || removedSchemas.length) {
     console.error('[spec-drift] SCHEMA DRIFT DETECTED');
-    const added = currentSchemaKeys.filter(
-      (s) => !committedSchemaKeys.includes(s),
+    if (addedSchemas.length) console.error('  Added:', addedSchemas);
+    if (removedSchemas.length) console.error('  Removed:', removedSchemas);
+    hasDrift = true;
+  } else if (
+    JSON.stringify(currentSchemas) !== JSON.stringify(committedSchemas)
+  ) {
+    console.error('[spec-drift] SCHEMA CONTENT DRIFT DETECTED');
+    const changed = currentSchemaKeys.filter(
+      (s) =>
+        JSON.stringify(currentSchemas[s]) !==
+        JSON.stringify(committedSchemas[s]),
     );
-    const removed = committedSchemaKeys.filter(
-      (s) => !currentSchemaKeys.includes(s),
-    );
-    if (added.length) console.error('  Added:', added);
-    if (removed.length) console.error('  Removed:', removed);
+    if (changed.length) console.error('  Changed:', changed);
     hasDrift = true;
   }
 

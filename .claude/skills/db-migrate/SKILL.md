@@ -16,7 +16,7 @@ Generate a new TypeORM migration named `$ARGUMENTS` for the BaltazarTV backend.
 2. **Check existing migrations**: List files in `apps/backend/src/database/migrations/` to see the naming pattern and latest timestamp
 3. **Generate the migration**: Run the migration generation command from `apps/backend/`:
    ```bash
-   cd apps/backend && npx ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d src/database/data-source.ts src/database/migrations/$ARGUMENTS
+   cd apps/backend && npm run migration:generate -- src/database/migrations/$ARGUMENTS
    ```
 4. **Review the generated SQL**: Read the new migration file and verify:
    - Table/column names use snake_case
@@ -26,6 +26,7 @@ Generate a new TypeORM migration named `$ARGUMENTS` for the BaltazarTV backend.
 5. **Report**: Show the migration file contents and explain what it will do
 
 ## Critical Rules
+
 - NEVER modify an existing migration file
 - All datetime columns must be UTC
 - Table names: plural, snake_case

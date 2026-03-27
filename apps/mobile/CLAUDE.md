@@ -9,7 +9,7 @@
 ## Auth
 
 - Cookie-based: `player_user` cookie read by middleware (`src/middleware.ts`)
-- Unauthenticated → `/login`, unverified → `/verification`, authenticated on auth route → `/home`
+- Unauthenticated → `/login`; authenticated but unverified → `/verification`; authenticated and verified → `/home`
 - `AuthProvider` / `useAuth()` React context for auth state
 
 ## Data

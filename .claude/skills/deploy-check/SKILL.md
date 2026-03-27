@@ -22,7 +22,8 @@ Run all checks to verify the project is ready for deployment.
 ## Output
 
 Provide a clear pass/fail report:
-```
+
+```text
 Deploy Check Results
 ====================
 [ PASS ] No uncommitted changes

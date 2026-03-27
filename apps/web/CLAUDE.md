@@ -8,8 +8,8 @@
 
 ## Auth
 
-- Cookie-based: reads `admin_access_token` and `admin_user` cookies
-- Middleware protects `/admin/*` routes
+- Middleware reads `admin_access_token` cookie server-side to protect `/admin/*` routes
+- `admin_user` cookie is client-side only (used for display purposes)
 
 ## UI
 

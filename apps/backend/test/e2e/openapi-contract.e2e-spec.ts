@@ -1,8 +1,10 @@
+import { VersioningType } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs';
 import * as path from 'path';
-import { createTestApp } from '../helpers/app';
+import { AppModule } from '@/app.module';
 import { runMigrations, destroyDataSource } from '../helpers/db';
 
 describe('OpenAPI Contract (e2e)', () => {
@@ -11,7 +13,16 @@ describe('OpenAPI Contract (e2e)', () => {
 
   beforeAll(async () => {
     await runMigrations();
-    app = await createTestApp();
+
+    // Use production-like config (no prefix exclusions) so the spec matches main.ts
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleRef.createNestApplication<NestExpressApplication>();
+    app.setGlobalPrefix('api');
+    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+    await app.init();
 
     const config = new DocumentBuilder()
       .setTitle('BaltazarTV API')

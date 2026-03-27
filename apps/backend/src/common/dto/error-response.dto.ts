@@ -10,12 +10,17 @@ export class ErrorResponseDto {
   @ApiProperty({ example: 'BadRequestException' })
   error: string;
 
-  @ApiPropertyOptional({ example: '2026-01-01T00:00:00.000Z' })
+  @ApiPropertyOptional({
+    description: 'Validation errors or additional context',
+  })
+  details?: any;
+
+  @ApiProperty({ example: '2026-01-01T00:00:00.000Z' })
   timestamp: string;
 
-  @ApiPropertyOptional({ example: '/api/v1/games/1' })
+  @ApiProperty({ example: '/api/v1/games/1' })
   path: string;
 
-  @ApiPropertyOptional({ example: 'GET' })
+  @ApiProperty({ example: 'GET' })
   method: string;
 }
