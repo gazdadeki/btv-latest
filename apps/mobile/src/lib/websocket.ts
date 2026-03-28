@@ -1,12 +1,16 @@
-'use client';
+"use client";
 
 // Translated from Mobile/lib/core/websocket/websocket_service.dart
 // and Mobile/lib/providers/websocket_provider.dart
 
-import { io, type Socket } from 'socket.io-client';
-import { api } from './api';
+import { io, type Socket } from "socket.io-client";
+import { api } from "./api";
 
-export type WebSocketStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+export type WebSocketStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "error";
 
 type EventHandler = (...args: unknown[]) => void;
 
@@ -18,7 +22,8 @@ class WebSocketManager {
   private readonly reconnectDelayMs = 1000;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private isConnecting = false;
-  private _status: WebSocketStatus = 'disconnected';
+  private isManualDisconnect = false;
+  private _status: WebSocketStatus = "disconnected";
 
   private statusListeners = new Set<(status: WebSocketStatus) => void>();
 
@@ -27,12 +32,12 @@ class WebSocketManager {
   }
 
   get isConnected(): boolean {
-    return this._status === 'connected';
+    return this._status === "connected";
   }
 
   private updateStatus(status: WebSocketStatus) {
     this._status = status;
-    this.statusListeners.forEach(fn => fn(status));
+    this.statusListeners.forEach((fn) => fn(status));
   }
 
   onStatusChange(fn: (status: WebSocketStatus) => void): () => void {
@@ -44,48 +49,55 @@ class WebSocketManager {
     if (this.isConnecting || this.socket?.connected) return;
 
     this.isConnecting = true;
-    this.updateStatus('connecting');
+    this.isManualDisconnect = false;
+    this.updateStatus("connecting");
 
     let token: string;
     try {
       token = await api.getWebSocketToken();
     } catch {
       this.isConnecting = false;
-      this.updateStatus('error');
+      this.updateStatus("error");
       this.scheduleReconnect();
       return;
     }
 
     if (!token) {
       this.isConnecting = false;
-      this.updateStatus('error');
+      this.updateStatus("error");
       return;
     }
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
+    const wsUrl =
+      process.env.NEXT_PUBLIC_WS_URL ||
+      (typeof window !== "undefined"
+        ? `${window.location.protocol}//${window.location.hostname}:3000`
+        : "http://localhost:3000");
 
     this.socket = io(wsUrl, {
       auth: { token },
-      transports: ['websocket'],
+      transports: ["websocket"],
       forceNew: true,
       reconnection: false, // we handle reconnection manually like Flutter
     });
 
-    this.socket.on('connect', () => {
+    this.socket.on("connect", () => {
       this.isConnecting = false;
       this.reconnectAttempts = 0;
-      this.updateStatus('connected');
+      this.updateStatus("connected");
     });
 
-    this.socket.on('disconnect', () => {
+    this.socket.on("disconnect", () => {
       this.isConnecting = false;
-      this.updateStatus('disconnected');
-      this.scheduleReconnect();
+      this.updateStatus("disconnected");
+      if (!this.isManualDisconnect) {
+        this.scheduleReconnect();
+      }
     });
 
-    this.socket.on('connect_error', () => {
+    this.socket.on("connect_error", () => {
       this.isConnecting = false;
-      this.updateStatus('error');
+      this.updateStatus("error");
       this.scheduleReconnect();
     });
 
@@ -95,6 +107,7 @@ class WebSocketManager {
   }
 
   disconnect() {
+    this.isManualDisconnect = true;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -103,19 +116,21 @@ class WebSocketManager {
     this.socket = null;
     this.reconnectAttempts = 0;
     this.isConnecting = false;
-    this.updateStatus('disconnected');
+    this.updateStatus("disconnected");
   }
 
   // Linear backoff: attempt * 1000ms (matches Flutter's WebSocketService._handleReconnect)
   private scheduleReconnect() {
+    if (this.reconnectTimer) return;
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.updateStatus('error');
+      this.updateStatus("error");
       return;
     }
     this.reconnectAttempts++;
     const delay = this.reconnectDelayMs * this.reconnectAttempts;
     this.reconnectTimer = setTimeout(() => {
-      if (!this.isConnected && this._status !== 'connecting') {
+      this.reconnectTimer = null;
+      if (!this.isConnected && this._status !== "connecting") {
         this.connect();
       }
     }, delay);
@@ -140,7 +155,7 @@ class WebSocketManager {
   }
 
   private emit(event: string, ...args: unknown[]) {
-    this.listeners.get(event)?.forEach(handler => {
+    this.listeners.get(event)?.forEach((handler) => {
       try {
         handler(...args);
       } catch (err) {
@@ -155,19 +170,19 @@ class WebSocketManager {
 
   joinEvent(eventId: number) {
     if (this.isConnected) {
-      this.socket?.emit('join:event', { eventId });
+      this.socket?.emit("join:event", { eventId });
     }
   }
 
   leaveEvent(eventId: number) {
     if (this.isConnected) {
-      this.socket?.emit('leave:event', { eventId });
+      this.socket?.emit("leave:event", { eventId });
     }
   }
 
   ping() {
     if (this.isConnected) {
-      this.socket?.emit('activity:ping');
+      this.socket?.emit("activity:ping");
     }
   }
 }

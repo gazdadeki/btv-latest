@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { io, type Socket } from 'socket.io-client';
-import { api } from './api';
+import { io, type Socket } from "socket.io-client";
+import { api } from "./api";
 
 type EventHandler = (...args: unknown[]) => void;
 
@@ -22,30 +22,36 @@ class WebSocketManager {
 
     try {
       const { token } = await api.getWebSocketToken();
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
+      const wsUrl =
+        process.env.NEXT_PUBLIC_WS_URL ||
+        (typeof window !== "undefined"
+          ? `${window.location.protocol}//${window.location.hostname}:3000`
+          : "http://localhost:3000");
 
       this.socket = io(wsUrl, {
         auth: { token },
-        transports: ['websocket', 'polling'],
+        transports: ["websocket", "polling"],
         forceNew: true,
         reconnection: false,
       });
 
-      this.socket.on('connect', () => {
+      this.socket.on("connect", () => {
         this._isConnected = true;
         this.reconnectAttempts = 0;
-        this.emit('_status', 'connected');
+        this.emit("_status", "connected");
       });
 
-      this.socket.on('disconnect', () => {
+      this.socket.on("disconnect", (reason) => {
         this._isConnected = false;
-        this.emit('_status', 'disconnected');
-        this.scheduleReconnect();
+        this.emit("_status", "disconnected");
+        if (reason !== "io client disconnect") {
+          this.scheduleReconnect();
+        }
       });
 
-      this.socket.on('connect_error', () => {
+      this.socket.on("connect_error", () => {
         this._isConnected = false;
-        this.emit('_status', 'error');
+        this.emit("_status", "error");
         this.scheduleReconnect();
       });
 
@@ -53,7 +59,7 @@ class WebSocketManager {
         this.emit(event, ...args);
       });
     } catch {
-      this.emit('_status', 'error');
+      this.emit("_status", "error");
       this.scheduleReconnect();
     }
   }
@@ -93,10 +99,14 @@ class WebSocketManager {
   }
 
   private scheduleReconnect() {
+    if (this.reconnectTimer) return;
     if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
     this.reconnectAttempts++;
-    this.reconnectTimer = setTimeout(() => this.connect(), delay);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, delay);
   }
 }
 

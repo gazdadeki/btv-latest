@@ -1,4 +1,4 @@
-import { AuthUtils } from './auth';
+import { AuthUtils } from "./auth";
 import type {
   User,
   Game,
@@ -17,16 +17,14 @@ import type {
   GameStatusFilter,
   PaymentMethod,
   StripePayment,
-} from '@/types';
+} from "@/types";
 
 // ─── Base config ──────────────────────────────────────────────────────────────
 
 const API_BASE =
-  typeof window !== 'undefined'
+  typeof window !== "undefined"
     ? `${window.location.origin}/api/v1`
-    : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/v1`;
-
-const DIRECT_API_BASE = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/v1`;
+    : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/v1`;
 
 // ─── Token refresh (single in-flight guard) ───────────────────────────────────
 
@@ -38,9 +36,9 @@ async function refreshToken(): Promise<boolean> {
   isRefreshing = true;
   refreshPromise = (async () => {
     try {
-      const res = await fetch(`${DIRECT_API_BASE}/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
+      const res = await fetch(`${API_BASE}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
       });
       return res.ok;
     } catch {
@@ -62,9 +60,9 @@ async function apiRequest<T = unknown>(
   const url = `${API_BASE}${endpoint}`;
   const config: RequestInit = {
     ...options,
-    credentials: 'include',
+    credentials: "include",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...options.headers,
     },
   };
@@ -77,10 +75,10 @@ async function apiRequest<T = unknown>(
       res = await fetch(url, config);
     } else {
       AuthUtils.clearAuth();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
       }
-      throw new Error('Session expired');
+      throw new Error("Session expired");
     }
   }
 
@@ -95,40 +93,46 @@ async function apiRequest<T = unknown>(
   return text ? (JSON.parse(text) as T) : (undefined as unknown as T);
 }
 
-function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
+function buildQuery(
+  params: Record<string, string | number | boolean | undefined>,
+): string {
   const filtered: Record<string, string> = {};
   for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== '') filtered[k] = String(v);
+    if (v !== undefined && v !== "") filtered[k] = String(v);
   }
   const qs = new URLSearchParams(filtered).toString();
-  return qs ? `?${qs}` : '';
+  return qs ? `?${qs}` : "";
 }
 
 // ─── Auth endpoints (from auth_repository.dart) ───────────────────────────────
 
 async function login(email: string, password: string): Promise<User> {
-  const data = await apiRequest<{ user: User }>('/auth/login', {
-    method: 'POST',
+  const data = await apiRequest<{ user: User }>("/auth/login", {
+    method: "POST",
     body: JSON.stringify({ email, password }),
   });
   return data.user;
 }
 
-async function register(email: string, username: string, password: string): Promise<User> {
-  const data = await apiRequest<{ user: User }>('/auth/register', {
-    method: 'POST',
+async function register(
+  email: string,
+  username: string,
+  password: string,
+): Promise<User> {
+  const data = await apiRequest<{ user: User }>("/auth/register", {
+    method: "POST",
     body: JSON.stringify({ email, username, password }),
   });
   return data.user;
 }
 
 async function logout(): Promise<void> {
-  await apiRequest('/auth/logout', { method: 'POST' }).catch(() => undefined);
+  await apiRequest("/auth/logout", { method: "POST" }).catch(() => undefined);
 }
 
 // GET /auth/me returns User directly (no wrapper)
 async function getMe(): Promise<User> {
-  return apiRequest<User>('/auth/me');
+  return apiRequest<User>("/auth/me");
 }
 
 async function updateProfile(fields: {
@@ -144,38 +148,41 @@ async function updateProfile(fields: {
   for (const [k, v] of Object.entries(fields)) {
     if (v !== undefined) body[k] = v;
   }
-  return apiRequest<User>('/auth/me', {
-    method: 'PUT',
+  return apiRequest<User>("/auth/me", {
+    method: "PUT",
     body: JSON.stringify(body),
   });
 }
 
 async function forgotPassword(email: string): Promise<unknown> {
-  return apiRequest('/auth/forgot-password', {
-    method: 'POST',
+  return apiRequest("/auth/forgot-password", {
+    method: "POST",
     body: JSON.stringify({ email }),
   });
 }
 
-async function resetPassword(token: string, password: string): Promise<unknown> {
-  return apiRequest('/auth/reset-password', {
-    method: 'POST',
+async function resetPassword(
+  token: string,
+  password: string,
+): Promise<unknown> {
+  return apiRequest("/auth/reset-password", {
+    method: "POST",
     body: JSON.stringify({ token, password }),
   });
 }
 
 async function getWebSocketToken(): Promise<string> {
-  const data = await apiRequest<{ token: string }>('/auth/websocket-token');
+  const data = await apiRequest<{ token: string }>("/auth/websocket-token");
   return data.token;
 }
 
 async function requestVerification(): Promise<unknown> {
-  return apiRequest('/verification/request', { method: 'POST' });
+  return apiRequest("/verification/request", { method: "POST" });
 }
 
 async function verifyEmail(code: string): Promise<unknown> {
-  return apiRequest('/verification/verify', {
-    method: 'POST',
+  return apiRequest("/verification/verify", {
+    method: "POST",
     body: JSON.stringify({ code }),
   });
 }
@@ -184,17 +191,19 @@ async function verifyEmail(code: string): Promise<unknown> {
 
 async function getSchedulesToday(filter: GameStatusFilter): Promise<unknown[]> {
   const params: Record<string, boolean | undefined> = {};
-  if (!filter.includeCreated) params['includeCreated'] = false;
-  if (!filter.includeInProgress) params['includeInProgress'] = false;
-  if (!filter.includeFinished) params['includeFinished'] = false;
-  if (filter.includeCancelled) params['includeCancelled'] = true;
+  if (!filter.includeCreated) params["includeCreated"] = false;
+  if (!filter.includeInProgress) params["includeInProgress"] = false;
+  if (!filter.includeFinished) params["includeFinished"] = false;
+  if (filter.includeCancelled) params["includeCancelled"] = true;
 
-  const qs = buildQuery(params as Record<string, string | number | boolean | undefined>);
+  const qs = buildQuery(
+    params as Record<string, string | number | boolean | undefined>,
+  );
   return apiRequest<unknown[]>(`/players/schedules/today${qs}`);
 }
 
 async function getAvailableGames(): Promise<Game[]> {
-  return apiRequest<Game[]>('/players/games/available');
+  return apiRequest<Game[]>("/players/games/available");
 }
 
 async function getGameDetails(id: number): Promise<Game> {
@@ -208,57 +217,77 @@ async function getGameSlots(id: number): Promise<Slot[]> {
 // ─── Reservations (from reservation_repository.dart) ─────────────────────────
 
 async function getMyReservations(): Promise<Reservation[]> {
-  return apiRequest<Reservation[]>('/players/reservations/my');
+  return apiRequest<Reservation[]>("/players/reservations/my");
 }
 
 async function reserveSlot(
   gameId: number,
   slotId: number,
-  team: 'A' | 'B',
+  team: "A" | "B",
   useInstantReservation = false,
 ): Promise<Reservation> {
-  return apiRequest<Reservation>(`/players/games/${gameId}/slots/${slotId}/reserve`, {
-    method: 'POST',
-    body: JSON.stringify({ team, useInstantReservation }),
-  });
+  return apiRequest<Reservation>(
+    `/players/games/${gameId}/slots/${slotId}/reserve`,
+    {
+      method: "POST",
+      body: JSON.stringify({ team, useInstantReservation }),
+    },
+  );
 }
 
 async function confirmReservation(id: number): Promise<Reservation> {
-  return apiRequest<Reservation>(`/players/reservations/${id}/confirm`, { method: 'POST' });
+  return apiRequest<Reservation>(`/players/reservations/${id}/confirm`, {
+    method: "POST",
+  });
 }
 
 async function cancelReservation(id: number): Promise<void> {
-  return apiRequest(`/players/reservations/${id}`, { method: 'DELETE' });
+  return apiRequest(`/players/reservations/${id}`, { method: "DELETE" });
 }
 
 // ─── Wallet (from wallet_repository.dart) ────────────────────────────────────
 
 async function getWalletBalance(): Promise<number> {
-  const data = await apiRequest<{ balance: number }>('/players/wallet');
+  const data = await apiRequest<{ balance: number }>("/players/wallet");
   return data.balance;
 }
 
 async function getWalletTransactions(
   page = 1,
   limit = 50,
-): Promise<{ transactions: Transaction[]; total: number; page: number; limit: number }> {
-  const data = await apiRequest<{ data: Transaction[]; total: number; page: number; limit: number }>(
-    `/players/wallet/transactions${buildQuery({ page, limit })}`,
-  );
-  return { transactions: data.data, total: data.total, page: data.page, limit: data.limit };
+): Promise<{
+  transactions: Transaction[];
+  total: number;
+  page: number;
+  limit: number;
+}> {
+  const data = await apiRequest<{
+    data: Transaction[];
+    total: number;
+    page: number;
+    limit: number;
+  }>(`/players/wallet/transactions${buildQuery({ page, limit })}`);
+  return {
+    transactions: data.data,
+    total: data.total,
+    page: data.page,
+    limit: data.limit,
+  };
 }
 
 // ─── Statistics (from statistics_repository.dart) ────────────────────────────
 
 async function getMyStatistics(): Promise<UserStatistics> {
-  return apiRequest<UserStatistics>('/players/statistics/my');
+  return apiRequest<UserStatistics>("/players/statistics/my");
 }
 
 // ─── Subscriptions (from subscription_repository.dart) ───────────────────────
 
 async function getCurrentSubscription(): Promise<Subscription | null> {
   try {
-    const data = await apiRequest<{ subscription: Subscription | null }>('/players/subscription');
+    const data = await apiRequest<{ subscription: Subscription | null }>(
+      "/players/subscription",
+    );
     return data.subscription ?? null;
   } catch {
     return null;
@@ -266,72 +295,115 @@ async function getCurrentSubscription(): Promise<Subscription | null> {
 }
 
 async function getSubscriptionHistory(): Promise<Subscription[]> {
-  const data = await apiRequest<{ subscriptions: Subscription[] }>('/players/subscription/history');
+  const data = await apiRequest<{ subscriptions: Subscription[] }>(
+    "/players/subscription/history",
+  );
   return data.subscriptions;
 }
 
-async function subscribe(productId: number, paymentMethodId?: string): Promise<Subscription> {
-  const data = await apiRequest<{ subscription: Subscription }>('/players/subscription/subscribe', {
-    method: 'POST',
-    body: JSON.stringify({ productId, ...(paymentMethodId ? { paymentMethodId } : {}) }),
-  });
+async function subscribe(
+  productId: number,
+  paymentMethodId?: string,
+): Promise<Subscription> {
+  const data = await apiRequest<{ subscription: Subscription }>(
+    "/players/subscription/subscribe",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        productId,
+        ...(paymentMethodId ? { paymentMethodId } : {}),
+      }),
+    },
+  );
   return data.subscription;
 }
 
 async function cancelSubscription(): Promise<void> {
-  return apiRequest('/players/subscription/cancel', { method: 'POST' });
+  return apiRequest("/players/subscription/cancel", { method: "POST" });
 }
 
 async function createSubscriptionIntent(
   productId: number,
   paymentMethodId?: string,
-): Promise<{ subscriptionId: string; customerId?: string; clientSecret?: string }> {
-  return apiRequest('/players/stripe/subscription-intent', {
-    method: 'POST',
-    body: JSON.stringify({ productId, ...(paymentMethodId ? { paymentMethodId } : {}) }),
+): Promise<{
+  subscriptionId: string;
+  customerId?: string;
+  clientSecret?: string;
+}> {
+  return apiRequest("/players/stripe/subscription-intent", {
+    method: "POST",
+    body: JSON.stringify({
+      productId,
+      ...(paymentMethodId ? { paymentMethodId } : {}),
+    }),
   });
 }
 
 async function createSetupIntent(): Promise<string> {
-  const data = await apiRequest<{ clientSecret: string }>('/players/stripe/setup-intent', {
-    method: 'POST',
-  });
+  const data = await apiRequest<{ clientSecret: string }>(
+    "/players/stripe/setup-intent",
+    {
+      method: "POST",
+    },
+  );
   return data.clientSecret;
 }
 
 async function getPaymentMethods(): Promise<PaymentMethod[]> {
-  const data = await apiRequest<{ paymentMethods: PaymentMethod[] }>('/players/stripe/payment-methods');
+  const data = await apiRequest<{ paymentMethods: PaymentMethod[] }>(
+    "/players/stripe/payment-methods",
+  );
   return data.paymentMethods;
 }
 
-async function attachPaymentMethod(paymentMethodId: string): Promise<PaymentMethod> {
-  const data = await apiRequest<{ paymentMethod: PaymentMethod }>('/players/stripe/payment-methods', {
-    method: 'POST',
-    body: JSON.stringify({ paymentMethodId }),
-  });
+async function attachPaymentMethod(
+  paymentMethodId: string,
+): Promise<PaymentMethod> {
+  const data = await apiRequest<{ paymentMethod: PaymentMethod }>(
+    "/players/stripe/payment-methods",
+    {
+      method: "POST",
+      body: JSON.stringify({ paymentMethodId }),
+    },
+  );
   return data.paymentMethod;
 }
 
 async function deletePaymentMethod(id: string): Promise<void> {
-  return apiRequest(`/players/stripe/payment-methods/${id}`, { method: 'DELETE' });
+  return apiRequest(`/players/stripe/payment-methods/${id}`, {
+    method: "DELETE",
+  });
 }
 
 async function setDefaultPaymentMethod(id: string): Promise<void> {
-  return apiRequest(`/players/stripe/payment-methods/${id}/default`, { method: 'PUT' });
+  return apiRequest(`/players/stripe/payment-methods/${id}/default`, {
+    method: "PUT",
+  });
 }
 
 // ─── Products (from product_repository.dart) ─────────────────────────────────
 
 async function getProducts(): Promise<Product[]> {
-  const data = await apiRequest<{ products: Product[] }>('/players/stripe/products');
+  const data = await apiRequest<{ products: Product[] }>(
+    "/players/stripe/products",
+  );
   return data.products;
 }
 
-async function createPaymentIntent(productId: number, paymentMethodId?: string): Promise<string> {
-  const data = await apiRequest<{ clientSecret: string }>('/players/stripe/payment-intent', {
-    method: 'POST',
-    body: JSON.stringify({ productId, ...(paymentMethodId ? { paymentMethodId } : {}) }),
-  });
+async function createPaymentIntent(
+  productId: number,
+  paymentMethodId?: string,
+): Promise<string> {
+  const data = await apiRequest<{ clientSecret: string }>(
+    "/players/stripe/payment-intent",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        productId,
+        ...(paymentMethodId ? { paymentMethodId } : {}),
+      }),
+    },
+  );
   return data.clientSecret;
 }
 
@@ -340,8 +412,8 @@ async function checkPaymentStatus(paymentIntentId: string): Promise<unknown> {
 }
 
 async function syncPaymentStatus(paymentIntentId: string): Promise<unknown> {
-  return apiRequest('/players/stripe/sync-payment-status', {
-    method: 'POST',
+  return apiRequest("/players/stripe/sync-payment-status", {
+    method: "POST",
     body: JSON.stringify({ paymentIntentId }),
   });
 }
@@ -350,10 +422,11 @@ async function syncPaymentStatus(paymentIntentId: string): Promise<unknown> {
 
 async function getTutorials(filters?: TutorialFilters): Promise<Tutorial[]> {
   const params: Record<string, string | number | boolean | undefined> = {};
-  if (filters?.featured !== undefined) params['featured'] = filters.featured;
-  if (filters?.categoryId !== undefined) params['categoryId'] = filters.categoryId;
-  if (filters?.tagId !== undefined) params['tagId'] = filters.tagId;
-  if (filters?.search) params['search'] = filters.search;
+  if (filters?.featured !== undefined) params["featured"] = filters.featured;
+  if (filters?.categoryId !== undefined)
+    params["categoryId"] = filters.categoryId;
+  if (filters?.tagId !== undefined) params["tagId"] = filters.tagId;
+  if (filters?.search) params["search"] = filters.search;
   return apiRequest<Tutorial[]>(`/players/tutorials${buildQuery(params)}`);
 }
 
@@ -368,7 +441,7 @@ async function getTutorialBySlug(slug: string): Promise<Tutorial> {
 // ─── Messages (from message_repository.dart) ──────────────────────────────────
 
 async function getConversations(): Promise<Conversation[]> {
-  return apiRequest<Conversation[]>('/messages/conversations');
+  return apiRequest<Conversation[]>("/messages/conversations");
 }
 
 async function getConversation(id: number): Promise<Conversation> {
@@ -376,8 +449,8 @@ async function getConversation(id: number): Promise<Conversation> {
 }
 
 async function createConversation(adminId: number): Promise<Conversation> {
-  return apiRequest<Conversation>('/messages/conversations', {
-    method: 'POST',
+  return apiRequest<Conversation>("/messages/conversations", {
+    method: "POST",
     body: JSON.stringify({ adminId }),
   });
 }
@@ -392,24 +465,30 @@ async function getConversationMessages(
   );
 }
 
-async function sendMessage(conversationId: number, content: string): Promise<Message> {
-  return apiRequest<Message>(`/messages/conversations/${conversationId}/messages`, {
-    method: 'POST',
-    body: JSON.stringify({ content }),
-  });
+async function sendMessage(
+  conversationId: number,
+  content: string,
+): Promise<Message> {
+  return apiRequest<Message>(
+    `/messages/conversations/${conversationId}/messages`,
+    {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    },
+  );
 }
 
 async function markConversationAsRead(id: number): Promise<void> {
-  return apiRequest(`/messages/conversations/${id}/read`, { method: 'POST' });
+  return apiRequest(`/messages/conversations/${id}/read`, { method: "POST" });
 }
 
 async function getUnreadCount(): Promise<number> {
-  const data = await apiRequest<{ count: number }>('/messages/unread-count');
+  const data = await apiRequest<{ count: number }>("/messages/unread-count");
   return data.count;
 }
 
 async function getAdmins(search?: string): Promise<AdminUser[]> {
-  const qs = search ? buildQuery({ search }) : '';
+  const qs = search ? buildQuery({ search }) : "";
   return apiRequest<AdminUser[]>(`/messages/admins${qs}`);
 }
 

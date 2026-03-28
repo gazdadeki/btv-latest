@@ -14,6 +14,7 @@
     "dev:backend": "turbo dev --filter=@btv/backend",
     "dev:web": "turbo dev --filter=@btv/web",
     "dev:mobile": "turbo dev --filter=@btv/mobile",
+    "dev:lan": "echo '⚠️  Unix-only (macOS/Linux). Windows: run dev:backend, dev:web, and mobile dev:lan separately.' && npm -w @btv/backend run dev & npm -w @btv/web run dev & npm -w @btv/mobile run dev:lan & wait",
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test"
