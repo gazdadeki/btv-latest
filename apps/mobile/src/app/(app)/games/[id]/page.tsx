@@ -359,7 +359,7 @@ export default function GameDetailsPage({
   // Listen for slot updates and game status changes
   useEffect(() => {
     const offs = [
-      wsManager.on("slot:updated", () => {
+      wsManager.on("slot:availability_changed", () => {
         queryClient.invalidateQueries({ queryKey: ["game", gameId] });
       }),
       wsManager.on("game:status_changed", () => {

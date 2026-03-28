@@ -22,6 +22,7 @@ class WebSocketManager {
   private readonly reconnectDelayMs = 1000;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private isConnecting = false;
+  private isManualDisconnect = false;
   private _status: WebSocketStatus = "disconnected";
 
   private statusListeners = new Set<(status: WebSocketStatus) => void>();
@@ -48,6 +49,7 @@ class WebSocketManager {
     if (this.isConnecting || this.socket?.connected) return;
 
     this.isConnecting = true;
+    this.isManualDisconnect = false;
     this.updateStatus("connecting");
 
     let token: string;
@@ -88,7 +90,9 @@ class WebSocketManager {
     this.socket.on("disconnect", () => {
       this.isConnecting = false;
       this.updateStatus("disconnected");
-      this.scheduleReconnect();
+      if (!this.isManualDisconnect) {
+        this.scheduleReconnect();
+      }
     });
 
     this.socket.on("connect_error", () => {
@@ -103,6 +107,7 @@ class WebSocketManager {
   }
 
   disconnect() {
+    this.isManualDisconnect = true;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -116,6 +121,7 @@ class WebSocketManager {
 
   // Linear backoff: attempt * 1000ms (matches Flutter's WebSocketService._handleReconnect)
   private scheduleReconnect() {
+    if (this.reconnectTimer) return;
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       this.updateStatus("error");
       return;
@@ -123,6 +129,7 @@ class WebSocketManager {
     this.reconnectAttempts++;
     const delay = this.reconnectDelayMs * this.reconnectAttempts;
     this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
       if (!this.isConnected && this._status !== "connecting") {
         this.connect();
       }

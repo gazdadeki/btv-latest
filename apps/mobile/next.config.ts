@@ -5,7 +5,8 @@ const withPWA = withPWAInit({
   dest: "public",
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
-  disable: process.env.NODE_ENV === "development" && !process.env.ENABLE_PWA,
+  disable:
+    process.env.NODE_ENV === "development" && process.env.ENABLE_PWA !== "true",
 });
 
 const nextConfig: NextConfig = {

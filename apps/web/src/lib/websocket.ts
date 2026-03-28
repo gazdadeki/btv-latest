@@ -41,10 +41,12 @@ class WebSocketManager {
         this.emit("_status", "connected");
       });
 
-      this.socket.on("disconnect", () => {
+      this.socket.on("disconnect", (reason) => {
         this._isConnected = false;
         this.emit("_status", "disconnected");
-        this.scheduleReconnect();
+        if (reason !== "io client disconnect") {
+          this.scheduleReconnect();
+        }
       });
 
       this.socket.on("connect_error", () => {
@@ -97,10 +99,14 @@ class WebSocketManager {
   }
 
   private scheduleReconnect() {
+    if (this.reconnectTimer) return;
     if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
     this.reconnectAttempts++;
-    this.reconnectTimer = setTimeout(() => this.connect(), delay);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, delay);
   }
 }
 

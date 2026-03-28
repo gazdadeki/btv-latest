@@ -62,6 +62,13 @@ const CHIP_COLORS: Record<string, string> = {
   red: "border-red-500 text-red-700 bg-red-50",
 };
 
+const TOGGLE_BG: Record<string, string> = {
+  green: "bg-green-500",
+  orange: "bg-orange-500",
+  gray: "bg-gray-500",
+  red: "bg-red-500",
+};
+
 function GameCard({
   game,
   hasActiveReservation,
@@ -362,7 +369,7 @@ export default function HomePage() {
                     onClick={() => toggleFilter(key)}
                     className={cn(
                       "w-11 h-6 rounded-full transition-colors relative",
-                      filter[key] ? `bg-${color}-500` : "bg-gray-200",
+                      filter[key] ? TOGGLE_BG[color] : "bg-gray-200",
                     )}
                   >
                     <span
