@@ -36,9 +36,11 @@ export class UpdateScheduleDto {
   @IsOptional()
   recurrenceDays?: number[] | null;
 
-  @ApiPropertyOptional({ description: 'Recurrence pattern for YEARLY type' })
+  @ApiPropertyOptional({
+    description: 'Recurrence pattern for YEARLY/ONCE type',
+  })
   @IsOptional()
-  recurrencePattern?: { month: number; day: number } | null;
+  recurrencePattern?: { year?: number; month: number; day: number } | null;
 
   @ApiPropertyOptional({
     description: 'Number of slots per game (must be even)',

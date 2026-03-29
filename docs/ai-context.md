@@ -18,7 +18,7 @@ This document records verified, repo-based facts to avoid repeated discovery in 
 
 ## Repository layout
 
-```
+```text
 btv/
 ├── apps/
 │   ├── backend/                  # NestJS API server (port 3000)
@@ -219,7 +219,7 @@ All dates must be in UTC ISO 8601 format when sent to the backend.
 
 ### Cron-based generation (`scheduler.service.ts`)
 
-- Runs every 10 minutes
+- Runs every minute
 - **Idempotent**: checks for existing non-cancelled games before creation — if games already exist for a schedule+date, skips
 - Compares current UTC time against schedule's `gameCreationTime` (stored as UTC HH:MM)
 - Only generates for dates matching the schedule's recurrence pattern (`shouldCreateGameOnDate`)

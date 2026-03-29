@@ -40,11 +40,11 @@ Event scheduling and reservation system. Turborepo monorepo with three apps:
 
 Two separate cookie namespaces prevent session collision between admin and player apps:
 
-| | Admin app (apps/web) | Player app (apps/mobile) |
-|---|---|---|
-| Access token (HTTP-only) | `admin_access_token` | `player_access_token` |
-| Refresh token (HTTP-only) | `admin_refresh_token` | `player_refresh_token` |
-| User indicator (client-readable) | `admin_user` | `player_user` |
+|                                  | Admin app (apps/web)  | Player app (apps/mobile) |
+| -------------------------------- | --------------------- | ------------------------ |
+| Access token (HTTP-only)         | `admin_access_token`  | `player_access_token`    |
+| Refresh token (HTTP-only)        | `admin_refresh_token` | `player_refresh_token`   |
+| User indicator (client-readable) | `admin_user`          | `player_user`            |
 
 - JWT strategy checks `player_access_token` first, then `admin_access_token`, then `Authorization` header
 - Logout clears all cookies
@@ -65,6 +65,14 @@ Two separate cookie namespaces prevent session collision between admin and playe
 - Flag when a decision affects architecture, stack, or conventions — propose recording as ADR in `docs/`
 - Do not re-propose rejected approaches
 - Prefer TypeScript strict mode, avoid `any`
+
+## Git Commit Rules
+
+- Before every commit, review staged files and verify no build artifacts or generated files are included
+- Never commit: `sw.js`, `workbox-*.js`, `swe-worker-*.js` (PWA build output), `.next/`, `dist/`, `node_modules/`, `*.tsbuildinfo`
+- If a generated file is tracked by git, propose adding it to `.gitignore` and removing from tracking before committing
+- Stage files explicitly by name — avoid `git add -A` or `git add .` which can catch unintended files
+- Before committing, ask the user if documentation (`CLAUDE.md`, `.claude/rules/`, `docs/ai-context.md`) should be updated to reflect the code changes — only update docs when the user confirms the changes are tested and ready
 
 ## Production Deployment
 

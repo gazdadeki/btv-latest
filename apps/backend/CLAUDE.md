@@ -36,7 +36,7 @@ auth, games, reservations, schedules, subscriptions, stripe, websocket, users, w
 
 ## Scheduler & Game Generation
 
-- Cron runs every 10 minutes (`scheduler.service.ts`)
+- Cron runs every minute (`scheduler.service.ts`)
 - Game generation is **idempotent**: cron checks for existing games before creation, skips if present
 - Only admin force-regenerate (calendar "Generate" button) cancels existing CREATED games and recreates
 - Schedule `gameCreationTime` is stored as UTC — cron compares current UTC time against it
