@@ -10,6 +10,7 @@
     "packages/*"
   ],
   "scripts": {
+    "predev": "kill $(lsof -ti:3000,3001,3002) 2>/dev/null || true",
     "dev": "turbo dev",
     "dev:backend": "turbo dev --filter=@btv/backend",
     "dev:web": "turbo dev --filter=@btv/web",

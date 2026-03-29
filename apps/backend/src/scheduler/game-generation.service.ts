@@ -33,6 +33,7 @@ export class GameGenerationService {
     } = await this.gameBulkWriteService.generateGamesForScheduleDate(
       schedule,
       targetDate,
+      !!adminId,
     );
 
     if (createdCount > 0) {

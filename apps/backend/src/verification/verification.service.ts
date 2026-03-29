@@ -110,7 +110,7 @@ export class VerificationService {
     const code = await this.generateUniqueCode();
     const expiryMinutes = this.configService.getVerificationCodeExpiryMinutes();
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + expiryMinutes);
+    expiresAt.setUTCMinutes(expiresAt.getUTCMinutes() + expiryMinutes);
 
     await this.verificationCodeRepository.save({
       userId,

@@ -190,7 +190,7 @@ export function wrapInBaseTemplate(
                 <tr>
                   <td align="center" style="padding-bottom: 16px;">
                     <p style="margin: 0; font-size: 14px; color: ${BTV_COLORS.textMuted};">
-                      &copy; ${new Date().getFullYear()} BTV. All rights reserved.
+                      &copy; ${new Date().getUTCFullYear()} BTV. All rights reserved.
                     </p>
                   </td>
                 </tr>
@@ -305,6 +305,7 @@ export function formatDate(date: Date): string {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'UTC',
   });
 }
 

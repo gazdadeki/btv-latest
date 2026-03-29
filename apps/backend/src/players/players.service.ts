@@ -6,6 +6,7 @@ import { Slot, Team } from '../games/entities/slot.entity';
 import { User, SubscriptionTier } from '../users/entities/user.entity';
 import { Schedule } from '../schedules/entities/schedule.entity';
 import { ReservationsService } from '../reservations/reservations.service';
+import { utcStartOfDay } from '../common/date.utils';
 
 /**
  * Interface for slot data with username information.
@@ -39,6 +40,7 @@ export interface GameWithEnrichedSlots extends Omit<Game, 'slots'> {
  */
 export interface GameStatusFilters {
   includeCreated: boolean;
+  includeOpen: boolean;
   includeInProgress: boolean;
   includeFinished: boolean;
   includeCancelled: boolean;
@@ -197,14 +199,14 @@ export class PlayersService {
     user: User,
     filters?: GameStatusFilters,
   ): Promise<Array<{ schedule: Schedule; games: Game[] }>> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = utcStartOfDay(new Date());
     const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
 
     // Default filters: show all except cancelled
     const statusFilters = filters || {
       includeCreated: true,
+      includeOpen: true,
       includeInProgress: true,
       includeFinished: true,
       includeCancelled: false,
@@ -213,6 +215,7 @@ export class PlayersService {
     // Build list of statuses to include
     const statuses: GameStatus[] = [];
     if (statusFilters.includeCreated) statuses.push(GameStatus.CREATED);
+    if (statusFilters.includeOpen) statuses.push(GameStatus.OPEN);
     if (statusFilters.includeInProgress) statuses.push(GameStatus.IN_PROGRESS);
     if (statusFilters.includeFinished) statuses.push(GameStatus.FINISHED);
     if (statusFilters.includeCancelled) statuses.push(GameStatus.CANCELLED);
