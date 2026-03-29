@@ -15,6 +15,7 @@ import type {
   AdminUser,
   UserStatistics,
   GameStatusFilter,
+  ScheduleSection,
   PaymentMethod,
   StripePayment,
 } from "@/types";
@@ -189,9 +190,12 @@ async function verifyEmail(code: string): Promise<unknown> {
 
 // ─── Games (from game_repository.dart) ───────────────────────────────────────
 
-async function getSchedulesToday(filter: GameStatusFilter): Promise<unknown[]> {
+async function getSchedulesToday(
+  filter: GameStatusFilter,
+): Promise<ScheduleSection[]> {
   const params: Record<string, boolean | undefined> = {};
   if (!filter.includeCreated) params["includeCreated"] = false;
+  if (!filter.includeOpen) params["includeOpen"] = false;
   if (!filter.includeInProgress) params["includeInProgress"] = false;
   if (!filter.includeFinished) params["includeFinished"] = false;
   if (filter.includeCancelled) params["includeCancelled"] = true;
@@ -199,7 +203,26 @@ async function getSchedulesToday(filter: GameStatusFilter): Promise<unknown[]> {
   const qs = buildQuery(
     params as Record<string, string | number | boolean | undefined>,
   );
-  return apiRequest<unknown[]>(`/players/schedules/today${qs}`);
+  const raw = await apiRequest<
+    Array<{
+      schedule: {
+        id: number;
+        name: string;
+        description?: string;
+        teamAName: string;
+        teamBName: string;
+      };
+      games: Game[];
+    }>
+  >(`/players/schedules/today${qs}`);
+  return raw.map((item) => ({
+    id: item.schedule.id,
+    name: item.schedule.name,
+    description: item.schedule.description,
+    teamAName: item.schedule.teamAName,
+    teamBName: item.schedule.teamBName,
+    games: item.games,
+  }));
 }
 
 async function getAvailableGames(): Promise<Game[]> {

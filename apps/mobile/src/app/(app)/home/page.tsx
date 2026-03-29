@@ -43,6 +43,7 @@ import {
 
 const DEFAULT_FILTER: GameStatusFilter = {
   includeCreated: true,
+  includeOpen: true,
   includeInProgress: true,
   includeFinished: true,
   includeCancelled: false,
@@ -50,6 +51,7 @@ const DEFAULT_FILTER: GameStatusFilter = {
 
 const STATUS_CONFIG = {
   CREATED: { label: "Upcoming", color: "green", icon: Calendar },
+  OPEN: { label: "Open", color: "green", icon: Calendar },
   IN_PROGRESS: { label: "In Progress", color: "orange", icon: Play },
   FINISHED: { label: "Finished", color: "gray", icon: CheckCircle },
   CANCELLED: { label: "Cancelled", color: "red", icon: XCircle },
@@ -241,6 +243,7 @@ export default function HomePage() {
 
   const filterChips = [
     { key: "includeCreated" as const, label: "Upcoming", color: "green" },
+    { key: "includeOpen" as const, label: "Open", color: "green" },
     {
       key: "includeInProgress" as const,
       label: "In Progress",

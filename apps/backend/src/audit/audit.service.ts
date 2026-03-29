@@ -33,7 +33,7 @@ export class AuditService {
   async cleanupOldLogs() {
     const retentionDays = this.configService.getAuditLogRetentionDays();
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+    cutoffDate.setUTCDate(cutoffDate.getUTCDate() - retentionDays);
 
     await this.auditLogRepository.delete({
       createdAt: LessThan(cutoffDate),

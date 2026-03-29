@@ -18,7 +18,19 @@
 - Stripe JS for payments
 - Socket.IO client for real-time updates
 - Shares types via `@btv/types`
+- `GET /players/schedules/today` response is flattened in `api.ts` from `{ schedule, games }` to flat `ScheduleSection`
+
+## Game Statuses
+
+- `GameStatus` includes: `CREATED`, `OPEN`, `IN_PROGRESS`, `FINISHED`, `CANCELLED`
+- `GameStatusFilter` includes `includeOpen` — all non-cancelled statuses shown by default
+- `gameIsAvailable()` returns true for both `CREATED` and `OPEN`
 
 ## Date Display Utils
 
 - `src/lib/utils.ts`: `formatDateTime()`, `formatDate()`, `formatTime()`, `formatTimeAgo()`
+- All functions accept UTC ISO strings from API and auto-convert to browser local timezone via `toLocaleString()`
+
+## Development
+
+- Dev server binds to `0.0.0.0` (not `localhost`) for LAN testing from mobile devices

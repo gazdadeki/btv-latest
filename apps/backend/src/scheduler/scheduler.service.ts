@@ -31,7 +31,7 @@ export class SchedulerService {
     private dataSource: DataSource,
   ) {}
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async handleEventGeneration() {
     await this.withDbLock('scheduler:event_generation', 1, async () => {
       const startedAt = Date.now();
@@ -59,7 +59,7 @@ export class SchedulerService {
     });
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async handleReservationOpening() {
     await this.withDbLock('scheduler:reservation_opening', 1, async () => {
       const startedAt = Date.now();

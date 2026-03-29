@@ -18,7 +18,7 @@ This document records verified, repo-based facts to avoid repeated discovery in 
 
 ## Repository layout
 
-```
+```text
 btv/
 ├── apps/
 │   ├── backend/                  # NestJS API server (port 3000)
@@ -75,33 +75,33 @@ btv/
 
 All modules registered in `app.module.ts`:
 
-| Module | Responsibility |
-|---|---|
-| `activity` | Activity tracking |
-| `admin` | Admin-only APIs and services |
-| `audit` | Audit log recording and retrieval |
-| `auth` | JWT authentication, login, register, refresh, logout |
-| `cache` | In-memory caching layer |
-| `common` | Shared utilities (date utils, profanity filter, etc.) |
-| `config` | Environment variable loading and validation |
-| `database` | TypeORM DataSource, migrations |
-| `downloads` | Download management |
-| `email` | Email delivery (Mailtrap / console), templates |
-| `firebase` | Firebase Admin SDK, push notifications |
-| `games` | Game entity management, bulk creation, cancellation |
-| `messages` | In-app messaging system |
-| `players` | Player-specific APIs |
-| `reservations` | Reservation creation and management |
-| `scheduler` | Cron jobs: game generation, reservation opening |
-| `schedules` | Schedule entity management |
-| `statistics` | Analytics and stats endpoints |
-| `stripe` | Stripe payments, webhooks |
-| `subscriptions` | Subscription tiers and management |
-| `tutorials` | Tutorial content management |
-| `users` | User CRUD, profile management |
-| `verification` | Email verification codes |
-| `wallet` | Wallet / credit management |
-| `websocket` | Socket.IO gateway, real-time game status broadcasts |
+| Module          | Responsibility                                                                      |
+| --------------- | ----------------------------------------------------------------------------------- |
+| `activity`      | Activity tracking                                                                   |
+| `admin`         | Admin-only APIs and services                                                        |
+| `audit`         | Audit log recording and retrieval                                                   |
+| `auth`          | JWT authentication, login, register, refresh, logout                                |
+| `cache`         | In-memory caching layer                                                             |
+| `common`        | Shared utilities (date utils, profanity filter, etc.)                               |
+| `config`        | Environment variable loading and validation                                         |
+| `database`      | TypeORM DataSource, migrations                                                      |
+| `downloads`     | Download management                                                                 |
+| `email`         | Email delivery (Mailtrap / console), templates                                      |
+| `firebase`      | Firebase Admin SDK, push notifications                                              |
+| `games`         | Game entity management, bulk creation, cancellation                                 |
+| `messages`      | In-app messaging system                                                             |
+| `players`       | Player-specific APIs                                                                |
+| `reservations`  | Reservation creation and management                                                 |
+| `scheduler`     | Cron jobs: game generation (idempotent), reservation opening, confirmation checking |
+| `schedules`     | Schedule entity management                                                          |
+| `statistics`    | Analytics and stats endpoints                                                       |
+| `stripe`        | Stripe payments, webhooks                                                           |
+| `subscriptions` | Subscription tiers and management                                                   |
+| `tutorials`     | Tutorial content management                                                         |
+| `users`         | User CRUD, profile management                                                       |
+| `verification`  | Email verification codes                                                            |
+| `wallet`        | Wallet / credit management                                                          |
+| `websocket`     | Socket.IO gateway, real-time game status broadcasts                                 |
 
 ## Backend runtime behavior (apps/backend/src/main.ts)
 
@@ -147,13 +147,14 @@ All modules registered in `app.module.ts`:
 
 Two separate cookie namespaces prevent session collision between the admin and player apps (critical when both run on `localhost` in development; fully isolated by domain in production).
 
-| | Admin app (`apps/web`) | Player app (`apps/mobile`) |
-|---|---|---|
-| Access token (HTTP-only) | `admin_access_token` | `player_access_token` |
-| Refresh token (HTTP-only) | `admin_refresh_token` | `player_refresh_token` |
-| User indicator (client-readable) | `admin_user` | `player_user` |
+|                                  | Admin app (`apps/web`) | Player app (`apps/mobile`) |
+| -------------------------------- | ---------------------- | -------------------------- |
+| Access token (HTTP-only)         | `admin_access_token`   | `player_access_token`      |
+| Refresh token (HTTP-only)        | `admin_refresh_token`  | `player_refresh_token`     |
+| User indicator (client-readable) | `admin_user`           | `player_user`              |
 
 **Backend behavior:**
+
 - `POST /api/v1/auth/login` and `POST /api/v1/auth/register` → set `player_*` cookies
 - `POST /api/v1/auth/admin/login` → set `admin_*` cookies
 - `POST /api/v1/auth/refresh` → auto-detects session type by which cookie is present, responds with matching prefix
@@ -176,6 +177,7 @@ This convention applies to every future change across the entire codebase. Devia
 
 - Always use UTC JS methods: `setUTCHours()`, `setUTCMinutes()`, `setUTCDate()`, `setUTCMonth()`, `setUTCFullYear()`, `getUTCDate()`, `getUTCDay()`, `getUTCMonth()`, `getUTCFullYear()`.
 - Never use local-timezone equivalents (`setHours()`, `setMinutes()`, `setDate()`, `getDate()`, `getDay()`, `getMonth()`) for date normalization or comparison.
+- For date-only strings (e.g., ONCE recurrence `onceDate`), parse with string split (`"2026-03-29".split("-")`), not `new Date()` which applies local-timezone interpretation.
 - Prefer the shared utilities in `apps/backend/src/common/date.utils.ts`:
   - `utcStartOfDay(date)` — returns a `Date` at UTC midnight for the given date
   - `utcEndOfDay(date)` — returns a `Date` at UTC 23:59:59.999 for the given date
@@ -193,18 +195,50 @@ This convention applies to every future change across the entire codebase. Devia
 
 All dates must be in UTC ISO 8601 format when sent to the backend.
 
-| Input type | How to convert before sending |
-|---|---|
-| `datetime-local` input (`YYYY-MM-DDTHH:MM`) | `new Date(inputValue).toISOString()` |
-| Date-only picker (`YYYY-MM-DD` string) | `new Date(dateString + 'T00:00:00Z').toISOString()` |
-| HH:MM time string (schedule times) | Use `localTimeToUtc(hhmm)` from `apps/web/src/lib/utils.ts` before sending |
+| Input type                                  | How to convert before sending                                              |
+| ------------------------------------------- | -------------------------------------------------------------------------- |
+| `datetime-local` input (`YYYY-MM-DDTHH:MM`) | `new Date(inputValue).toISOString()`                                       |
+| Date-only picker (`YYYY-MM-DD` string)      | `new Date(dateString + 'T00:00:00Z').toISOString()`                        |
+| HH:MM time string (schedule times)          | Use `localTimeToUtc(hhmm)` from `apps/web/src/lib/utils.ts` before sending |
 
 ### Frontend — loading stored dates into inputs
 
-| Input type | How to populate from backend value |
-|---|---|
-| `datetime-local` input | Subtract timezone offset: `new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)` |
-| HH:MM time string (schedule times) | Use `utcTimeToLocal(hhmm)` from `apps/web/src/lib/utils.ts` |
+| Input type                         | How to populate from backend value                                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `datetime-local` input             | Subtract timezone offset: `new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)` |
+| HH:MM time string (schedule times) | Use `utcTimeToLocal(hhmm)` from `apps/web/src/lib/utils.ts`                                                  |
+
+## Game Generation & Scheduling
+
+### Game status lifecycle
+
+`CREATED` → `OPEN` → `IN_PROGRESS` → `FINISHED` (or `CANCELLED` at any stage)
+
+- Games without `reservationOpenTime` are created directly as `OPEN`
+- Games with `reservationOpenTime` start as `CREATED`, transition to `OPEN` when that UTC time passes
+
+### Cron-based generation (`scheduler.service.ts`)
+
+- Runs every minute
+- **Idempotent**: checks for existing non-cancelled games before creation — if games already exist for a schedule+date, skips
+- Compares current UTC time against schedule's `gameCreationTime` (stored as UTC HH:MM)
+- Only generates for dates matching the schedule's recurrence pattern (`shouldCreateGameOnDate`)
+
+### Admin force-regenerate (calendar "Generate" button)
+
+- Cancels existing `CREATED` games for the schedule+date, then creates new ones
+- Will NOT cancel `OPEN`/`IN_PROGRESS` games — if those exist, regeneration is skipped to prevent duplicates
+
+### Default schedule recurrence
+
+- New schedules default to all 7 days `[0,1,2,3,4,5,6]` (Sun–Sat)
+- Admin can uncheck days in the recurrence form (Step 2)
+
+### Mobile API response shape
+
+- `GET /api/v1/players/schedules/today` returns `Array<{ schedule, games }>`
+- Mobile `api.ts` flattens this to `ScheduleSection[]` (top-level `id`, `name`, `games`)
+- Mobile `GameStatusFilter` includes `includeOpen` (defaults to true)
 
 ## Production deployment
 

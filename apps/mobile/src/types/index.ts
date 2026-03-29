@@ -20,20 +20,34 @@ export interface User {
   updatedAt: string;
 }
 
-export function isPlayer(user: User) { return user.role === 'player'; }
-export function isAdmin(user: User) { return user.role === 'admin'; }
-export function isGold(user: User) { return user.subscriptionTier === 'GOLD'; }
-export function isFree(user: User) { return user.subscriptionTier === 'FREE'; }
+export function isPlayer(user: User) {
+  return user.role === "player";
+}
+export function isAdmin(user: User) {
+  return user.role === "admin";
+}
+export function isGold(user: User) {
+  return user.subscriptionTier === "GOLD";
+}
+export function isFree(user: User) {
+  return user.subscriptionTier === "FREE";
+}
 
 // ─── Game ─────────────────────────────────────────────────────────────────────
 
-export type GameStatus = 'CREATED' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED';
+export type GameStatus =
+  | "CREATED"
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "FINISHED"
+  | "CANCELLED";
 
 export const GAME_STATUS_DISPLAY: Record<GameStatus, string> = {
-  CREATED: 'Upcoming',
-  IN_PROGRESS: 'In Progress',
-  FINISHED: 'Finished',
-  CANCELLED: 'Cancelled',
+  CREATED: "Upcoming",
+  OPEN: "Open",
+  IN_PROGRESS: "In Progress",
+  FINISHED: "Finished",
+  CANCELLED: "Cancelled",
 };
 
 export interface Game {
@@ -49,20 +63,32 @@ export interface Game {
   updatedAt: string;
 }
 
-export function gameIsAvailable(g: Game) { return g.status === 'CREATED'; }
-export function gameIsInProgress(g: Game) { return g.status === 'IN_PROGRESS'; }
-export function gameIsFinished(g: Game) { return g.status === 'FINISHED'; }
-export function gameIsCancelled(g: Game) { return g.status === 'CANCELLED'; }
-export function availableSlotsCount(g: Game) { return g.slots.filter(s => !s.isReserved).length; }
-export function reservedSlotsCount(g: Game) { return g.slots.filter(s => s.isReserved).length; }
+export function gameIsAvailable(g: Game) {
+  return g.status === "CREATED" || g.status === "OPEN";
+}
+export function gameIsInProgress(g: Game) {
+  return g.status === "IN_PROGRESS";
+}
+export function gameIsFinished(g: Game) {
+  return g.status === "FINISHED";
+}
+export function gameIsCancelled(g: Game) {
+  return g.status === "CANCELLED";
+}
+export function availableSlotsCount(g: Game) {
+  return g.slots.filter((s) => !s.isReserved).length;
+}
+export function reservedSlotsCount(g: Game) {
+  return g.slots.filter((s) => s.isReserved).length;
+}
 
 // ─── Slot ─────────────────────────────────────────────────────────────────────
 
-export type Team = 'A' | 'B';
+export type Team = "A" | "B";
 
 export const TEAM_DISPLAY: Record<Team, string> = {
-  A: 'Scourge',
-  B: 'Sentinel',
+  A: "Scourge",
+  B: "Sentinel",
 };
 
 export interface Slot {
@@ -80,15 +106,19 @@ export interface Slot {
 }
 
 export function slotIsPending(s: Slot) {
-  return s.reservationStatus?.toUpperCase() === 'RESERVED';
+  return s.reservationStatus?.toUpperCase() === "RESERVED";
 }
 export function slotIsConfirmed(s: Slot) {
-  return s.reservationStatus?.toUpperCase() === 'CONFIRMED';
+  return s.reservationStatus?.toUpperCase() === "CONFIRMED";
 }
 
 // ─── Reservation ──────────────────────────────────────────────────────────────
 
-export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+export type ReservationStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "CANCELLED"
+  | "COMPLETED";
 
 export interface Reservation {
   id: number;
@@ -102,17 +132,25 @@ export interface Reservation {
   updatedAt: string;
 }
 
-export function reservationIsPending(r: Reservation) { return r.status === 'PENDING'; }
-export function reservationIsConfirmed(r: Reservation) { return r.status === 'CONFIRMED'; }
-export function reservationIsCancelled(r: Reservation) { return r.status === 'CANCELLED'; }
-export function reservationIsCompleted(r: Reservation) { return r.status === 'COMPLETED'; }
+export function reservationIsPending(r: Reservation) {
+  return r.status === "PENDING";
+}
+export function reservationIsConfirmed(r: Reservation) {
+  return r.status === "CONFIRMED";
+}
+export function reservationIsCancelled(r: Reservation) {
+  return r.status === "CANCELLED";
+}
+export function reservationIsCompleted(r: Reservation) {
+  return r.status === "COMPLETED";
+}
 export function reservationIsActive(r: Reservation) {
-  return r.status === 'PENDING' || r.status === 'CONFIRMED';
+  return r.status === "PENDING" || r.status === "CONFIRMED";
 }
 
 // ─── Product ──────────────────────────────────────────────────────────────────
 
-export type ProductType = 'SUBSCRIPTION' | 'COIN_PACK';
+export type ProductType = "SUBSCRIPTION" | "COIN_PACK";
 
 export interface ProductData {
   price?: number;
@@ -136,14 +174,18 @@ export interface Product {
   updatedAt: string;
 }
 
-export function productIsSubscription(p: Product) { return p.type === 'SUBSCRIPTION'; }
-export function productIsCoinPack(p: Product) { return p.type === 'COIN_PACK'; }
+export function productIsSubscription(p: Product) {
+  return p.type === "SUBSCRIPTION";
+}
+export function productIsCoinPack(p: Product) {
+  return p.type === "COIN_PACK";
+}
 
 // ─── Subscription ─────────────────────────────────────────────────────────────
 
-export type SubscriptionTier = 'FREE' | 'GOLD';
-export type SubscriptionStatus = 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'PENDING';
-export type BillingPeriod = 'MONTHLY' | 'SIXMONTHS' | 'YEARLY';
+export type SubscriptionTier = "FREE" | "GOLD";
+export type SubscriptionStatus = "ACTIVE" | "CANCELLED" | "EXPIRED" | "PENDING";
+export type BillingPeriod = "MONTHLY" | "SIXMONTHS" | "YEARLY";
 
 export interface Subscription {
   id: number;
@@ -161,14 +203,24 @@ export interface Subscription {
   payments?: StripePayment[];
 }
 
-export function subscriptionIsActive(s: Subscription) { return s.status === 'ACTIVE'; }
-export function subscriptionIsGold(s: Subscription) { return s.tier === 'GOLD'; }
-export function subscriptionIsFree(s: Subscription) { return s.tier === 'FREE'; }
+export function subscriptionIsActive(s: Subscription) {
+  return s.status === "ACTIVE";
+}
+export function subscriptionIsGold(s: Subscription) {
+  return s.tier === "GOLD";
+}
+export function subscriptionIsFree(s: Subscription) {
+  return s.tier === "FREE";
+}
 
 // ─── Stripe Payment ───────────────────────────────────────────────────────────
 
-export type StripePaymentType = 'SUBSCRIPTION' | 'COIN_PACK';
-export type StripePaymentStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
+export type StripePaymentType = "SUBSCRIPTION" | "COIN_PACK";
+export type StripePaymentStatus =
+  | "PENDING"
+  | "SUCCEEDED"
+  | "FAILED"
+  | "CANCELED";
 
 export interface StripePayment {
   id: number;
@@ -189,13 +241,13 @@ export interface StripePayment {
 // ─── Transaction ──────────────────────────────────────────────────────────────
 
 export type TransactionType =
-  | 'DEPOSIT'
-  | 'WITHDRAWAL'
-  | 'RESERVATIONCOST'
-  | 'CONFIRMATIONCOST'
-  | 'REFUND'
-  | 'REWARD'
-  | 'STRIPEPURCHASE';
+  | "DEPOSIT"
+  | "WITHDRAWAL"
+  | "RESERVATIONCOST"
+  | "CONFIRMATIONCOST"
+  | "REFUND"
+  | "REWARD"
+  | "STRIPEPURCHASE";
 
 export interface Transaction {
   id: number;
@@ -207,7 +259,7 @@ export interface Transaction {
 }
 
 export function transactionIsPositive(t: Transaction): boolean {
-  return ['DEPOSIT', 'REFUND', 'REWARD', 'STRIPEPURCHASE'].includes(t.type);
+  return ["DEPOSIT", "REFUND", "REWARD", "STRIPEPURCHASE"].includes(t.type);
 }
 
 // ─── Wallet ───────────────────────────────────────────────────────────────────
@@ -241,7 +293,7 @@ export interface Category {
 
 // ─── Tutorial ─────────────────────────────────────────────────────────────────
 
-export type TutorialStatus = 'DRAFT' | 'PUBLISHED';
+export type TutorialStatus = "DRAFT" | "PUBLISHED";
 
 export interface Tutorial {
   id: number;
@@ -269,7 +321,7 @@ export interface TutorialFilters {
 
 // ─── Conversation & Message ───────────────────────────────────────────────────
 
-export type ConversationType = 'DIRECT' | 'GROUP';
+export type ConversationType = "DIRECT" | "GROUP";
 
 export interface ConversationParticipant {
   id: number;
@@ -355,6 +407,7 @@ export function netCoins(s: UserStatistics): number {
 
 export interface GameStatusFilter {
   includeCreated: boolean;
+  includeOpen: boolean;
   includeInProgress: boolean;
   includeFinished: boolean;
   includeCancelled: boolean;
@@ -362,6 +415,7 @@ export interface GameStatusFilter {
 
 export const DEFAULT_GAME_FILTER: GameStatusFilter = {
   includeCreated: true,
+  includeOpen: true,
   includeInProgress: true,
   includeFinished: true,
   includeCancelled: false,

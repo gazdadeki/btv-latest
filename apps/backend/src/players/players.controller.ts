@@ -100,6 +100,12 @@ export class PlayersController {
     description: 'Include games with CREATED status (default: true)',
   })
   @ApiQuery({
+    name: 'includeOpen',
+    required: false,
+    type: Boolean,
+    description: 'Include games with OPEN status (default: true)',
+  })
+  @ApiQuery({
     name: 'includeInProgress',
     required: false,
     type: Boolean,
@@ -120,6 +126,7 @@ export class PlayersController {
   async getSchedulesForToday(
     @Request() req: any,
     @Query('includeCreated') includeCreated?: string,
+    @Query('includeOpen') includeOpen?: string,
     @Query('includeInProgress') includeInProgress?: string,
     @Query('includeFinished') includeFinished?: string,
     @Query('includeCancelled') includeCancelled?: string,
@@ -127,6 +134,7 @@ export class PlayersController {
     // Parse boolean query parameters (default: show all except cancelled)
     const filters = {
       includeCreated: includeCreated !== 'false',
+      includeOpen: includeOpen !== 'false',
       includeInProgress: includeInProgress !== 'false',
       includeFinished: includeFinished !== 'false',
       includeCancelled: includeCancelled === 'true',

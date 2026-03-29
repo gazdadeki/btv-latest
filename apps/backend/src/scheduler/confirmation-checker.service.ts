@@ -170,7 +170,7 @@ export class ConfirmationCheckerService {
 
       const dueReminders = reminders.filter((minutes) => {
         const reminderTime = new Date(game.scheduledStartTime);
-        reminderTime.setMinutes(reminderTime.getMinutes() - minutes);
+        reminderTime.setUTCMinutes(reminderTime.getUTCMinutes() - minutes);
         const timeDiff = reminderTime.getTime() - now.getTime();
         return timeDiff > 0 && timeDiff < 60000;
       });

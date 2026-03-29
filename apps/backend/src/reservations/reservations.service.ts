@@ -327,8 +327,9 @@ export class ReservationsService {
     const game = reservation.game;
     const now = new Date();
     const confirmationWindow = new Date(game.scheduledStartTime);
-    confirmationWindow.setMinutes(
-      confirmationWindow.getMinutes() - game.schedule.confirmationWindowMinutes,
+    confirmationWindow.setUTCMinutes(
+      confirmationWindow.getUTCMinutes() -
+        game.schedule.confirmationWindowMinutes,
     );
 
     if (now > confirmationWindow) {

@@ -24,7 +24,11 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ConfigService } from '../config/config.service';
 import { AuditService } from '../audit/audit.service';
-import { User, UserRole, SubscriptionTier } from '../users/entities/user.entity';
+import {
+  User,
+  UserRole,
+  SubscriptionTier,
+} from '../users/entities/user.entity';
 import { Inject } from '@nestjs/common';
 import { IEmailService } from '../email/email.service.interface';
 import * as crypto from 'crypto';
@@ -144,7 +148,7 @@ export class AuthService {
     const verificationCode = await this.generateUniqueVerificationCode();
     const expiryMinutes = this.configService.getVerificationCodeExpiryMinutes();
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + expiryMinutes);
+    expiresAt.setUTCMinutes(expiresAt.getUTCMinutes() + expiryMinutes);
 
     await this.verificationCodeRepository.save({
       userId: user.id,
@@ -469,7 +473,7 @@ export class AuthService {
 
     // Check if refresh token is close to expiring (less than 1 day remaining)
     const oneDayFromNow = new Date();
-    oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
+    oneDayFromNow.setUTCDate(oneDayFromNow.getUTCDate() + 1);
     const shouldRegenerateRefreshToken = token.expiresAt < oneDayFromNow;
 
     if (shouldRegenerateRefreshToken) {
@@ -678,7 +682,7 @@ export class AuthService {
     // Calculate expiration date for refresh token storage
     const expiresAt = new Date();
     const refreshTokenDays = parseInt(refreshTokenExpiry.replace('d', '')) || 7;
-    expiresAt.setDate(expiresAt.getDate() + refreshTokenDays);
+    expiresAt.setUTCDate(expiresAt.getUTCDate() + refreshTokenDays);
 
     this.logger.debug(
       `Storing refresh token in database, expires at: ${expiresAt.toISOString()}`,
@@ -748,7 +752,7 @@ export class AuthService {
     // Generate secure reset token
     const resetToken = this.generateResetToken();
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 1); // Token expires in 1 hour
+    expiresAt.setUTCHours(expiresAt.getUTCHours() + 1); // Token expires in 1 hour
 
     // Store reset token in database
     await this.passwordResetTokenRepository.save({

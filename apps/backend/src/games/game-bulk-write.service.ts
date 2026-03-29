@@ -28,20 +28,12 @@ export class GameBulkWriteService {
   async generateGamesForScheduleDate(
     schedule: Schedule,
     targetDate: Date,
+    forceRegenerate = false,
   ): Promise<BulkGenerationResult> {
     const correlationId = randomUUID();
     const normalizedDate = utcStartOfDay(targetDate);
 
-    const cancelledCount =
-      await this.gameCancellationService.cancelCreatedGamesForSchedule(
-        schedule.id,
-        {
-          date: normalizedDate,
-          audit: false,
-          emitWebsocket: false,
-          reason: 'Cancelled before regenerating games for schedule date',
-        },
-      );
+    let cancelledCount = 0;
 
     const slotConfigs =
       schedule.slotConfigs?.length > 0
@@ -61,7 +53,29 @@ export class GameBulkWriteService {
           normalizedDate,
         );
         if (hasActiveGames) {
-          return { createdGames: [], generationBatchId: null };
+          if (!forceRegenerate) {
+            return { createdGames: [], generationBatchId: null };
+          }
+          // Admin-triggered regeneration: cancel existing CREATED games first
+          cancelledCount =
+            await this.gameCancellationService.cancelCreatedGamesForSchedule(
+              schedule.id,
+              {
+                date: normalizedDate,
+                audit: false,
+                emitWebsocket: false,
+                reason: 'Cancelled before regenerating games for schedule date',
+              },
+            );
+          // If OPEN/IN_PROGRESS games remain after cancelling CREATED ones, skip to avoid duplicates
+          const stillHasActiveGames = await this.hasActiveGamesForDate(
+            manager,
+            schedule.id,
+            normalizedDate,
+          );
+          if (stillHasActiveGames) {
+            return { createdGames: [], generationBatchId: null };
+          }
         }
 
         const generationBatchId = randomUUID();

@@ -33,3 +33,17 @@ auth, games, reservations, schedules, subscriptions, stripe, websocket, users, w
 - `synchronize` controlled by `TYPEORM_SYNCHRONIZE` env var (false in production)
 - All datetimes stored as UTC (`timezone: 'Z'`)
 - Migrations in `src/database/migrations/`
+
+## Scheduler & Game Generation
+
+- Cron runs every minute (`scheduler.service.ts`)
+- Game generation is **idempotent**: cron checks for existing games before creation, skips if present
+- Only admin force-regenerate (calendar "Generate" button) cancels existing CREATED games and recreates
+- Schedule `gameCreationTime` is stored as UTC — cron compares current UTC time against it
+- Default schedule recurrence: all 7 days `[0,1,2,3,4,5,6]` (Sun-Sat)
+
+## Game Statuses
+
+- `CREATED` → `OPEN` → `IN_PROGRESS` → `FINISHED` (or `CANCELLED` at any point)
+- Games without `reservationOpenTime` are created directly as `OPEN`
+- Mobile and admin filters include all statuses; `CANCELLED` excluded by default
