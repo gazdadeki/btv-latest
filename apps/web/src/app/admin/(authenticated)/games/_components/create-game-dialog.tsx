@@ -22,12 +22,15 @@ export function CreateGameDialog({
     startTime: "",
     isExclusiveToGold: false,
   });
+  const [submitting, setSubmitting] = useState(false);
 
   const handleCreate = async () => {
+    if (submitting) return;
     if (!form.startTime) {
       toast.error("Start time is required");
       return;
     }
+    setSubmitting(true);
     try {
       await api.createGame({
         scheduledStartTime: new Date(form.startTime).toISOString(),
@@ -39,6 +42,8 @@ export function CreateGameDialog({
       onCreated();
     } catch (err) {
       toastError(err);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -74,7 +79,9 @@ export function CreateGameDialog({
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleCreate}>Add Game</Button>
+          <Button onClick={handleCreate} disabled={submitting}>
+            {submitting ? "Adding..." : "Add Game"}
+          </Button>
         </div>
       </div>
     </Dialog>

@@ -343,6 +343,7 @@ export default function GamesPage() {
             >
               <option value="">All Statuses</option>
               <option value="CREATED">Created</option>
+              <option value="OPEN">Open</option>
               <option value="IN_PROGRESS">In Progress</option>
               <option value="FINISHED">Finished</option>
               <option value="CANCELLED">Cancelled</option>

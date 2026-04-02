@@ -314,7 +314,11 @@ export default function HomePage() {
           <EmptyState message="No active stream" icon={Calendar} />
         )}
 
-        {activeStream && (
+        {activeStream && (activeStream.games ?? []).length === 0 && (
+          <EmptyState message="No games in active stream" icon={Calendar} />
+        )}
+
+        {activeStream && (activeStream.games ?? []).length > 0 && (
           <div className="mb-4">
             <h2 className="text-lg font-bold text-gray-800 px-2 py-2">
               {activeStream.stream.scheduleName}

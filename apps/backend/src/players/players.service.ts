@@ -5,9 +5,8 @@ import { Game, GameStatus } from '../games/entities/game.entity';
 import { Slot, Team } from '../games/entities/slot.entity';
 import { User, SubscriptionTier } from '../users/entities/user.entity';
 import { Schedule } from '../schedules/entities/schedule.entity';
-import { Stream, StreamStatus } from '../streams/entities/stream.entity';
+import { StreamsService } from '../streams/streams.service';
 import { ReservationsService } from '../reservations/reservations.service';
-import { Not } from 'typeorm';
 import { utcStartOfDay } from '../common/date.utils';
 
 /**
@@ -57,8 +56,7 @@ export class PlayersService {
     private slotRepository: Repository<Slot>,
     @InjectRepository(Schedule)
     private scheduleRepository: Repository<Schedule>,
-    @InjectRepository(Stream)
-    private streamRepository: Repository<Stream>,
+    private streamsService: StreamsService,
     private reservationsService: ReservationsService,
   ) {}
 
@@ -285,11 +283,8 @@ export class PlayersService {
     };
     games: Game[];
   } | null> {
-    const stream = await this.streamRepository.findOne({
-      where: { status: Not(StreamStatus.ENDED) },
-      relations: ['schedule'],
-      order: { createdAt: 'DESC' },
-    });
+    // Prefer LIVE stream; fall back to PENDING if no LIVE stream exists
+    const stream = await this.streamsService.findPlayerVisibleStream();
 
     if (!stream) {
       return null;

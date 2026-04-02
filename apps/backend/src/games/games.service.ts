@@ -123,10 +123,13 @@ export class GamesService {
 
     const activeStream = await this.streamsService.findActiveStream();
     if (activeStream) {
-      activeStreamId = activeStream.id;
       if (!resolvedScheduleId) {
         resolvedScheduleId = activeStream.scheduleId;
+        activeStreamId = activeStream.id;
+      } else if (resolvedScheduleId === activeStream.scheduleId) {
+        activeStreamId = activeStream.id;
       }
+      // If scheduleId doesn't match stream's schedule, don't attach to stream
     }
 
     if (!resolvedScheduleId) {

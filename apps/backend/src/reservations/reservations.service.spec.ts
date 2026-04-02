@@ -84,6 +84,14 @@ describe('ReservationsService', () => {
         save: jest.fn(async (entityOrClass, maybeData) =>
           maybeData !== undefined ? maybeData : entityOrClass,
         ),
+        createQueryBuilder: jest.fn(() => ({
+          innerJoin: jest.fn().mockReturnThis(),
+          where: jest.fn().mockReturnThis(),
+          andWhere: jest.fn().mockReturnThis(),
+          select: jest.fn().mockReturnThis(),
+          getCount: jest.fn().mockResolvedValue(0),
+          getRawMany: jest.fn().mockResolvedValue([]),
+        })),
       },
       commitTransaction: jest.fn(),
       rollbackTransaction: jest.fn(),
@@ -269,15 +277,32 @@ describe('ReservationsService', () => {
   });
 
   it('blocks gold users at 2 active reservations', async () => {
-    const queryBuilder = {
+    const limitQueryBuilder = {
       innerJoin: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       getCount: jest.fn().mockResolvedValue(2),
     };
     const service = buildService({
-      reservationRepository: {
-        createQueryBuilder: jest.fn(() => queryBuilder),
+      dataSource: {
+        createQueryRunner: jest.fn().mockReturnValue({
+          connect: jest.fn(),
+          startTransaction: jest.fn(),
+          manager: {
+            findOne: jest.fn().mockResolvedValue({
+              id: 5,
+              gameId: 1,
+              team: Team.A,
+              isReserved: false,
+            }),
+            create: jest.fn((_, data) => ({ id: 99, ...data })),
+            save: jest.fn(async (e, d) => (d !== undefined ? d : e)),
+            createQueryBuilder: jest.fn(() => limitQueryBuilder),
+          },
+          commitTransaction: jest.fn(),
+          rollbackTransaction: jest.fn(),
+          release: jest.fn(),
+        }),
       },
       userRepository: {
         findOne: jest.fn().mockResolvedValue({
@@ -297,7 +322,7 @@ describe('ReservationsService', () => {
 
   it('blocks gold users from adjacent game indexes in same batch', async () => {
     let callCount = 0;
-    const queryBuilder = {
+    const adjacencyQueryBuilder = {
       innerJoin: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
@@ -306,8 +331,25 @@ describe('ReservationsService', () => {
       getRawMany: jest.fn().mockResolvedValue([{ gameIndex: 1 }]),
     };
     const service = buildService({
-      reservationRepository: {
-        createQueryBuilder: jest.fn(() => queryBuilder),
+      dataSource: {
+        createQueryRunner: jest.fn().mockReturnValue({
+          connect: jest.fn(),
+          startTransaction: jest.fn(),
+          manager: {
+            findOne: jest.fn().mockResolvedValue({
+              id: 5,
+              gameId: 2,
+              team: Team.A,
+              isReserved: false,
+            }),
+            create: jest.fn((_, data) => ({ id: 99, ...data })),
+            save: jest.fn(async (e, d) => (d !== undefined ? d : e)),
+            createQueryBuilder: jest.fn(() => adjacencyQueryBuilder),
+          },
+          commitTransaction: jest.fn(),
+          rollbackTransaction: jest.fn(),
+          release: jest.fn(),
+        }),
       },
       gameRepository: {
         findOne: jest.fn().mockResolvedValue({

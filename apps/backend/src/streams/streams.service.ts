@@ -25,6 +25,23 @@ export class StreamsService {
     });
   }
 
+  /**
+   * Find the stream visible to players: prefer LIVE, fall back to PENDING.
+   */
+  async findPlayerVisibleStream(): Promise<Stream | null> {
+    const live = await this.streamRepository.findOne({
+      where: { status: StreamStatus.LIVE },
+      relations: ['schedule'],
+      order: { createdAt: 'DESC' },
+    });
+    if (live) return live;
+    return this.streamRepository.findOne({
+      where: { status: StreamStatus.PENDING },
+      relations: ['schedule'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   async findActiveStreamWithGames(): Promise<Stream | null> {
     return this.streamRepository.findOne({
       where: { status: Not(StreamStatus.ENDED) },
