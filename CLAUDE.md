@@ -51,8 +51,8 @@ Two separate cookie namespaces prevent session collision between admin and playe
 
 ### SQL / TypeORM Conventions
 
-- snake_case table and column names, plural table names
-- Primary key: `id`, foreign keys: `*_id`
+- Plural table names (snake_case), camelCase column names (TypeORM default — no `name:` overrides)
+- Primary key: `id`, foreign keys: `*Id` pattern (e.g., `scheduleId`, `userId`)
 - Always use migrations for schema changes (never modify production schema manually)
 - InnoDB engine, utf8mb4 charset
 - Always use prepared statements / parameterized queries
@@ -72,7 +72,7 @@ Two separate cookie namespaces prevent session collision between admin and playe
 - Never commit: `sw.js`, `workbox-*.js`, `swe-worker-*.js` (PWA build output), `.next/`, `dist/`, `node_modules/`, `*.tsbuildinfo`
 - If a generated file is tracked by git, propose adding it to `.gitignore` and removing from tracking before committing
 - Stage files explicitly by name — avoid `git add -A` or `git add .` which can catch unintended files
-- Before committing, ask the user if documentation (`CLAUDE.md`, `.claude/rules/`, `docs/ai-context.md`) should be updated to reflect the code changes — only update docs when the user confirms the changes are tested and ready
+- At commit time, automatically update documentation (`CLAUDE.md`, `.claude/rules/`, `docs/ai-context.md`, app-level `CLAUDE.md` files) when staged code changes affect conventions, architecture, module structure, or API contracts — use senior-engineer judgment about what warrants a doc update; don't over-document trivial changes
 
 ## Production Deployment
 

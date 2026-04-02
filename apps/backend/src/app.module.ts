@@ -26,6 +26,7 @@ import { AuditModule } from './audit/audit.module';
 import { ConfigModule as AppConfigModule } from './config/config.module';
 import { EmailModule } from './email/email.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { StreamsModule } from './streams/streams.module';
 import { DownloadsModule } from './downloads/downloads.module';
 import { MessagesModule } from './messages/messages.module';
 import { TutorialsModule } from './tutorials/tutorials.module';
@@ -54,6 +55,7 @@ import { TutorialsModule } from './tutorials/tutorials.module';
     SubscriptionsModule,
     SchedulesModule,
     SchedulerModule,
+    StreamsModule,
     GamesModule,
     ReservationsModule,
     StatisticsModule,
@@ -67,9 +69,6 @@ import { TutorialsModule } from './tutorials/tutorials.module';
     TutorialsModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
-  ],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

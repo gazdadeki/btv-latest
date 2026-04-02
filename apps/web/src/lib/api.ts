@@ -205,6 +205,12 @@ export const api = {
     }),
   shufflePlayers: (id: number) =>
     apiRequest(`/admin/games/${id}/shuffle`, { method: "POST" }),
+  // Streams
+  getActiveStream: () => apiRequest("/admin/streams/active"),
+  activateStream: (id: number) =>
+    apiRequest(`/admin/streams/${id}/activate`, { method: "PUT" }),
+  endStream: (id: number) =>
+    apiRequest(`/admin/streams/${id}/end`, { method: "PUT" }),
   // Slots
   assignUserToSlot: (gameId: number, slotId: number, userId: number) =>
     apiRequest(`/admin/games/${gameId}/slots/${slotId}/assign`, {

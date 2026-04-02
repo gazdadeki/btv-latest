@@ -7,6 +7,7 @@ import { Schedule } from '../schedules/entities/schedule.entity';
 import { SlotConfig } from '../schedules/entities/slot-config.entity';
 import { SlotConfigService } from '../schedules/slot-config.service';
 import { GameCancellationService } from './game-cancellation.service';
+import { StreamsService } from '../streams/streams.service';
 import { utcStartOfDay, utcEndOfDay } from '../common/date.utils';
 
 export interface BulkGenerationResult {
@@ -14,6 +15,7 @@ export interface BulkGenerationResult {
   createdCount: number;
   cancelledCount: number;
   generationBatchId: string | null;
+  streamId: number | null;
   correlationId: string;
 }
 
@@ -23,6 +25,7 @@ export class GameBulkWriteService {
     private dataSource: DataSource,
     private slotConfigService: SlotConfigService,
     private gameCancellationService: GameCancellationService,
+    private streamsService: StreamsService,
   ) {}
 
   async generateGamesForScheduleDate(
@@ -40,7 +43,7 @@ export class GameBulkWriteService {
         ? schedule.slotConfigs
         : await this.slotConfigService.findBySchedule(schedule.id);
 
-    const { createdGames, generationBatchId } =
+    const { createdGames, generationBatchId, streamId } =
       await this.dataSource.transaction(async (manager) => {
         await manager.findOne(Schedule, {
           where: { id: schedule.id },
@@ -54,7 +57,11 @@ export class GameBulkWriteService {
         );
         if (hasActiveGames) {
           if (!forceRegenerate) {
-            return { createdGames: [], generationBatchId: null };
+            return {
+              createdGames: [],
+              generationBatchId: null,
+              streamId: null,
+            };
           }
           // Admin-triggered regeneration: cancel existing CREATED games first
           cancelledCount =
@@ -74,9 +81,19 @@ export class GameBulkWriteService {
             normalizedDate,
           );
           if (stillHasActiveGames) {
-            return { createdGames: [], generationBatchId: null };
+            return {
+              createdGames: [],
+              generationBatchId: null,
+              streamId: null,
+            };
           }
         }
+
+        // Create a new stream for this generation run
+        const savedStream = await this.streamsService.createStreamInTransaction(
+          manager,
+          schedule.id,
+        );
 
         const generationBatchId = randomUUID();
         const [hours, minutes] = schedule.firstGameStartTime
@@ -111,6 +128,7 @@ export class GameBulkWriteService {
               url: schedule.url || null,
               generationBatchId,
               gameIndex: i + 1,
+              streamId: savedStream.id,
             }),
           );
         }
@@ -131,7 +149,11 @@ export class GameBulkWriteService {
           await manager.save(Slot, slotsToCreate);
         }
 
-        return { createdGames, generationBatchId };
+        return {
+          createdGames,
+          generationBatchId,
+          streamId: savedStream.id,
+        };
       });
 
     return {
@@ -139,6 +161,7 @@ export class GameBulkWriteService {
       createdCount: createdGames.length,
       cancelledCount,
       generationBatchId,
+      streamId,
       correlationId,
     };
   }

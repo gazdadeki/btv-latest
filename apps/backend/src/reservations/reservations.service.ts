@@ -79,7 +79,16 @@ export class ReservationsService {
       relations: ['schedule'],
     });
 
-    if (!game || game.status !== GameStatus.OPEN) {
+    if (!game) {
+      throw new BadRequestException('Game not available for reservation');
+    }
+
+    const allowedStatuses =
+      user.subscriptionTier === SubscriptionTier.GOLD
+        ? [GameStatus.CREATED, GameStatus.OPEN]
+        : [GameStatus.OPEN];
+
+    if (!allowedStatuses.includes(game.status)) {
       throw new BadRequestException('Game not available for reservation');
     }
 
@@ -90,69 +99,6 @@ export class ReservationsService {
       throw new ForbiddenException(
         'This game is exclusive to Gold subscribers',
       );
-    }
-
-    // Check active reservations for games that are CREATED or IN_PROGRESS only
-    // Reservations for CANCELLED or FINISHED games should not block new reservations
-    const activeReservationsInActiveGames = await this.reservationRepository
-      .createQueryBuilder('reservation')
-      .innerJoin('reservation.game', 'game')
-      .where('reservation.userId = :userId', { userId })
-      .andWhere('reservation.status = :status', {
-        status: ReservationStatus.RESERVED,
-      })
-      .andWhere('game.status IN (:...gameStatuses)', {
-        gameStatuses: [GameStatus.OPEN, GameStatus.IN_PROGRESS],
-      })
-      .getCount();
-
-    if (
-      user.subscriptionTier === SubscriptionTier.FREE &&
-      activeReservationsInActiveGames > 0
-    ) {
-      throw new BadRequestException(
-        'Free users can only have one active reservation',
-      );
-    }
-
-    // Player-side validation: check for duplicate reservations in other active games
-    // Only block if user has reservation in another game that is CREATED or IN_PROGRESS
-    if (!isAdminAction) {
-      const otherReservations = await this.reservationRepository.find({
-        where: {
-          userId,
-          status: ReservationStatus.RESERVED,
-        },
-        relations: ['game'],
-      });
-
-      const confirmedReservations = await this.reservationRepository.find({
-        where: {
-          userId,
-          status: ReservationStatus.CONFIRMED,
-        },
-        relations: ['game'],
-      });
-
-      const allOtherReservations = [
-        ...otherReservations,
-        ...confirmedReservations,
-      ];
-
-      // Only consider reservations in active games (CREATED or IN_PROGRESS)
-      // Ignore reservations for CANCELLED or FINISHED games
-      const hasOtherActiveReservation = allOtherReservations.some(
-        (r) =>
-          r.gameId !== gameId &&
-          (r.game.status === GameStatus.OPEN ||
-            r.game.status === GameStatus.IN_PROGRESS),
-      );
-
-      if (hasOtherActiveReservation) {
-        throw new BadRequestException(
-          'You already have a reservation in another game. Please cancel it first.',
-        );
-      }
     }
 
     // Check team balance
@@ -220,6 +166,81 @@ export class ReservationsService {
         throw new BadRequestException(
           'Slot team does not match requested team',
         );
+      }
+
+      // Reservation limit and adjacency checks (inside transaction for consistency)
+      if (!isAdminAction) {
+        const activeReservationCount = await queryRunner.manager
+          .createQueryBuilder(Reservation, 'reservation')
+          .innerJoin('reservation.game', 'game')
+          .where('reservation.userId = :userId', { userId })
+          .andWhere('reservation.status IN (:...resStatuses)', {
+            resStatuses: [
+              ReservationStatus.RESERVED,
+              ReservationStatus.CONFIRMED,
+            ],
+          })
+          .andWhere('game.status IN (:...gameStatuses)', {
+            gameStatuses: [
+              GameStatus.CREATED,
+              GameStatus.OPEN,
+              GameStatus.IN_PROGRESS,
+            ],
+          })
+          .getCount();
+
+        const maxReservations =
+          user.subscriptionTier === SubscriptionTier.GOLD ? 2 : 1;
+
+        if (activeReservationCount >= maxReservations) {
+          throw new BadRequestException(
+            user.subscriptionTier === SubscriptionTier.GOLD
+              ? 'Gold users can have at most 2 active reservations'
+              : 'Free users can only have one active reservation',
+          );
+        }
+
+        // GOLD: cannot reserve consecutive game indexes in the same batch
+        if (
+          user.subscriptionTier === SubscriptionTier.GOLD &&
+          game.generationBatchId &&
+          game.gameIndex != null
+        ) {
+          const existingInSameBatch = await queryRunner.manager
+            .createQueryBuilder(Reservation, 'reservation')
+            .innerJoin('reservation.game', 'batchGame')
+            .where('reservation.userId = :userId', { userId })
+            .andWhere('reservation.status IN (:...resStatuses)', {
+              resStatuses: [
+                ReservationStatus.RESERVED,
+                ReservationStatus.CONFIRMED,
+              ],
+            })
+            .andWhere('batchGame.generationBatchId = :batchId', {
+              batchId: game.generationBatchId,
+            })
+            .andWhere('batchGame.status IN (:...gameStatuses)', {
+              gameStatuses: [
+                GameStatus.CREATED,
+                GameStatus.OPEN,
+                GameStatus.IN_PROGRESS,
+              ],
+            })
+            .select('batchGame.gameIndex', 'gameIndex')
+            .getRawMany();
+
+          const isAdjacent = existingInSameBatch.some(
+            (r) =>
+              r.gameIndex != null &&
+              Math.abs(r.gameIndex - game.gameIndex!) === 1,
+          );
+
+          if (isAdjacent) {
+            throw new BadRequestException(
+              'Cannot reserve consecutive games in the same schedule. Please choose a non-adjacent game.',
+            );
+          }
+        }
       }
 
       // Charge wallet

@@ -432,6 +432,20 @@ export interface ScheduleSection {
   games: Game[];
 }
 
+// ─── Stream (from active stream endpoint) ─────────────────────────────────────
+
+export interface ActiveStream {
+  stream: {
+    id: number;
+    status: string;
+    scheduleId: number;
+    scheduleName: string;
+    teamAName: string;
+    teamBName: string;
+  };
+  games: Game[];
+}
+
 // ─── Payment Method ───────────────────────────────────────────────────────────
 
 export interface PaymentMethod {

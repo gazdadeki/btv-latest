@@ -34,7 +34,7 @@ describe('ReservationsService', () => {
     const gameRepository = {
       findOne: jest.fn().mockResolvedValue({
         id: 1,
-        status: GameStatus.CREATED,
+        status: GameStatus.OPEN,
         schedule: {
           reservationCost: 100,
           instantReservationCost: 200,
@@ -43,6 +43,8 @@ describe('ReservationsService', () => {
           refundPolicy: 'FULL',
         },
         isExclusiveToGold: false,
+        generationBatchId: null,
+        gameIndex: null,
       }),
     };
     const userRepository = {
@@ -57,6 +59,7 @@ describe('ReservationsService', () => {
     const walletService = {
       getBalance: jest.fn().mockResolvedValue(500),
       withdraw: jest.fn(),
+      withdrawWithManager: jest.fn(),
     };
     const configService = {
       getGoldDiscountPercentage: jest.fn().mockReturnValue(20),
@@ -71,7 +74,24 @@ describe('ReservationsService', () => {
       connect: jest.fn(),
       startTransaction: jest.fn(),
       manager: {
-        save: jest.fn(async (entity) => entity),
+        findOne: jest.fn().mockResolvedValue({
+          id: 5,
+          gameId: 1,
+          team: Team.A,
+          isReserved: false,
+        }),
+        create: jest.fn((_, data) => ({ id: 99, ...data })),
+        save: jest.fn(async (entityOrClass, maybeData) =>
+          maybeData !== undefined ? maybeData : entityOrClass,
+        ),
+        createQueryBuilder: jest.fn(() => ({
+          innerJoin: jest.fn().mockReturnThis(),
+          where: jest.fn().mockReturnThis(),
+          andWhere: jest.fn().mockReturnThis(),
+          select: jest.fn().mockReturnThis(),
+          getCount: jest.fn().mockResolvedValue(0),
+          getRawMany: jest.fn().mockResolvedValue([]),
+        })),
       },
       commitTransaction: jest.fn(),
       rollbackTransaction: jest.fn(),
@@ -113,7 +133,8 @@ describe('ReservationsService', () => {
 
     await service.create(42, 1, 5, Team.A, false, false);
     const walletService = (service as any).walletService;
-    expect(walletService.withdraw).toHaveBeenCalledWith(
+    expect(walletService.withdrawWithManager).toHaveBeenCalledWith(
+      expect.anything(),
       7,
       80,
       'Reservation for game 1',
@@ -135,7 +156,8 @@ describe('ReservationsService', () => {
 
     await service.create(42, 1, 5, Team.A, true, false);
     const walletService = (service as any).walletService;
-    expect(walletService.withdraw).toHaveBeenCalledWith(
+    expect(walletService.withdrawWithManager).toHaveBeenCalledWith(
+      expect.anything(),
       7,
       160,
       'Instant reservation for game 1',
@@ -147,7 +169,7 @@ describe('ReservationsService', () => {
       gameRepository: {
         findOne: jest.fn().mockResolvedValue({
           id: 1,
-          status: GameStatus.CREATED,
+          status: GameStatus.OPEN,
           schedule: {
             reservationCost: 100,
             instantReservationCost: 200,
@@ -156,6 +178,8 @@ describe('ReservationsService', () => {
             refundPolicy: 'FULL',
           },
           isExclusiveToGold: true,
+          generationBatchId: null,
+          gameIndex: null,
         }),
       },
       userRepository: {
@@ -190,6 +214,248 @@ describe('ReservationsService', () => {
 
   it('creates reserved status for non-instant reservations', async () => {
     const service = buildService();
+    const result = await service.create(42, 1, 5, Team.A, false, false);
+    expect(result.status).toBe(ReservationStatus.RESERVED);
+  });
+
+  it('allows gold users to reserve in CREATED games', async () => {
+    const service = buildService({
+      gameRepository: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 1,
+          status: GameStatus.CREATED,
+          schedule: {
+            reservationCost: 100,
+            instantReservationCost: 200,
+            slotsPerGame: 4,
+            confirmationWindowMinutes: 30,
+            refundPolicy: 'FULL',
+          },
+          isExclusiveToGold: false,
+          generationBatchId: null,
+          gameIndex: null,
+        }),
+      },
+      userRepository: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 42,
+          isVerified: true,
+          isBanned: false,
+          subscriptionTier: SubscriptionTier.GOLD,
+          wallet: { id: 7 },
+        }),
+      },
+    });
+
+    const result = await service.create(42, 1, 5, Team.A, false, false);
+    expect(result.status).toBe(ReservationStatus.RESERVED);
+  });
+
+  it('blocks free users from reserving in CREATED games', async () => {
+    const service = buildService({
+      gameRepository: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 1,
+          status: GameStatus.CREATED,
+          schedule: {
+            reservationCost: 100,
+            instantReservationCost: 200,
+            slotsPerGame: 4,
+            confirmationWindowMinutes: 30,
+            refundPolicy: 'FULL',
+          },
+          isExclusiveToGold: false,
+          generationBatchId: null,
+          gameIndex: null,
+        }),
+      },
+    });
+
+    await expect(
+      service.create(42, 1, 5, Team.A, false, false),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('blocks gold users at 2 active reservations', async () => {
+    const limitQueryBuilder = {
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getCount: jest.fn().mockResolvedValue(2),
+    };
+    const service = buildService({
+      dataSource: {
+        createQueryRunner: jest.fn().mockReturnValue({
+          connect: jest.fn(),
+          startTransaction: jest.fn(),
+          manager: {
+            findOne: jest.fn().mockResolvedValue({
+              id: 5,
+              gameId: 1,
+              team: Team.A,
+              isReserved: false,
+            }),
+            create: jest.fn((_, data) => ({ id: 99, ...data })),
+            save: jest.fn(async (e, d) => (d !== undefined ? d : e)),
+            createQueryBuilder: jest.fn(() => limitQueryBuilder),
+          },
+          commitTransaction: jest.fn(),
+          rollbackTransaction: jest.fn(),
+          release: jest.fn(),
+        }),
+      },
+      userRepository: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 42,
+          isVerified: true,
+          isBanned: false,
+          subscriptionTier: SubscriptionTier.GOLD,
+          wallet: { id: 7 },
+        }),
+      },
+    });
+
+    await expect(
+      service.create(42, 1, 5, Team.A, false, false),
+    ).rejects.toThrow('Gold users can have at most 2 active reservations');
+  });
+
+  it('blocks gold users from adjacent game indexes in same batch', async () => {
+    let callCount = 0;
+    const adjacencyQueryBuilder = {
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      getCount: jest.fn().mockResolvedValue(0),
+      getRawMany: jest.fn().mockResolvedValue([{ gameIndex: 1 }]),
+    };
+    const service = buildService({
+      dataSource: {
+        createQueryRunner: jest.fn().mockReturnValue({
+          connect: jest.fn(),
+          startTransaction: jest.fn(),
+          manager: {
+            findOne: jest.fn().mockResolvedValue({
+              id: 5,
+              gameId: 2,
+              team: Team.A,
+              isReserved: false,
+            }),
+            create: jest.fn((_, data) => ({ id: 99, ...data })),
+            save: jest.fn(async (e, d) => (d !== undefined ? d : e)),
+            createQueryBuilder: jest.fn(() => adjacencyQueryBuilder),
+          },
+          commitTransaction: jest.fn(),
+          rollbackTransaction: jest.fn(),
+          release: jest.fn(),
+        }),
+      },
+      gameRepository: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 2,
+          status: GameStatus.OPEN,
+          schedule: {
+            reservationCost: 100,
+            instantReservationCost: 200,
+            slotsPerGame: 4,
+            confirmationWindowMinutes: 30,
+            refundPolicy: 'FULL',
+          },
+          isExclusiveToGold: false,
+          generationBatchId: 'batch-abc',
+          gameIndex: 2,
+        }),
+      },
+      userRepository: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 42,
+          isVerified: true,
+          isBanned: false,
+          subscriptionTier: SubscriptionTier.GOLD,
+          wallet: { id: 7 },
+        }),
+      },
+    });
+
+    await expect(
+      service.create(42, 2, 5, Team.A, false, false),
+    ).rejects.toThrow('Cannot reserve consecutive games in the same schedule');
+  });
+
+  it('allows gold users to reserve non-adjacent game indexes in same batch', async () => {
+    const queryBuilder = {
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      getCount: jest.fn().mockResolvedValue(0),
+      getRawMany: jest.fn().mockResolvedValue([{ gameIndex: 1 }]),
+    };
+    const service = buildService({
+      reservationRepository: {
+        createQueryBuilder: jest.fn(() => queryBuilder),
+      },
+      gameRepository: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 3,
+          status: GameStatus.OPEN,
+          schedule: {
+            reservationCost: 100,
+            instantReservationCost: 200,
+            slotsPerGame: 4,
+            confirmationWindowMinutes: 30,
+            refundPolicy: 'FULL',
+          },
+          isExclusiveToGold: false,
+          generationBatchId: 'batch-abc',
+          gameIndex: 3,
+        }),
+      },
+      userRepository: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 42,
+          isVerified: true,
+          isBanned: false,
+          subscriptionTier: SubscriptionTier.GOLD,
+          wallet: { id: 7 },
+        }),
+      },
+    });
+
+    const result = await service.create(42, 3, 5, Team.A, false, false);
+    expect(result.status).toBe(ReservationStatus.RESERVED);
+  });
+
+  it('skips adjacency check when game has no gameIndex', async () => {
+    const service = buildService({
+      gameRepository: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 1,
+          status: GameStatus.OPEN,
+          schedule: {
+            reservationCost: 100,
+            instantReservationCost: 200,
+            slotsPerGame: 4,
+            confirmationWindowMinutes: 30,
+            refundPolicy: 'FULL',
+          },
+          isExclusiveToGold: false,
+          generationBatchId: 'batch-abc',
+          gameIndex: null,
+        }),
+      },
+      userRepository: {
+        findOne: jest.fn().mockResolvedValue({
+          id: 42,
+          isVerified: true,
+          isBanned: false,
+          subscriptionTier: SubscriptionTier.GOLD,
+          wallet: { id: 7 },
+        }),
+      },
+    });
+
     const result = await service.create(42, 1, 5, Team.A, false, false);
     expect(result.status).toBe(ReservationStatus.RESERVED);
   });

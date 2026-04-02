@@ -142,4 +142,60 @@ export class PlayersController {
 
     return this.playersService.getSchedulesForToday(req.user, filters);
   }
+
+  @Get('stream/active')
+  @ApiOperation({ summary: 'Get the active stream with its games' })
+  @ApiResponse({
+    status: 200,
+    description: 'Active stream with games, or null if none',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiQuery({
+    name: 'includeCreated',
+    required: false,
+    type: Boolean,
+    description: 'Include games with CREATED status (default: true)',
+  })
+  @ApiQuery({
+    name: 'includeOpen',
+    required: false,
+    type: Boolean,
+    description: 'Include games with OPEN status (default: true)',
+  })
+  @ApiQuery({
+    name: 'includeInProgress',
+    required: false,
+    type: Boolean,
+    description: 'Include games with IN_PROGRESS status (default: true)',
+  })
+  @ApiQuery({
+    name: 'includeFinished',
+    required: false,
+    type: Boolean,
+    description: 'Include games with FINISHED status (default: true)',
+  })
+  @ApiQuery({
+    name: 'includeCancelled',
+    required: false,
+    type: Boolean,
+    description: 'Include games with CANCELLED status (default: false)',
+  })
+  async getActiveStream(
+    @Request() req: any,
+    @Query('includeCreated') includeCreated?: string,
+    @Query('includeOpen') includeOpen?: string,
+    @Query('includeInProgress') includeInProgress?: string,
+    @Query('includeFinished') includeFinished?: string,
+    @Query('includeCancelled') includeCancelled?: string,
+  ) {
+    const filters = {
+      includeCreated: includeCreated !== 'false',
+      includeOpen: includeOpen !== 'false',
+      includeInProgress: includeInProgress !== 'false',
+      includeFinished: includeFinished !== 'false',
+      includeCancelled: includeCancelled === 'true',
+    };
+
+    return this.playersService.getActiveStream(req.user, filters);
+  }
 }
