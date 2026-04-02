@@ -28,7 +28,7 @@ import type {
   Game,
   Reservation,
   GameStatusFilter,
-  ScheduleSection,
+  ActiveStream,
 } from "@/types";
 import {
   GAME_STATUS_DISPLAY,
@@ -192,13 +192,13 @@ export default function HomePage() {
   const [showFilterSheet, setShowFilterSheet] = useState(false);
 
   const {
-    data: scheduleSections = [],
+    data: activeStream,
     isLoading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ["todayGames", filter],
-    queryFn: () => api.getSchedulesToday(filter) as Promise<ScheduleSection[]>,
+    queryKey: ["activeStream", filter],
+    queryFn: () => api.getActiveStream(filter),
   });
 
   const { data: myReservations = [] } = useQuery({
@@ -216,7 +216,7 @@ export default function HomePage() {
 
   const handleRefresh = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["todayGames"] }),
+      queryClient.invalidateQueries({ queryKey: ["activeStream"] }),
       queryClient.invalidateQueries({ queryKey: ["myReservations"] }),
     ]);
   }, [queryClient]);
@@ -231,7 +231,7 @@ export default function HomePage() {
     ];
     const offs = events.map((evt) =>
       wsManager.on(evt, () => {
-        queryClient.invalidateQueries({ queryKey: ["todayGames"] });
+        queryClient.invalidateQueries({ queryKey: ["activeStream"] });
       }),
     );
     return () => offs.forEach((off) => off());
@@ -307,19 +307,19 @@ export default function HomePage() {
           />
         )}
 
-        {isLoading && <Loading message="Loading today's games..." />}
+        {isLoading && <Loading message="Loading games..." />}
         {error && <ErrorDisplay message={String(error)} onRetry={refetch} />}
 
-        {!isLoading && !error && scheduleSections.length === 0 && (
-          <EmptyState message="No games scheduled for today" icon={Calendar} />
+        {!isLoading && !error && !activeStream && (
+          <EmptyState message="No active stream" icon={Calendar} />
         )}
 
-        {scheduleSections.map((section: ScheduleSection) => (
-          <div key={section.id} className="mb-4">
+        {activeStream && (
+          <div className="mb-4">
             <h2 className="text-lg font-bold text-gray-800 px-2 py-2">
-              {section.name}
+              {activeStream.stream.scheduleName}
             </h2>
-            {(section.games ?? []).map((game: Game) => {
+            {(activeStream.games ?? []).map((game: Game) => {
               const ownReservation = activeReservations.find(
                 (r) => r.gameId === game.id,
               );
@@ -335,7 +335,7 @@ export default function HomePage() {
               );
             })}
           </div>
-        ))}
+        )}
       </div>
 
       {/* Filter bottom sheet */}

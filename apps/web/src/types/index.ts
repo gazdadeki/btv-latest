@@ -21,7 +21,12 @@ export interface Reservation {
   slot?: { slotNumber: number };
 }
 
-export type GameStatus = 'CREATED' | 'OPEN' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED';
+export type GameStatus =
+  | "CREATED"
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "FINISHED"
+  | "CANCELLED";
 
 export interface Game {
   id: number;
@@ -44,6 +49,18 @@ export interface Game {
   totalSlots?: number;
   slots?: Slot[];
   reservations?: Reservation[];
+}
+
+export type StreamStatus = "PENDING" | "LIVE" | "ENDED";
+
+export interface Stream {
+  id: number;
+  scheduleId: number;
+  status: StreamStatus;
+  schedule?: { name: string };
+  games?: Game[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SlotConfig {
@@ -82,7 +99,10 @@ export interface Schedule {
   url?: string;
   createdAt: string;
   slotConfigs?: SlotConfig[];
-  games?: Pick<Game, 'id' | 'status' | 'scheduledStartTime' | 'slotsReserved' | 'totalSlots'>[];
+  games?: Pick<
+    Game,
+    "id" | "status" | "scheduledStartTime" | "slotsReserved" | "totalSlots"
+  >[];
 }
 
 export interface AdminUser {
@@ -188,11 +208,16 @@ export interface StripeProduct {
   id: number;
   name: string;
   description?: string;
-  type: 'SUBSCRIPTION' | 'COIN_PACK';
+  type: "SUBSCRIPTION" | "COIN_PACK";
   isActive: boolean;
   isArchived: boolean;
   syncStatus?: string;
-  productData: { price: number; coins?: number; billingPeriod?: string; tier?: string };
+  productData: {
+    price: number;
+    coins?: number;
+    billingPeriod?: string;
+    tier?: string;
+  };
   stripeProductId?: string;
   stripePriceId?: string;
   displayOrder?: number;
@@ -270,6 +295,6 @@ export interface SchedulerStatus {
 export interface ConfirmActionState {
   title: string;
   message: string;
-  variant?: 'danger' | 'default';
+  variant?: "danger" | "default";
   onConfirm: () => void;
 }

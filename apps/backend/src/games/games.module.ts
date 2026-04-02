@@ -20,6 +20,7 @@ import { GameBatchService } from './game-batch.service';
 import { GameNotificationService } from './game-notification.service';
 import { SlotAdminAssignmentService } from './slot-admin-assignment.service';
 import { GameBulkWriteService } from './game-bulk-write.service';
+import { StreamsModule } from '../streams/streams.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { GameBulkWriteService } from './game-bulk-write.service';
     WalletModule,
     ConfigModule,
     CacheModule,
+    StreamsModule,
   ],
   providers: [
     GamesService,

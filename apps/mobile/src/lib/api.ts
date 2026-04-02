@@ -16,6 +16,7 @@ import type {
   UserStatistics,
   GameStatusFilter,
   ScheduleSection,
+  ActiveStream,
   PaymentMethod,
   StripePayment,
 } from "@/types";
@@ -223,6 +224,22 @@ async function getSchedulesToday(
     teamBName: item.schedule.teamBName,
     games: item.games,
   }));
+}
+
+async function getActiveStream(
+  filter: GameStatusFilter,
+): Promise<ActiveStream | null> {
+  const params: Record<string, boolean | undefined> = {};
+  if (!filter.includeCreated) params["includeCreated"] = false;
+  if (!filter.includeOpen) params["includeOpen"] = false;
+  if (!filter.includeInProgress) params["includeInProgress"] = false;
+  if (!filter.includeFinished) params["includeFinished"] = false;
+  if (filter.includeCancelled) params["includeCancelled"] = true;
+
+  const qs = buildQuery(
+    params as Record<string, string | number | boolean | undefined>,
+  );
+  return apiRequest<ActiveStream | null>(`/players/stream/active${qs}`);
 }
 
 async function getAvailableGames(): Promise<Game[]> {
@@ -531,6 +548,7 @@ export const api = {
   verifyEmail,
   // Games
   getSchedulesToday,
+  getActiveStream,
   getAvailableGames,
   getGameDetails,
   getGameSlots,

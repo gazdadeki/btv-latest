@@ -9,6 +9,7 @@ import {
   Index,
 } from 'typeorm';
 import { Schedule } from '../../schedules/entities/schedule.entity';
+import { Stream } from '../../streams/entities/stream.entity';
 import { Slot } from './slot.entity';
 import { Reservation } from '../../reservations/entities/reservation.entity';
 
@@ -25,6 +26,7 @@ export enum GameStatus {
 @Index(['status'])
 @Index(['scheduledStartTime'])
 @Index(['generationBatchId'])
+@Index(['streamId'])
 export class Game {
   @PrimaryGeneratedColumn()
   id: number;
@@ -83,6 +85,9 @@ export class Game {
   @Column({ type: 'int', nullable: true })
   gameIndex: number | null;
 
+  @Column({ type: 'int', nullable: true })
+  streamId: number | null;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -91,6 +96,9 @@ export class Game {
 
   @ManyToOne(() => Schedule, (schedule) => schedule.games)
   schedule: Schedule;
+
+  @ManyToOne(() => Stream, (stream) => stream.games, { nullable: true })
+  stream: Stream | null;
 
   @OneToMany(() => Slot, (slot) => slot.game)
   slots: Slot[];

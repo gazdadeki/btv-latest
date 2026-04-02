@@ -25,6 +25,7 @@ import { NotificationHistory } from '../firebase/entities/notification-history.e
 import { Conversation } from '../messages/entities/conversation.entity';
 import { ConversationParticipant } from '../messages/entities/conversation-participant.entity';
 import { Message } from '../messages/entities/message.entity';
+import { Stream } from '../streams/entities/stream.entity';
 import { Tutorial } from '../tutorials/entities/tutorial.entity';
 import { Tag } from '../tutorials/entities/tag.entity';
 import { Category } from '../tutorials/entities/category.entity';
@@ -161,6 +162,7 @@ function getDatabaseConfig() {
         Conversation,
         ConversationParticipant,
         Message,
+        Stream,
         Tutorial,
         Tag,
         Category,

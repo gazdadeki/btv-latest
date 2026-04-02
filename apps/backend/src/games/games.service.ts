@@ -22,6 +22,7 @@ import { GameNotificationService } from './game-notification.service';
 import { SlotAdminAssignmentService } from './slot-admin-assignment.service';
 import { GamesBatchChangedPayload, WebsocketEvents } from '../websocket/events';
 import { shouldEmitPerGameEvents } from './bulk-game-event-mode';
+import { StreamsService } from '../streams/streams.service';
 
 /**
  * Service for managing games and their lifecycle.
@@ -54,6 +55,7 @@ export class GamesService {
     private gameBatchService: GameBatchService,
     private gameNotificationService: GameNotificationService,
     private slotAdminAssignmentService: SlotAdminAssignmentService,
+    private streamsService: StreamsService,
   ) {}
 
   async create(
@@ -107,7 +109,7 @@ export class GamesService {
 
   async createManually(
     data: {
-      scheduleId: number;
+      scheduleId?: number;
       scheduledStartTime: string;
       teamAName?: string;
       teamBName?: string;
@@ -115,23 +117,30 @@ export class GamesService {
     },
     adminId: number,
   ): Promise<Game> {
-    const schedule = await this.schedulesService.findOne(data.scheduleId);
+    // Resolve schedule: use provided scheduleId or derive from active stream
+    let resolvedScheduleId = data.scheduleId;
+    let activeStreamId: number | null = null;
+
+    const activeStream = await this.streamsService.findActiveStream();
+    if (activeStream) {
+      activeStreamId = activeStream.id;
+      if (!resolvedScheduleId) {
+        resolvedScheduleId = activeStream.scheduleId;
+      }
+    }
+
+    if (!resolvedScheduleId) {
+      throw new BadRequestException(
+        'No active stream. Cannot create game without a schedule.',
+      );
+    }
+
+    const schedule = await this.schedulesService.findOne(resolvedScheduleId);
 
     const scheduledStartTime = new Date(data.scheduledStartTime);
     if (isNaN(scheduledStartTime.getTime())) {
       throw new BadRequestException('Invalid scheduledStartTime format');
     }
-
-    // Cancel all existing CREATED games for this schedule before creating a new one
-    await this.gameCancellationService.cancelCreatedGamesForSchedule(
-      schedule.id,
-      {
-        adminId,
-        audit: true,
-        emitWebsocket: true,
-        reason: 'Cancelled before generating new games for schedule',
-      },
-    );
 
     // Get slot configs from schedule
     const slotConfigs =
@@ -156,6 +165,7 @@ export class GamesService {
       url: schedule.url || null,
       generationBatchId,
       gameIndex: 1,
+      streamId: activeStreamId,
     });
 
     await this.auditService.log({
@@ -168,6 +178,7 @@ export class GamesService {
         scheduledStartTime: data.scheduledStartTime,
         generationBatchId,
         gameIndex: 1,
+        streamId: activeStreamId,
       },
     });
 
