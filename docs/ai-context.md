@@ -95,6 +95,7 @@ All modules registered in `app.module.ts`:
 | `scheduler`     | Cron jobs: game generation (idempotent), reservation opening, confirmation checking |
 | `schedules`     | Schedule entity management                                                          |
 | `statistics`    | Analytics and stats endpoints                                                       |
+| `streams`       | Stream lifecycle (PENDING/LIVE/ENDED), groups games by session, admin endpoints     |
 | `stripe`        | Stripe payments, webhooks                                                           |
 | `subscriptions` | Subscription tiers and management                                                   |
 | `tutorials`     | Tutorial content management                                                         |

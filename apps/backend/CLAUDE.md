@@ -3,7 +3,7 @@
 ## Module Structure
 
 All modules in `src/` registered in `app.module.ts`. Key modules:
-auth, games, reservations, schedules, subscriptions, stripe, websocket, users, wallet, firebase, email, admin, audit, activity, cache, common, config, database, downloads, messages, players, scheduler, statistics, tutorials, verification
+auth, games, reservations, schedules, streams, subscriptions, stripe, websocket, users, wallet, firebase, email, admin, audit, activity, cache, common, config, database, downloads, messages, players, scheduler, statistics, tutorials, verification
 
 ## Architecture
 
@@ -33,6 +33,15 @@ auth, games, reservations, schedules, subscriptions, stripe, websocket, users, w
 - `synchronize` controlled by `TYPEORM_SYNCHRONIZE` env var (false in production)
 - All datetimes stored as UTC (`timezone: 'Z'`)
 - Migrations in `src/database/migrations/`
+
+## Streams
+
+- A **Stream** groups games from a single session, decoupling them from calendar dates (solves timezone issues)
+- Only one active (non-ENDED) stream at a time
+- Lifecycle: `PENDING` → `LIVE` → `ENDED` (admin activates/ends manually)
+- Scheduler auto-creates a stream when generating games; auto-ends stale streams
+- Admin endpoints: `GET /admin/streams/active`, `PUT /admin/streams/:id/activate`, `PUT /admin/streams/:id/end`
+- Mobile app shows active stream's games instead of "today's games"
 
 ## Scheduler & Game Generation
 
