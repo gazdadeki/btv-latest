@@ -207,8 +207,11 @@ export const api = {
     apiRequest(`/admin/games/${id}/shuffle`, { method: "POST" }),
   // Streams
   getActiveStream: () => apiRequest("/admin/streams/active"),
-  activateStream: (id: number) =>
-    apiRequest(`/admin/streams/${id}/activate`, { method: "PUT" }),
+  startStream: (id: number, data: { title?: string; url: string }) =>
+    apiRequest(`/admin/streams/${id}/start`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
   endStream: (id: number) =>
     apiRequest(`/admin/streams/${id}/end`, { method: "PUT" }),
   // Slots

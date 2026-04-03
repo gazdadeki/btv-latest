@@ -94,6 +94,11 @@ class WebSocketManager {
     });
   }
 
+  /** Emit a local-only event (not sent to server) */
+  emitLocal(event: string, ...args: unknown[]) {
+    this.emit(event, ...args);
+  }
+
   send(event: string, data?: unknown) {
     this.socket?.emit(event, data);
   }

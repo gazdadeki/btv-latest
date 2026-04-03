@@ -20,12 +20,10 @@ export function FinishGameDialog({
   onFinished,
 }: FinishGameDialogProps) {
   const [winner, setWinner] = useState("");
-  const [url, setUrl] = useState("");
 
   useEffect(() => {
     if (game) {
       setWinner("");
-      setUrl(game.url || "");
     }
   }, [game]);
 
@@ -35,7 +33,6 @@ export function FinishGameDialog({
       return;
     }
     try {
-      if (url) await api.updateGame(game.id, { url });
       const res = (await api.finishGame(game.id, { winningTeam: winner })) as {
         nextGame?: { id: number };
         isLastGame?: boolean;
@@ -53,44 +50,59 @@ export function FinishGameDialog({
       {game && (
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">
-              Winning Team *
+            <label className="block text-sm font-medium mb-3">
+              Select the winning team
             </label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="winner"
-                  value="A"
-                  checked={winner === "A"}
-                  onChange={() => setWinner("A")}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setWinner("A")}
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                  winner === "A"
+                    ? "border-red-600 bg-red-50 shadow-md"
+                    : "border-gray-200 hover:border-red-300 hover:bg-red-50/50"
+                }`}
+              >
+                <i
+                  className={`fas fa-shield-alt text-2xl ${winner === "A" ? "text-red-600" : "text-gray-400"}`}
                 />
-                <span className="text-sm">{game.teamAName || "Sentinel"}</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="winner"
-                  value="B"
-                  checked={winner === "B"}
-                  onChange={() => setWinner("B")}
+                <span
+                  className={`text-sm font-semibold ${winner === "A" ? "text-red-600" : "text-gray-700"}`}
+                >
+                  {game.teamAName || "Sentinel"}
+                </span>
+                {winner === "A" && (
+                  <span className="text-xs font-medium text-red-600">
+                    <i className="fas fa-trophy mr-1" />
+                    Winner
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setWinner("B")}
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                  winner === "B"
+                    ? "border-green-600 bg-green-50 shadow-md"
+                    : "border-gray-200 hover:border-green-300 hover:bg-green-50/50"
+                }`}
+              >
+                <i
+                  className={`fas fa-shield-alt text-2xl ${winner === "B" ? "text-green-600" : "text-gray-400"}`}
                 />
-                <span className="text-sm">{game.teamBName || "Scourge"}</span>
-              </label>
+                <span
+                  className={`text-sm font-semibold ${winner === "B" ? "text-green-600" : "text-gray-700"}`}
+                >
+                  {game.teamBName || "Scourge"}
+                </span>
+                {winner === "B" && (
+                  <span className="text-xs font-medium text-green-600">
+                    <i className="fas fa-trophy mr-1" />
+                    Winner
+                  </span>
+                )}
+              </button>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Game URL</label>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://youtube.com"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              URL to include in finish notifications
-            </p>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={onClose}>

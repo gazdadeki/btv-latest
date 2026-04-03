@@ -15,7 +15,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Loading } from "@/components/loading";
 import { ErrorDisplay } from "@/components/error-display";
 import { Button } from "@/components/button";
-import { cn, formatDateTime, formatTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import {
   type Game,
   type Slot,
@@ -242,9 +242,33 @@ function SlotsTab({
   onConfirm: (slot: Slot) => void;
   onLeave: (slot: Slot) => void;
 }) {
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const teamA = game.slots
+    .filter((s) => s.team === "A")
+    .sort((a, b) => a.slotNumber - b.slotNumber);
+  const teamB = game.slots
+    .filter((s) => s.team === "B")
+    .sort((a, b) => a.slotNumber - b.slotNumber);
 
-  const teamSlots = game.slots.filter((s) => s.team === selectedTeam);
+  const renderTeam = (slots: Slot[], label: string, colorClass: string) => (
+    <div className="mb-4">
+      <h3
+        className={cn("text-sm font-bold mb-2 pb-1.5 border-b-2", colorClass)}
+      >
+        {label}
+      </h3>
+      {slots.map((slot) => (
+        <SlotCard
+          key={slot.id}
+          slot={slot}
+          userId={userId}
+          hasActiveReservation={hasActiveReservation}
+          onReserve={() => onReserve(slot.id, slot.team)}
+          onConfirm={() => onConfirm(slot)}
+          onLeave={() => onLeave(slot)}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <div className="p-4 overflow-y-auto">
@@ -258,56 +282,8 @@ function SlotsTab({
         </div>
       )}
 
-      <p className="text-sm font-bold text-gray-800 mb-3">
-        Select a team and slot:
-      </p>
-      <div className="flex gap-3 mb-5">
-        {(["A", "B"] as Team[]).map((team) => (
-          <button
-            key={team}
-            onClick={() => setSelectedTeam((t) => (t === team ? null : team))}
-            className={cn(
-              "flex-1 py-2 rounded-lg border text-sm font-medium transition-colors",
-              selectedTeam === team
-                ? "bg-indigo-600 text-white border-indigo-600"
-                : "border-gray-300 text-gray-600 bg-white",
-            )}
-          >
-            {TEAM_DISPLAY[team]}
-          </button>
-        ))}
-      </div>
-
-      {selectedTeam === null && (
-        <p className="text-sm text-gray-400 text-center py-4">
-          Please select a team first
-        </p>
-      )}
-
-      {selectedTeam && (
-        <>
-          <p className="text-sm font-bold text-gray-700 mb-3">
-            Slots for {TEAM_DISPLAY[selectedTeam]}:
-          </p>
-          {teamSlots.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">
-              No slots for this team
-            </p>
-          ) : (
-            teamSlots.map((slot) => (
-              <SlotCard
-                key={slot.id}
-                slot={slot}
-                userId={userId}
-                hasActiveReservation={hasActiveReservation}
-                onReserve={() => onReserve(slot.id, slot.team)}
-                onConfirm={() => onConfirm(slot)}
-                onLeave={() => onLeave(slot)}
-              />
-            ))
-          )}
-        </>
-      )}
+      {renderTeam(teamA, TEAM_DISPLAY.A, "border-red-600 text-red-600")}
+      {renderTeam(teamB, TEAM_DISPLAY.B, "border-green-600 text-green-600")}
     </div>
   );
 }
@@ -323,7 +299,7 @@ export default function GameDetailsPage({
   const router = useRouter();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"details" | "slots">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "slots">("slots");
   const [dialog, setDialog] = useState<{
     type: "reserve" | "confirm" | "leave";
     slotId?: number;
@@ -428,7 +404,7 @@ export default function GameDetailsPage({
             <ChevronLeft className="w-5 h-5" aria-hidden="true" />
           </button>
           <h1 className="text-base font-bold text-gray-900 flex-1">
-            Game · {formatTime(game.scheduledStartTime)}
+            Game {game.gameIndex ?? game.id}
           </h1>
           {game.isExclusiveToGold && (
             <Star className="w-4 h-4 text-amber-500" />
@@ -437,8 +413,8 @@ export default function GameDetailsPage({
         {/* Tabs */}
         <div className="flex border-b border-gray-100">
           {[
-            { key: "details", label: "Details", icon: Info },
             { key: "slots", label: "Slots", icon: Layers },
+            { key: "details", label: "Details", icon: Info },
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}

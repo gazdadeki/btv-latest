@@ -33,7 +33,11 @@ function defaultCreate(): Record<string, unknown> {
     reservationOpenTime: "16:00",
     firstGameStartTime: "20:00",
     scheduleStartDate: new Date().toISOString().split("T")[0],
-    scheduleEndDate: "",
+    scheduleEndDate: (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 14);
+      return d.toISOString().split("T")[0];
+    })(),
     gamesPerDay: 5,
     recurrenceType: "WEEKLY",
     recurrenceDays: [0, 1, 2, 3, 4, 5, 6],
@@ -113,6 +117,14 @@ export function CreateScheduleDialog({
 
   const handleCreate = async () => {
     if (submitting) return;
+
+    const startDate = form.scheduleStartDate as string;
+    const endDate = form.scheduleEndDate as string;
+    if (startDate && endDate && startDate > endDate) {
+      toast.error("Start date cannot be after end date");
+      return;
+    }
+
     setSubmitting(true);
     const f = form;
 
@@ -426,7 +438,7 @@ export function CreateScheduleDialog({
           </div>
 
           <h3 className="text-sm font-semibold text-gray-700 pt-2">
-            Slot Configuration ({SLOTS_PER_GAME} slots)
+            Slot Configuration
           </h3>
           <SlotConfigEditor slots={slots} setSlots={setSlots} />
 

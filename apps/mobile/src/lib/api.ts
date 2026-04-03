@@ -239,7 +239,10 @@ async function getActiveStream(
   const qs = buildQuery(
     params as Record<string, string | number | boolean | undefined>,
   );
-  return apiRequest<ActiveStream | null>(`/players/stream/active${qs}`);
+  const res = await apiRequest<ActiveStream | null>(
+    `/players/stream/active${qs}`,
+  );
+  return res ?? null;
 }
 
 async function getAvailableGames(): Promise<Game[]> {
