@@ -7,6 +7,7 @@ import { SlotConfigService } from './slot-config.service';
 import { SlotConfig } from './entities/slot-config.entity';
 import { Team, TEAM_NAMES } from '../games/entities/slot.entity';
 import { GameCancellationService } from '../games/game-cancellation.service';
+import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 
 @Injectable()
@@ -19,10 +20,7 @@ export class SchedulesService {
     private gameCancellationService: GameCancellationService,
   ) {}
 
-  async create(
-    data: Partial<Schedule> & { slotConfigs?: Partial<SlotConfig>[] },
-    createdBy: number,
-  ): Promise<Schedule> {
+  async create(data: CreateScheduleDto, createdBy: number): Promise<Schedule> {
     if (data.slotsPerGame % 2 !== 0) {
       throw new BadRequestException(
         'slotsPerGame must be even for team balance',
