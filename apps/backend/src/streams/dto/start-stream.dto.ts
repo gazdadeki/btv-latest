@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class StartStreamDto {
@@ -10,6 +10,7 @@ export class StartStreamDto {
 
   @ApiProperty({ description: 'Stream URL', maxLength: 500 })
   @IsString()
+  @IsNotEmpty()
   @MaxLength(500)
   url: string;
 }

@@ -41,8 +41,9 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - Lifecycle: `PENDING` → `LIVE` → `ENDED`
 - Stream has `title` (auto-generated as "Let's GO - dd.mm.yyyy" on creation, editable when starting) and `url` (required when starting)
 - Scheduler auto-creates a stream with default title when generating games; auto-ends stale streams
-- `PUT /admin/streams/:id/start` — sets title + URL and activates (PENDING → LIVE) in one step via `StartStreamDto`
-- Other admin endpoints: `GET /admin/streams/active`, `PUT /admin/streams/:id/activate`, `PUT /admin/streams/:id/end`, `PUT /admin/streams/:id/url`
+- **Primary**: `PUT /admin/streams/:id/start` — sets title + URL and activates (PENDING → LIVE) in one step via `StartStreamDto`. This is what the admin UI uses.
+- **Legacy** (kept for API compat): `PUT /admin/streams/:id/activate` (activate without title/URL), `PUT /admin/streams/:id/url` (set URL only)
+- Other endpoints: `GET /admin/streams/active`, `PUT /admin/streams/:id/end`
 - Admin UI: persistent stream controls in header bar + dashboard widget
 - Mobile app shows active stream's games instead of "today's games"
 

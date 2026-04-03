@@ -182,9 +182,20 @@ export class SchedulesService {
       scheduleData.scheduleStartDate !== undefined ||
       scheduleData.scheduleEndDate !== undefined
     ) {
+      const effectiveStart =
+        scheduleData.scheduleStartDate ?? schedule.scheduleStartDate;
+      const effectiveEnd =
+        scheduleData.scheduleEndDate ?? schedule.scheduleEndDate;
+
+      if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
+        throw new BadRequestException(
+          'Schedule start date cannot be after end date',
+        );
+      }
+
       await this.handleOverlap(
-        scheduleData.scheduleStartDate ?? schedule.scheduleStartDate,
-        scheduleData.scheduleEndDate ?? schedule.scheduleEndDate,
+        effectiveStart,
+        effectiveEnd,
         !!forceDeactivateOverlapping,
         id,
       );

@@ -27,10 +27,10 @@ export function StartStreamDialog({
 
   useEffect(() => {
     if (open) {
-      setTitle("");
-      setUrl("");
+      setTitle(stream.title ?? "");
+      setUrl(stream.url ?? "");
     }
-  }, [open]);
+  }, [open, stream.title, stream.url]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

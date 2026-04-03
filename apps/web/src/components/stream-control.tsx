@@ -34,6 +34,7 @@ export function StreamControl() {
       "games:batch_changed",
       "game:created",
       "game:status_changed",
+      "stream:changed",
     ];
     const unsubs = events.map((e) => webSocketManager.on(e, load));
     return () => unsubs.forEach((u) => u());
