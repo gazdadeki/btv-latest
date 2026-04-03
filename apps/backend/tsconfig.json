@@ -3,13 +3,11 @@
   "compilerOptions": {
     "outDir": "./dist",
     "strict": false,
-    "esModuleInterop": false,
-    "baseUrl": "./",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts", "test/**/*.ts"],
