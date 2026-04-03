@@ -17,35 +17,43 @@ import type { SlotConfig } from "@/types";
 import { RecurrenceForm } from "./recurrence-form";
 import { SlotConfigEditor } from "./slot-config-editor";
 
+function addHoursToTime(time: string, hours: number): string {
+  const [h, m] = time.split(":").map(Number);
+  const totalMinutes = (h * 60 + m + hours * 60) % (24 * 60);
+  const newH = Math.floor(totalMinutes / 60);
+  const newM = totalMinutes % 60;
+  return `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
+}
+
 function defaultCreate(): Record<string, unknown> {
   return {
     name: "",
     description: "",
+    gameCreationTime: "12:00",
+    reservationOpenTime: "16:00",
     firstGameStartTime: "20:00",
-    gameCreationTime: "06:00",
-    reservationOpenTime: "",
-    scheduleStartDate: "",
+    scheduleStartDate: new Date().toISOString().split("T")[0],
     scheduleEndDate: "",
-    gamesPerDay: 1,
-    spacingAfterFinishMinutes: 15,
-    confirmationWindowMinutes: 30,
-    reservationCost: 10,
-    instantReservationCost: 0,
-    slotsPerGame: 10,
-    refundPolicy: "FULL",
-    refundPercentage: 0,
-    url: "",
-    reminderMinutes: "30,15",
-    isExclusiveToGold: false,
-    teamAName: "Scourge",
-    teamBName: "Sentinel",
+    gamesPerDay: 5,
     recurrenceType: "WEEKLY",
     recurrenceDays: [0, 1, 2, 3, 4, 5, 6],
     recurrenceMonth: 1,
     recurrenceDay: 1,
     onceDate: new Date().toISOString().split("T")[0],
+    // Economy
+    reservationCost: 0,
+    refundPolicy: "FULL",
+    refundPercentage: 0,
+    isExclusiveToGold: false,
+    // Confirmation (off by default)
+    requiresConfirmation: false,
+    confirmationWindowMinutes: 30,
+    instantReservationCost: 0,
+    reminderMinutes: "30,15",
   };
 }
+
+const SLOTS_PER_GAME = 10;
 
 interface CreateScheduleDialogProps {
   open: boolean;
@@ -61,27 +69,36 @@ export function CreateScheduleDialog({
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Record<string, unknown>>(defaultCreate());
   const [slots, setSlots] = useState<SlotConfig[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
-  const slotsCount = Number(form.slotsPerGame) || 10;
+  // Auto-compute reservationOpenTime when gameCreationTime changes
+  useEffect(() => {
+    if (form.gameCreationTime && !form._openTimeManuallySet) {
+      setForm((prev) => ({
+        ...prev,
+        reservationOpenTime: addHoursToTime(String(prev.gameCreationTime), 4),
+      }));
+    }
+  }, [form.gameCreationTime]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (open && step === 3) {
       const newSlots: SlotConfig[] = [];
-      for (let i = 1; i <= slotsCount; i++) {
+      for (let i = 1; i <= SLOTS_PER_GAME; i++) {
         const existing = slots.find((s) => s.slotNumber === i);
         newSlots.push(
           existing || {
             slotNumber: i,
-            team: i <= slotsCount / 2 ? "A" : "B",
+            team: i <= SLOTS_PER_GAME / 2 ? "A" : "B",
             isGoldOnly: i === 2 || i === 3,
             coinsCost: null,
             preAssignedUserId: null,
           },
         );
       }
-      setSlots(newSlots.slice(0, slotsCount));
+      setSlots(newSlots.slice(0, SLOTS_PER_GAME));
     }
-  }, [open, step, slotsCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const recurrencePreview = useMemo(() => {
     const type = form.recurrenceType as string;
@@ -95,11 +112,10 @@ export function CreateScheduleDialog({
   }, [form.recurrenceType, form.recurrenceDays]);
 
   const handleCreate = async () => {
+    if (submitting) return;
+    setSubmitting(true);
     const f = form;
-    const reminders = String(f.reminderMinutes || "")
-      .split(",")
-      .map(Number)
-      .filter(Boolean);
+
     let recDays = f.recurrenceDays as number[];
     let recPattern = null;
     if (f.recurrenceType === "YEARLY") {
@@ -116,6 +132,15 @@ export function CreateScheduleDialog({
         recPattern = { year: y, month: m, day: d };
       }
     }
+
+    const requiresConfirmation = !!f.requiresConfirmation;
+    const reminders = requiresConfirmation
+      ? String(f.reminderMinutes || "")
+          .split(",")
+          .map(Number)
+          .filter(Boolean)
+      : null;
+
     try {
       await api.createSchedule({
         name: f.name || undefined,
@@ -123,10 +148,15 @@ export function CreateScheduleDialog({
         recurrenceType: f.recurrenceType,
         recurrenceDays: recDays.length > 0 ? recDays : null,
         recurrencePattern: recPattern,
-        slotsPerGame: Number(f.slotsPerGame),
+        slotsPerGame: SLOTS_PER_GAME,
         reservationCost: Number(f.reservationCost),
-        instantReservationCost: Number(f.instantReservationCost) || null,
-        confirmationWindowMinutes: Number(f.confirmationWindowMinutes),
+        instantReservationCost: requiresConfirmation
+          ? Number(f.instantReservationCost) || null
+          : null,
+        confirmationWindowMinutes: requiresConfirmation
+          ? Number(f.confirmationWindowMinutes)
+          : 0,
+        requiresConfirmation,
         refundPolicy: f.refundPolicy,
         refundPercentage:
           f.refundPolicy === "PARTIAL" ? Number(f.refundPercentage) : null,
@@ -135,17 +165,13 @@ export function CreateScheduleDialog({
         gameCreationTime: localTimeToUtc(
           (f.gameCreationTime as string) || "06:00",
         ),
-        reservationOpenTime: (f.reservationOpenTime as string)?.trim()
-          ? localTimeToUtc((f.reservationOpenTime as string).trim())
-          : null,
+        reservationOpenTime: localTimeToUtc(
+          (f.reservationOpenTime as string) || "10:00",
+        ),
         scheduleStartDate: (f.scheduleStartDate as string)?.trim() || null,
         scheduleEndDate: (f.scheduleEndDate as string)?.trim() || null,
         gamesPerDay: Number(f.gamesPerDay),
-        spacingAfterFinishMinutes: Number(f.spacingAfterFinishMinutes) || null,
-        teamAName: f.teamAName || "Scourge",
-        teamBName: f.teamBName || "Sentinel",
-        reminderMinutesBefore: reminders.length ? reminders : null,
-        url: f.url || null,
+        reminderMinutesBefore: reminders?.length ? reminders : null,
         slotConfigs: slots,
       });
       toast.success("Schedule created");
@@ -153,6 +179,8 @@ export function CreateScheduleDialog({
       onCreated();
     } catch (err) {
       toastError(err);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -195,20 +223,24 @@ export function CreateScheduleDialog({
           <div className="grid grid-cols-2 gap-3">
             <FormRow
               label="Game Creation Time"
-              title="Time at which games are auto-generated each period (your local time)"
+              title="Time at which games are auto-generated (your local time)"
             >
               <input
                 type="time"
                 value={String(form.gameCreationTime || "")}
                 onChange={(e) =>
-                  setForm({ ...form, gameCreationTime: e.target.value })
+                  setForm({
+                    ...form,
+                    gameCreationTime: e.target.value,
+                    _openTimeManuallySet: false,
+                  })
                 }
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               />
             </FormRow>
             <FormRow
               label="Reservation Open Time"
-              title="Time at which reservations open in your local time; leave blank to open immediately"
+              title="Time when all users can reserve (default: creation + 4h)"
             >
               <input
                 type="time"
@@ -216,39 +248,17 @@ export function CreateScheduleDialog({
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    reservationOpenTime: e.target.value || "",
+                    reservationOpenTime: e.target.value,
+                    _openTimeManuallySet: true,
                   })
                 }
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               />
             </FormRow>
             <FormRow
-              label="Schedule Start Date"
-              title="First day games may be generated (optional)"
+              label="Estimated Stream Start"
+              title="Approximate time the streamer goes live (informational)"
             >
-              <input
-                type="date"
-                value={String(form.scheduleStartDate || "")}
-                onChange={(e) =>
-                  setForm({ ...form, scheduleStartDate: e.target.value })
-                }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              />
-            </FormRow>
-            <FormRow
-              label="Schedule End Date"
-              title="Last day games may be generated (optional — leave blank for no end)"
-            >
-              <input
-                type="date"
-                value={String(form.scheduleEndDate || "")}
-                onChange={(e) =>
-                  setForm({ ...form, scheduleEndDate: e.target.value })
-                }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              />
-            </FormRow>
-            <FormRow label="First Game Start Time">
               <input
                 type="time"
                 value={String(form.firstGameStartTime || "")}
@@ -266,42 +276,64 @@ export function CreateScheduleDialog({
                 type="number"
               />
             </FormRow>
-            <FormRow label="Spacing (min)">
-              <FormInput
-                form={form}
-                field="spacingAfterFinishMinutes"
-                setForm={setForm}
-                type="number"
+            <FormRow
+              label="Schedule Start Date"
+              title="First day games may be generated (optional)"
+            >
+              <input
+                type="date"
+                value={String(form.scheduleStartDate || "")}
+                onChange={(e) =>
+                  setForm({ ...form, scheduleStartDate: e.target.value })
+                }
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               />
             </FormRow>
-            <FormRow label="Confirm Window (min)">
-              <FormInput
-                form={form}
-                field="confirmationWindowMinutes"
-                setForm={setForm}
-                type="number"
+            <FormRow
+              label="Schedule End Date"
+              title="Last day games may be generated (optional)"
+            >
+              <input
+                type="date"
+                value={String(form.scheduleEndDate || "")}
+                onChange={(e) =>
+                  setForm({ ...form, scheduleEndDate: e.target.value })
+                }
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               />
             </FormRow>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button onClick={() => setStep(2)}>Next: Recurrence</Button>
+          </div>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-4">
+          <RecurrenceForm form={form} setForm={setForm} />
+          {recurrencePreview && (
+            <div className="p-3 bg-indigo-50 text-indigo-800 rounded text-sm">
+              {recurrencePreview}
+            </div>
+          )}
+          <div className="flex justify-between pt-2">
+            <Button variant="secondary" onClick={() => setStep(1)}>
+              Back
+            </Button>
+            <Button onClick={() => setStep(3)}>Next: Economy & Slots</Button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-gray-700">Economy</h3>
+          <div className="grid grid-cols-2 gap-3">
             <FormRow label="Reservation Cost">
               <FormInput
                 form={form}
                 field="reservationCost"
-                setForm={setForm}
-                type="number"
-              />
-            </FormRow>
-            <FormRow label="Instant Reserve Cost">
-              <FormInput
-                form={form}
-                field="instantReservationCost"
-                setForm={setForm}
-                type="number"
-              />
-            </FormRow>
-            <FormRow label="Slots Per Game">
-              <FormInput
-                form={form}
-                field="slotsPerGame"
                 setForm={setForm}
                 type="number"
               />
@@ -325,61 +357,65 @@ export function CreateScheduleDialog({
               />
             </FormRow>
           )}
-          <FormRow label="URL">
-            <FormInput
-              form={form}
-              field="url"
-              setForm={setForm}
-              type="url"
-              placeholder="https://youtube.com"
-            />
-          </FormRow>
-          <FormRow label="Reminder Minutes">
-            <FormInput
-              form={form}
-              field="reminderMinutes"
-              setForm={setForm}
-              placeholder="30,15"
-            />
-          </FormRow>
           <FormCheckbox
             form={form}
             field="isExclusiveToGold"
             setForm={setForm}
             label="Exclusive to Gold Subscribers"
           />
-          <div className="flex justify-end pt-2">
-            <Button onClick={() => setStep(2)}>Next: Recurrence</Button>
-          </div>
-        </div>
-      )}
 
-      {step === 2 && (
-        <div className="space-y-4">
-          <RecurrenceForm form={form} setForm={setForm} />
-          {recurrencePreview && (
-            <div className="p-3 bg-indigo-50 text-indigo-800 rounded text-sm">
-              {recurrencePreview}
-            </div>
-          )}
-          <div className="flex justify-between pt-2">
-            <Button variant="secondary" onClick={() => setStep(1)}>
-              Back
-            </Button>
-            <Button onClick={() => setStep(3)}>Next: Slots</Button>
+          <div className="border-t pt-3 mt-3">
+            <FormCheckbox
+              form={form}
+              field="requiresConfirmation"
+              setForm={setForm}
+              label="Require reservation confirmation"
+            />
+            {form.requiresConfirmation && (
+              <div className="grid grid-cols-2 gap-3 mt-3 pl-4 border-l-2 border-indigo-200">
+                <FormRow label="Confirm Window (min)">
+                  <FormInput
+                    form={form}
+                    field="confirmationWindowMinutes"
+                    setForm={setForm}
+                    type="number"
+                  />
+                </FormRow>
+                <FormRow label="Instant Reserve Cost">
+                  <FormInput
+                    form={form}
+                    field="instantReservationCost"
+                    setForm={setForm}
+                    type="number"
+                  />
+                </FormRow>
+                <FormRow label="Reminder Minutes">
+                  <FormInput
+                    form={form}
+                    field="reminderMinutes"
+                    setForm={setForm}
+                    placeholder="30,15"
+                  />
+                </FormRow>
+              </div>
+            )}
           </div>
-        </div>
-      )}
 
-      {step === 3 && (
-        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-gray-700 pt-2">
+            Slot Configuration ({SLOTS_PER_GAME} slots)
+          </h3>
           <SlotConfigEditor slots={slots} setSlots={setSlots} />
+
           <div className="flex justify-between pt-2">
             <Button variant="secondary" onClick={() => setStep(2)}>
               Back
             </Button>
-            <Button variant="success" onClick={handleCreate}>
-              Create Schedule
+            <Button
+              variant="success"
+              onClick={handleCreate}
+              disabled={submitting}
+            >
+              {submitting ? "Creating..." : "Create Schedule"}
             </Button>
           </div>
         </div>

@@ -47,10 +47,7 @@ describe('Schedules + Games (e2e)', () => {
         confirmationWindowMinutes: 30,
         refundPolicy: 'NONE',
         firstGameStartTime: '10:00',
-        teamAName: 'Team A',
-        teamBName: 'Team B',
         gamesPerDay: 2,
-        spacingAfterFinishMinutes: 30,
         isExclusiveToGold: false,
       })
       .expect(201);

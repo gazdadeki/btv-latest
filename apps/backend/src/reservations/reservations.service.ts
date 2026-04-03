@@ -253,21 +253,24 @@ export class ReservationsService {
           : `Reservation for game ${gameId}`,
       );
 
+      // Auto-confirm if schedule doesn't require confirmation, or if instant reservation
+      const autoConfirm = !game.schedule.requiresConfirmation || useInstant;
+
       // Create reservation
       const reservation = queryRunner.manager.create(Reservation, {
         slotId,
         userId,
         gameId,
-        status: useInstant
+        status: autoConfirm
           ? ReservationStatus.CONFIRMED
           : ReservationStatus.RESERVED,
         reservationCostPaid: reservationCost,
-        confirmationCostPaid: 0, // Confirmation cost is always 0 now
+        confirmationCostPaid: 0,
         totalCostPaid: reservationCost,
         discountApplied,
         originalCost,
         reservedAt: new Date(),
-        confirmedAt: useInstant ? new Date() : null,
+        confirmedAt: autoConfirm ? new Date() : null,
       });
 
       const saved = await queryRunner.manager.save(reservation);
@@ -290,7 +293,7 @@ export class ReservationsService {
         status: saved.status,
       });
 
-      if (useInstant) {
+      if (autoConfirm) {
         await this.websocketService.broadcast('reservation:confirmed', {
           reservationId: saved.id,
           gameId: game.id,

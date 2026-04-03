@@ -40,8 +40,19 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - Only one active (non-ENDED) stream at a time
 - Lifecycle: `PENDING` → `LIVE` → `ENDED` (admin activates/ends manually)
 - Scheduler auto-creates a stream when generating games; auto-ends stale streams
-- Admin endpoints: `GET /admin/streams/active`, `PUT /admin/streams/:id/activate`, `PUT /admin/streams/:id/end`
+- Admin endpoints: `GET /admin/streams/active`, `PUT /admin/streams/:id/activate`, `PUT /admin/streams/:id/end`, `PUT /admin/streams/:id/url`
+- Stream URL (moved from schedule) used in notifications
 - Mobile app shows active stream's games instead of "today's games"
+
+## Schedules
+
+- Multiple active schedules allowed if date ranges don't overlap
+- Overlap validation on create/update; `forceDeactivateOverlapping` flag to auto-deactivate conflicting schedules
+- `requiresConfirmation` (default false): when off, reservations auto-confirm on creation
+- Confirmation-related fields (`confirmationWindowMinutes`, `instantReservationCost`, `reminderMinutesBefore`) only apply when `requiresConfirmation` is true
+- Team names always default to Sentinel (A) / Scourge (B) via `TEAM_NAMES` constant
+- `slotsPerGame` hardcoded to 10; `firstGameStartTime` is informational ("estimated stream start")
+- Removed: `spacingAfterFinishMinutes`, `autoStartNextAfterMinutes`, `url` (moved to streams)
 
 ## Scheduler & Game Generation
 

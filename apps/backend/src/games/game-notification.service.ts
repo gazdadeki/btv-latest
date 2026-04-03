@@ -221,7 +221,7 @@ export class GameNotificationService {
       return;
     }
 
-    const scheduleUrl = game.schedule.url || 'https://youtube.com';
+    const scheduleUrl = game.stream?.url || 'https://youtube.com';
     const reservations = await this.reservationRepository.find({
       where: {
         gameId: game.id,

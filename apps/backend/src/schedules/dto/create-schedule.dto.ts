@@ -114,28 +114,27 @@ export class CreateScheduleDto {
   @IsString()
   firstGameStartTime: string;
 
-  @ApiPropertyOptional({ description: 'Auto start next event after minutes' })
-  @IsNumber()
+  @ApiPropertyOptional({
+    description: 'Whether reservations require confirmation (default false)',
+  })
+  @IsBoolean()
   @IsOptional()
-  autoStartNextAfterMinutes?: number | null;
+  requiresConfirmation?: boolean;
 
   @ApiProperty({ description: 'Number of games per day', default: 1 })
   @IsNumber()
   @Min(1)
   gamesPerDay: number;
 
-  @ApiPropertyOptional({ description: 'Spacing after finish in minutes' })
-  @IsNumber()
+  @ApiPropertyOptional({ description: 'Team A name (default: Sentinel)' })
+  @IsString()
   @IsOptional()
-  spacingAfterFinishMinutes?: number | null;
+  teamAName?: string;
 
-  @ApiProperty({ description: 'Team A name' })
+  @ApiPropertyOptional({ description: 'Team B name (default: Scourge)' })
   @IsString()
-  teamAName: string;
-
-  @ApiProperty({ description: 'Team B name' })
-  @IsString()
-  teamBName: string;
+  @IsOptional()
+  teamBName?: string;
 
   @ApiPropertyOptional({
     description: 'Pre-assigned users (legacy, use slotConfigs instead)',
@@ -154,14 +153,6 @@ export class CreateScheduleDto {
   @IsOptional()
   reminderMinutesBefore?: number[] | null;
 
-  @ApiPropertyOptional({
-    description:
-      'Schedule URL for notifications (defaults to https://youtube.com)',
-  })
-  @IsString()
-  @IsOptional()
-  url?: string | null;
-
   @ApiPropertyOptional({ description: 'Is schedule active?', default: true })
   @IsBoolean()
   @IsOptional()
@@ -176,4 +167,12 @@ export class CreateScheduleDto {
   @Type(() => SlotConfigDto)
   @IsOptional()
   slotConfigs?: SlotConfigDto[];
+
+  @ApiPropertyOptional({
+    description:
+      'Force deactivate overlapping schedules instead of returning an error',
+  })
+  @IsBoolean()
+  @IsOptional()
+  forceDeactivateOverlapping?: boolean;
 }

@@ -61,6 +61,9 @@ export class ConfirmationCheckerService {
       .andWhere('game.status = :gameStatus', {
         gameStatus: GameStatus.CREATED,
       })
+      .andWhere('schedule.requiresConfirmation = :requiresConfirmation', {
+        requiresConfirmation: true,
+      })
       .andWhere(
         'game.scheduledStartTime <= DATE_ADD(:now, INTERVAL schedule.confirmationWindowMinutes MINUTE)',
         { now },
@@ -154,6 +157,7 @@ export class ConfirmationCheckerService {
       .createQueryBuilder('game')
       .leftJoinAndSelect('game.schedule', 'schedule')
       .where('game.status = :status', { status: GameStatus.CREATED })
+      .andWhere('schedule.requiresConfirmation = :reqConf', { reqConf: true })
       .andWhere('schedule.reminderMinutesBefore IS NOT NULL')
       .andWhere('game.scheduledStartTime BETWEEN :now AND :windowEnd', {
         now,

@@ -3,6 +3,7 @@ import {
   Get,
   Put,
   Param,
+  Body,
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
@@ -40,6 +41,17 @@ export class StreamsController {
   @ApiResponse({ status: 404, description: 'Stream not found' })
   async activate(@Param('id', ParseIntPipe) id: number) {
     return this.streamsService.activateStream(id);
+  }
+
+  @Put(':id/url')
+  @ApiOperation({ summary: 'Set the stream URL' })
+  @ApiResponse({ status: 200, description: 'URL updated' })
+  @ApiResponse({ status: 404, description: 'Stream not found' })
+  async setUrl(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('url') url: string,
+  ) {
+    return this.streamsService.setUrl(id, url);
   }
 
   @Put(':id/end')

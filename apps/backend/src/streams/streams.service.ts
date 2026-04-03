@@ -72,6 +72,12 @@ export class StreamsService {
     return this.streamRepository.save(stream);
   }
 
+  async setUrl(streamId: number, url: string): Promise<Stream> {
+    const stream = await this.findOneOrFail(streamId);
+    stream.url = url || null;
+    return this.streamRepository.save(stream);
+  }
+
   async endStream(streamId: number): Promise<void> {
     const stream = await this.findOneOrFail(streamId);
     if (stream.status === StreamStatus.ENDED) {

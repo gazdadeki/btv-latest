@@ -34,6 +34,9 @@ export class Stream {
   })
   status: StreamStatus;
 
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  url: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 
