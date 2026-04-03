@@ -20,14 +20,13 @@ export class SchedulesService {
     private gameCancellationService: GameCancellationService,
   ) {}
 
-  async create(data: CreateScheduleDto, createdBy: number): Promise<Schedule> {
-    if (data.slotsPerGame % 2 !== 0) {
-      throw new BadRequestException(
-        'slotsPerGame must be even for team balance',
-      );
-    }
+  private static readonly SLOTS_PER_GAME = 10;
 
+  async create(data: CreateScheduleDto, createdBy: number): Promise<Schedule> {
     const { slotConfigs, forceDeactivateOverlapping, ...scheduleData } = data;
+
+    // Always enforce hardcoded slots per game
+    scheduleData.slotsPerGame = SchedulesService.SLOTS_PER_GAME;
 
     // Auto-generate name if not provided
     if (!scheduleData.name || scheduleData.name.trim() === '') {
@@ -147,18 +146,15 @@ export class SchedulesService {
     data: UpdateScheduleDto,
     updatedBy: number,
   ): Promise<Schedule> {
-    if (data.slotsPerGame && data.slotsPerGame % 2 !== 0) {
-      throw new BadRequestException(
-        'slotsPerGame must be even for team balance',
-      );
-    }
-
     const {
       slotConfigs,
       propagateNow,
       forceDeactivateOverlapping,
       ...scheduleData
     } = data;
+
+    // Prevent client from changing slotsPerGame
+    delete (scheduleData as any).slotsPerGame;
     const schedule = await this.findOne(id);
 
     // Check for overlapping active schedules if dates are being changed
