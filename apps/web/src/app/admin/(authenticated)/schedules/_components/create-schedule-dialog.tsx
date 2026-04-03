@@ -141,44 +141,68 @@ export function CreateScheduleDialog({
           .filter(Boolean)
       : null;
 
+    const payload: Record<string, unknown> = {
+      name: f.name || undefined,
+      description: f.description || null,
+      recurrenceType: f.recurrenceType,
+      recurrenceDays: recDays.length > 0 ? recDays : null,
+      recurrencePattern: recPattern,
+      slotsPerGame: SLOTS_PER_GAME,
+      reservationCost: Number(f.reservationCost),
+      instantReservationCost: requiresConfirmation
+        ? Number(f.instantReservationCost) || null
+        : null,
+      confirmationWindowMinutes: requiresConfirmation
+        ? Number(f.confirmationWindowMinutes)
+        : 0,
+      requiresConfirmation,
+      refundPolicy: f.refundPolicy,
+      refundPercentage:
+        f.refundPolicy === "PARTIAL" ? Number(f.refundPercentage) : null,
+      isExclusiveToGold: !!f.isExclusiveToGold,
+      firstGameStartTime: localTimeToUtc(f.firstGameStartTime as string),
+      gameCreationTime: localTimeToUtc(
+        (f.gameCreationTime as string) || "12:00",
+      ),
+      reservationOpenTime: localTimeToUtc(
+        (f.reservationOpenTime as string) || "16:00",
+      ),
+      scheduleStartDate: (f.scheduleStartDate as string)?.trim() || null,
+      scheduleEndDate: (f.scheduleEndDate as string)?.trim() || null,
+      gamesPerDay: Number(f.gamesPerDay),
+      reminderMinutesBefore: reminders?.length ? reminders : null,
+      slotConfigs: slots,
+    };
+
     try {
-      await api.createSchedule({
-        name: f.name || undefined,
-        description: f.description || null,
-        recurrenceType: f.recurrenceType,
-        recurrenceDays: recDays.length > 0 ? recDays : null,
-        recurrencePattern: recPattern,
-        slotsPerGame: SLOTS_PER_GAME,
-        reservationCost: Number(f.reservationCost),
-        instantReservationCost: requiresConfirmation
-          ? Number(f.instantReservationCost) || null
-          : null,
-        confirmationWindowMinutes: requiresConfirmation
-          ? Number(f.confirmationWindowMinutes)
-          : 0,
-        requiresConfirmation,
-        refundPolicy: f.refundPolicy,
-        refundPercentage:
-          f.refundPolicy === "PARTIAL" ? Number(f.refundPercentage) : null,
-        isExclusiveToGold: !!f.isExclusiveToGold,
-        firstGameStartTime: localTimeToUtc(f.firstGameStartTime as string),
-        gameCreationTime: localTimeToUtc(
-          (f.gameCreationTime as string) || "06:00",
-        ),
-        reservationOpenTime: localTimeToUtc(
-          (f.reservationOpenTime as string) || "10:00",
-        ),
-        scheduleStartDate: (f.scheduleStartDate as string)?.trim() || null,
-        scheduleEndDate: (f.scheduleEndDate as string)?.trim() || null,
-        gamesPerDay: Number(f.gamesPerDay),
-        reminderMinutesBefore: reminders?.length ? reminders : null,
-        slotConfigs: slots,
-      });
+      await api.createSchedule(payload);
       toast.success("Schedule created");
       handleClose();
       onCreated();
-    } catch (err) {
-      toastError(err);
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      if (msg.includes("overlaps with active schedule")) {
+        const confirmed = window.confirm(
+          `${msg}\n\nDeactivate the overlapping schedule(s) and proceed?`,
+        );
+        if (confirmed) {
+          try {
+            await api.createSchedule({
+              ...payload,
+              forceDeactivateOverlapping: true,
+            });
+            toast.success(
+              "Schedule created (overlapping schedule deactivated)",
+            );
+            handleClose();
+            onCreated();
+          } catch (retryErr) {
+            toastError(retryErr);
+          }
+        }
+      } else {
+        toastError(err);
+      }
     } finally {
       setSubmitting(false);
     }

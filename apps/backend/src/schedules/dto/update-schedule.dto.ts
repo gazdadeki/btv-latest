@@ -140,4 +140,12 @@ export class UpdateScheduleDto {
   @IsBoolean()
   @IsOptional()
   propagateNow?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Force deactivate overlapping schedules instead of returning an error',
+  })
+  @IsBoolean()
+  @IsOptional()
+  forceDeactivateOverlapping?: boolean;
 }

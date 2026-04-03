@@ -89,10 +89,14 @@ export class CreateScheduleDto {
   @IsOptional()
   instantReservationCost?: number | null;
 
-  @ApiProperty({ description: 'Confirmation window in minutes' })
+  @ApiPropertyOptional({
+    description:
+      'Confirmation window in minutes (only applies when requiresConfirmation is true)',
+  })
   @IsNumber()
   @Min(0)
-  confirmationWindowMinutes: number;
+  @IsOptional()
+  confirmationWindowMinutes?: number;
 
   @ApiProperty({ enum: RefundPolicy, description: 'Refund policy' })
   @IsEnum(RefundPolicy)

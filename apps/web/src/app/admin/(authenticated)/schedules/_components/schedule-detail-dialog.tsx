@@ -74,6 +74,8 @@ export function ScheduleDetailDialog({
       reminderMinutes: (schedule.reminderMinutesBefore || []).join(","),
       recurrenceType: schedule.recurrenceType,
       recurrenceDays: schedule.recurrenceDays || [],
+      recurrenceMonth: schedule.recurrencePattern?.month ?? 1,
+      recurrenceDay: schedule.recurrencePattern?.day ?? 1,
       onceDate: (() => {
         if (schedule.recurrenceType === "ONCE" && schedule.recurrencePattern) {
           const { year, month, day } = schedule.recurrencePattern;
@@ -112,15 +114,14 @@ export function ScheduleDetailDialog({
     if (f.recurrenceType === "ONCE") {
       recDays = null;
       if (f.onceDate) {
-        const d = new Date(f.onceDate as string);
-        recPattern = {
-          year: d.getFullYear(),
-          month: d.getMonth() + 1,
-          day: d.getDate(),
-        };
+        const [y, m, d] = (f.onceDate as string).split("-").map(Number);
+        recPattern = { year: y, month: m, day: d };
       }
     } else if (f.recurrenceType === "YEARLY") {
-      recPattern = schedule.recurrencePattern as typeof recPattern;
+      recPattern = {
+        month: Number(f.recurrenceMonth),
+        day: Number(f.recurrenceDay),
+      } as typeof recPattern;
     }
     try {
       await api.updateSchedule(schedule.id, {

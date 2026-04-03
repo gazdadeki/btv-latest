@@ -89,10 +89,9 @@ describe('GameGenerationService', () => {
       firstGameStartTime: '10:00',
       gamesPerDay: 1,
       slotsPerGame: 10,
-      teamAName: 'A',
-      teamBName: 'B',
+      teamAName: 'Sentinel',
+      teamBName: 'Scourge',
       isExclusiveToGold: false,
-      url: null,
       slotConfigs: [],
     } as Schedule;
 

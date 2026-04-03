@@ -303,8 +303,8 @@ export class ReservationsService {
       await this.auditService.log({
         userId,
         userEmail: user.email,
-        action: useInstant
-          ? 'RESERVATION_INSTANT_CONFIRMED'
+        action: autoConfirm
+          ? 'RESERVATION_AUTO_CONFIRMED'
           : 'RESERVATION_CREATED',
         entityType: 'Reservation',
         entityId: saved.id.toString(),
@@ -313,7 +313,7 @@ export class ReservationsService {
           slotId,
           cost: reservationCost,
           discountApplied,
-          instantReservation: useInstant,
+          autoConfirmed: autoConfirm,
         },
       });
 

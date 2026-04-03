@@ -29,8 +29,7 @@ export class SchedulesService {
       );
     }
 
-    const { slotConfigs, forceDeactivateOverlapping, ...scheduleData } =
-      data as any;
+    const { slotConfigs, forceDeactivateOverlapping, ...scheduleData } = data;
 
     // Auto-generate name if not provided
     if (!scheduleData.name || scheduleData.name.trim() === '') {
@@ -161,7 +160,7 @@ export class SchedulesService {
       propagateNow,
       forceDeactivateOverlapping,
       ...scheduleData
-    } = data as any;
+    } = data;
     const schedule = await this.findOne(id);
 
     // Check for overlapping active schedules if dates are being changed

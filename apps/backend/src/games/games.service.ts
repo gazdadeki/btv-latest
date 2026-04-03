@@ -224,7 +224,13 @@ export class GamesService {
   async findOne(id: number): Promise<Game> {
     const game = await this.gameRepository.findOne({
       where: { id },
-      relations: ['schedule', 'slots', 'reservations', 'reservations.user'],
+      relations: [
+        'schedule',
+        'stream',
+        'slots',
+        'reservations',
+        'reservations.user',
+      ],
     });
     if (!game) {
       throw new BadRequestException('Game not found');
