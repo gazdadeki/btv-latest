@@ -6,7 +6,7 @@ export interface Slot {
   reservedByUserId: number | null;
   isPreAssigned: boolean;
   preAssignedUserId: number | null;
-  reservedByUser?: { email: string };
+  reservedByUser?: { email: string; username: string };
 }
 
 export interface Reservation {
@@ -31,6 +31,9 @@ export type GameStatus =
 export interface Game {
   id: number;
   scheduleId: number;
+  gameIndex?: number | null;
+  streamId?: number | null;
+  stream?: { id: number; title: string | null; status: string } | null;
   schedule?: { name: string };
   scheduledStartTime: string;
   actualStartTime?: string;
@@ -57,6 +60,8 @@ export interface Stream {
   id: number;
   scheduleId: number;
   status: StreamStatus;
+  title: string | null;
+  url: string | null;
   schedule?: { name: string };
   games?: Game[];
   createdAt: string;

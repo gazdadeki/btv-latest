@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Schedule } from './entities/schedule.entity';
 import { SlotConfig } from './entities/slot-config.entity';
 import { Game } from '../games/entities/game.entity';
+import { Stream } from '../streams/entities/stream.entity';
 import { SchedulesService } from './schedules.service';
 import { SchedulesController } from './schedules.controller';
 import { AuditModule } from '../audit/audit.module';
@@ -12,7 +13,7 @@ import { GamesModule } from '../games/games.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Schedule, SlotConfig, Game]),
+    TypeOrmModule.forFeature([Schedule, SlotConfig, Game, Stream]),
     AuditModule,
     SlotConfigModule,
     forwardRef(() => SchedulerModule),

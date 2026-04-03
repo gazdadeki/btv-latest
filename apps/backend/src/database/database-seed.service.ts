@@ -160,6 +160,7 @@ export class DatabaseSeedService implements OnModuleInit {
     role: UserRole;
     subscriptionTier: SubscriptionTier;
     isVerified: boolean;
+    username?: string;
   }) {
     const existingUser = await this.userRepository.findOne({
       where: { email: userData.email },
@@ -173,7 +174,10 @@ export class DatabaseSeedService implements OnModuleInit {
     }
 
     try {
-      // Create user
+      // Create user — derive username from email if not provided
+      if (!userData.username) {
+        userData.username = userData.email.split('@')[0];
+      }
       const user = this.userRepository.create(userData);
       const savedUser = await this.userRepository.save(user);
 

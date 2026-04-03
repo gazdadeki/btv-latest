@@ -38,16 +38,21 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 
 - A **Stream** groups games from a single session, decoupling them from calendar dates (solves timezone issues)
 - Only one active (non-ENDED) stream at a time
-- Lifecycle: `PENDING` → `LIVE` → `ENDED` (admin activates/ends manually)
-- Scheduler auto-creates a stream when generating games; auto-ends stale streams
-- Admin endpoints: `GET /admin/streams/active`, `PUT /admin/streams/:id/activate`, `PUT /admin/streams/:id/end`, `PUT /admin/streams/:id/url`
-- Stream URL (moved from schedule) used in notifications
+- Lifecycle: `PENDING` → `LIVE` → `ENDED`
+- Stream has `title` (auto-generated as "Let's GO - dd.mm.yyyy" on creation, editable when starting) and `url` (required when starting)
+- Scheduler auto-creates a stream with default title when generating games; auto-ends stale streams
+- **Primary**: `PUT /admin/streams/:id/start` — sets title + URL and activates (PENDING → LIVE) in one step via `StartStreamDto`. This is what the admin UI uses.
+- **Legacy** (kept for API compat): `PUT /admin/streams/:id/activate` (activate without title/URL), `PUT /admin/streams/:id/url` (set URL only)
+- Other endpoints: `GET /admin/streams/active`, `PUT /admin/streams/:id/end`
+- Admin UI: persistent stream controls in header bar + dashboard widget
 - Mobile app shows active stream's games instead of "today's games"
 
 ## Schedules
 
 - Multiple active schedules allowed if date ranges don't overlap
 - Overlap validation on create/update; `forceDeactivateOverlapping` flag to auto-deactivate conflicting schedules
+- Cannot delete a schedule while its stream is active (PENDING or LIVE)
+- Start/end date validation: start date cannot be after end date
 - `requiresConfirmation` (default false): when off, reservations auto-confirm on creation
 - Confirmation-related fields (`confirmationWindowMinutes`, `instantReservationCost`, `reminderMinutesBefore`) only apply when `requiresConfirmation` is true
 - Team names always default to Sentinel (A) / Scourge (B) via `TEAM_NAMES` constant
@@ -65,5 +70,13 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 ## Game Statuses
 
 - `CREATED` → `OPEN` → `IN_PROGRESS` → `FINISHED` (or `CANCELLED` at any point)
+- Both `CREATED` and `OPEN` games can be started by admin (transition to `IN_PROGRESS`)
 - Games without `reservationOpenTime` are created directly as `OPEN`
 - Mobile and admin filters include all statuses; `CANCELLED` excluded by default
+
+## Admin Auto-Assignment
+
+- Admin (schedule creator) is always pre-assigned to slot 1 of every game for free (no coin cost)
+- Applies to both cron-generated and manually created games
+- Pre-assignment creates a confirmed reservation with 0 cost
+- `username` is required on all users (used for display in slot reservations)

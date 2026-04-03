@@ -14,6 +14,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { StreamsService } from './streams.service';
+import { StartStreamDto } from './dto/start-stream.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
@@ -32,6 +33,20 @@ export class StreamsController {
   @ApiResponse({ status: 200, description: 'Active stream or null' })
   async getActive() {
     return this.streamsService.findActiveStreamWithGames();
+  }
+
+  @Put(':id/start')
+  @ApiOperation({
+    summary: 'Start a stream — set title/URL and activate (PENDING → LIVE)',
+  })
+  @ApiResponse({ status: 200, description: 'Stream started' })
+  @ApiResponse({ status: 400, description: 'Stream is not in PENDING status' })
+  @ApiResponse({ status: 404, description: 'Stream not found' })
+  async start(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: StartStreamDto,
+  ) {
+    return this.streamsService.startStream(id, dto.title, dto.url);
   }
 
   @Put(':id/activate')

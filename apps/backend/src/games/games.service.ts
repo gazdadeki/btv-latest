@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Game, GameStatus } from './entities/game.entity';
 import { Slot, Team } from './entities/slot.entity';
@@ -56,6 +56,7 @@ export class GamesService {
     private gameNotificationService: GameNotificationService,
     private slotAdminAssignmentService: SlotAdminAssignmentService,
     private streamsService: StreamsService,
+    private dataSource: DataSource,
   ) {}
 
   async create(
@@ -166,10 +167,14 @@ export class GamesService {
       slotsPerGame: schedule.slotsPerGame,
       slotConfigs: slotConfigs,
       generationBatchId,
-      gameIndex: 1,
+      gameIndex: await this.getNextGameIndex(activeStreamId),
       streamId: activeStreamId,
     });
 
+    // Auto-assign admin to slot 1
+    await this.assignAdminToFirstSlot(game.id, adminId);
+
+    const savedGameIndex = game.gameIndex ?? 1;
     await this.auditService.log({
       userId: adminId,
       action: 'GAME_CREATED_MANUALLY',
@@ -179,12 +184,71 @@ export class GamesService {
         scheduleId: schedule.id,
         scheduledStartTime: data.scheduledStartTime,
         generationBatchId,
-        gameIndex: 1,
+        gameIndex: savedGameIndex,
         streamId: activeStreamId,
       },
     });
 
     return game;
+  }
+
+  /**
+   * Assign the admin to slot 1 of a game for free (no coin cost).
+   * Creates a confirmed reservation if slot 1 isn't already reserved.
+   */
+  private async assignAdminToFirstSlot(
+    gameId: number,
+    adminId: number,
+  ): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const slot = await queryRunner.manager.findOne(Slot, {
+        where: { gameId, slotNumber: 1 },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!slot || slot.isReserved) {
+        await queryRunner.rollbackTransaction();
+        return;
+      }
+
+      slot.isReserved = true;
+      slot.reservedByUserId = adminId;
+      slot.isPreAssigned = true;
+      slot.preAssignedUserId = adminId;
+      await queryRunner.manager.save(slot);
+
+      const reservation = queryRunner.manager.create(Reservation, {
+        slotId: slot.id,
+        userId: adminId,
+        gameId,
+        status: ReservationStatus.CONFIRMED,
+        reservationCostPaid: 0,
+        confirmationCostPaid: 0,
+        totalCostPaid: 0,
+        reservedAt: new Date(),
+        confirmedAt: new Date(),
+      });
+      await queryRunner.manager.save(reservation);
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  private async getNextGameIndex(streamId: number | null): Promise<number> {
+    if (!streamId) return 1;
+    const result = await this.gameRepository
+      .createQueryBuilder('game')
+      .select('MAX(game.gameIndex)', 'maxIndex')
+      .where('game.streamId = :streamId', { streamId })
+      .getRawOne();
+    return (result?.maxIndex ?? 0) + 1;
   }
 
   async findAll(filters?: {
@@ -213,11 +277,12 @@ export class GamesService {
       });
     }
 
-    // Order by ID descending
     return query
       .leftJoinAndSelect('game.schedule', 'schedule')
+      .leftJoinAndSelect('game.stream', 'stream')
       .leftJoinAndSelect('game.slots', 'slots')
-      .orderBy('game.id', 'DESC')
+      .orderBy('game.gameIndex', 'ASC')
+      .addOrderBy('game.id', 'ASC')
       .getMany();
   }
 
@@ -228,6 +293,7 @@ export class GamesService {
         'schedule',
         'stream',
         'slots',
+        'slots.reservedByUser',
         'reservations',
         'reservations.user',
       ],
@@ -258,7 +324,7 @@ export class GamesService {
 
   async start(id: number, adminId: number): Promise<Game> {
     const game = await this.findOne(id);
-    if (game.status !== GameStatus.CREATED) {
+    if (game.status !== GameStatus.CREATED && game.status !== GameStatus.OPEN) {
       throw new BadRequestException('Game cannot be started');
     }
 

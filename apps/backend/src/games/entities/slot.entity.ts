@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Game } from './game.entity';
 import { Reservation } from '../../reservations/entities/reservation.entity';
+import { User } from '../../users/entities/user.entity';
 
 export enum Team {
   A = 'A',
@@ -60,6 +61,9 @@ export class Slot {
 
   @ManyToOne(() => Game, (game) => game.slots)
   game: Game;
+
+  @ManyToOne(() => User, { nullable: true })
+  reservedByUser: User | null;
 
   @OneToOne(() => Reservation, (reservation) => reservation.slot, {
     nullable: true,

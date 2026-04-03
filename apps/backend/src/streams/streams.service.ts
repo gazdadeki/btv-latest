@@ -72,6 +72,25 @@ export class StreamsService {
     return this.streamRepository.save(stream);
   }
 
+  async startStream(
+    streamId: number,
+    title: string | undefined,
+    url: string,
+  ): Promise<Stream> {
+    const stream = await this.findOneOrFail(streamId);
+    if (stream.status !== StreamStatus.PENDING) {
+      throw new BadRequestException(
+        `Cannot start stream in ${stream.status} status. Only PENDING streams can be started.`,
+      );
+    }
+    const now = new Date();
+    const dateStr = `${now.getUTCDate().toString().padStart(2, '0')}.${(now.getUTCMonth() + 1).toString().padStart(2, '0')}.${now.getUTCFullYear()}`;
+    stream.title = title?.trim() || `Let's GO - ${dateStr}`;
+    stream.url = url;
+    stream.status = StreamStatus.LIVE;
+    return this.streamRepository.save(stream);
+  }
+
   async setUrl(streamId: number, url: string): Promise<Stream> {
     const stream = await this.findOneOrFail(streamId);
     stream.url = url || null;
@@ -106,9 +125,12 @@ export class StreamsService {
       );
     }
 
+    const now = new Date();
+    const dateStr = `${now.getUTCDate().toString().padStart(2, '0')}.${(now.getUTCMonth() + 1).toString().padStart(2, '0')}.${now.getUTCFullYear()}`;
     const stream = manager.create(Stream, {
       scheduleId,
       status: StreamStatus.PENDING,
+      title: `Let's GO - ${dateStr}`,
     });
     return manager.save(stream);
   }

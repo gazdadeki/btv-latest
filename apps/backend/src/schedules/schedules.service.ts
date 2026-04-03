@@ -1,7 +1,8 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { Schedule, RecurrenceType } from './entities/schedule.entity';
+import { Stream, StreamStatus } from '../streams/entities/stream.entity';
 import { AuditService } from '../audit/audit.service';
 import { SlotConfigService } from './slot-config.service';
 import { SlotConfig } from './entities/slot-config.entity';
@@ -15,6 +16,8 @@ export class SchedulesService {
   constructor(
     @InjectRepository(Schedule)
     private scheduleRepository: Repository<Schedule>,
+    @InjectRepository(Stream)
+    private streamRepository: Repository<Stream>,
     private auditService: AuditService,
     private slotConfigService: SlotConfigService,
     private gameCancellationService: GameCancellationService,
@@ -37,6 +40,17 @@ export class SchedulesService {
     // Default team names
     if (!scheduleData.teamAName) scheduleData.teamAName = TEAM_NAMES[Team.A];
     if (!scheduleData.teamBName) scheduleData.teamBName = TEAM_NAMES[Team.B];
+
+    // Validate start/end dates
+    if (
+      scheduleData.scheduleStartDate &&
+      scheduleData.scheduleEndDate &&
+      scheduleData.scheduleStartDate > scheduleData.scheduleEndDate
+    ) {
+      throw new BadRequestException(
+        'Schedule start date cannot be after end date',
+      );
+    }
 
     // Check for overlapping active schedules
     await this.handleOverlap(
@@ -67,6 +81,12 @@ export class SchedulesService {
         saved.slotsPerGame,
         createdBy,
       );
+    }
+
+    // Always pre-assign slot 1 to the schedule creator (admin)
+    const slot1 = configsToCreate.find((c) => c.slotNumber === 1);
+    if (slot1 && !slot1.preAssignedUserId) {
+      slot1.preAssignedUserId = createdBy;
     }
 
     await this.slotConfigService.createMany(configsToCreate);
@@ -162,9 +182,20 @@ export class SchedulesService {
       scheduleData.scheduleStartDate !== undefined ||
       scheduleData.scheduleEndDate !== undefined
     ) {
+      const effectiveStart =
+        scheduleData.scheduleStartDate ?? schedule.scheduleStartDate;
+      const effectiveEnd =
+        scheduleData.scheduleEndDate ?? schedule.scheduleEndDate;
+
+      if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
+        throw new BadRequestException(
+          'Schedule start date cannot be after end date',
+        );
+      }
+
       await this.handleOverlap(
-        scheduleData.scheduleStartDate ?? schedule.scheduleStartDate,
-        scheduleData.scheduleEndDate ?? schedule.scheduleEndDate,
+        effectiveStart,
+        effectiveEnd,
         !!forceDeactivateOverlapping,
         id,
       );
@@ -266,6 +297,19 @@ export class SchedulesService {
 
     if (schedule.deletedAt !== null) {
       throw new BadRequestException('Schedule is already deleted');
+    }
+
+    // Prevent deletion while a stream is running for this schedule
+    const activeStream = await this.streamRepository.findOne({
+      where: {
+        scheduleId: id,
+        status: Not(StreamStatus.ENDED),
+      },
+    });
+    if (activeStream) {
+      throw new BadRequestException(
+        'Cannot delete schedule while a stream is running. Please end the stream first.',
+      );
     }
 
     // Soft delete: mark as deleted instead of removing physically

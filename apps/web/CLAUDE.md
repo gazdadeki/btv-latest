@@ -17,6 +17,15 @@
 - TanStack Table for data tables
 - Sonner for toast notifications
 - Socket.IO client for real-time updates (direct to backend)
+- WebSocket connection indicator at bottom of sidebar
+- Team colors: Sentinel = `red-600`, Scourge = `green-600`
+
+## Stream Controls
+
+- Persistent stream control in header bar (all pages): Start Stream / End Stream buttons
+- "Start Stream" opens dialog with title (optional, defaults to "Let's GO - date") + URL (required)
+- Dashboard widget shows today's stream status, title, game count with same start/end controls
+- Local `stream:changed` event via `webSocketManager.emitLocal()` keeps Games page and dashboard in sync
 
 ## Date Display Utils
 

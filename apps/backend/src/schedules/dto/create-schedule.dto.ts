@@ -157,6 +157,20 @@ export class CreateScheduleDto {
   @IsOptional()
   reminderMinutesBefore?: number[] | null;
 
+  @ApiPropertyOptional({
+    description: 'Schedule start date (YYYY-MM-DD)',
+  })
+  @IsString()
+  @IsOptional()
+  scheduleStartDate?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Schedule end date (YYYY-MM-DD)',
+  })
+  @IsString()
+  @IsOptional()
+  scheduleEndDate?: string | null;
+
   @ApiPropertyOptional({ description: 'Is schedule active?', default: true })
   @IsBoolean()
   @IsOptional()

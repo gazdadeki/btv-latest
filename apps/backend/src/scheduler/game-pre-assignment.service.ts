@@ -10,6 +10,7 @@ import {
 import { Schedule } from '../schedules/entities/schedule.entity';
 import { SlotConfig } from '../schedules/entities/slot-config.entity';
 import { UsersService } from '../users/users.service';
+import { UserRole } from '../users/entities/user.entity';
 import { WalletService } from '../wallet/wallet.service';
 
 @Injectable()
@@ -69,8 +70,9 @@ export class GamePreAssignmentService {
 
       for (const slotConfig of preAssignments) {
         const userId = slotConfig.preAssignedUserId!;
+        const user = usersById.get(userId);
         const wallet = walletsByUserId.get(userId);
-        if (!usersById.has(userId) || !wallet) {
+        if (!user || !wallet) {
           continue;
         }
 
@@ -81,38 +83,43 @@ export class GamePreAssignmentService {
           continue;
         }
 
-        const coinsCost = slotConfig.coinsCost ?? schedule.reservationCost;
-        const instantCost =
-          schedule.instantReservationCost && schedule.instantReservationCost > 0
-            ? schedule.instantReservationCost
-            : null;
-        const totalCost = instantCost ?? coinsCost;
-        const currentBalance = balancesByUserId.get(userId) ?? 0;
+        const isAdmin = user.role === UserRole.ADMIN;
 
-        if (currentBalance < totalCost) {
-          continue;
+        // Admin users are always assigned for free
+        let totalCostPaid = 0;
+        if (!isAdmin) {
+          const coinsCost = slotConfig.coinsCost ?? schedule.reservationCost;
+          const instantCost =
+            schedule.instantReservationCost &&
+            schedule.instantReservationCost > 0
+              ? schedule.instantReservationCost
+              : null;
+          totalCostPaid = instantCost ?? coinsCost;
+          const currentBalance = balancesByUserId.get(userId) ?? 0;
+
+          if (currentBalance < totalCostPaid) {
+            continue;
+          }
+
+          await this.walletService.withdrawWithManager(
+            queryRunner.manager,
+            wallet.id,
+            totalCostPaid,
+            `Pre-assigned reservation for game ${game.id}`,
+          );
+          balancesByUserId.set(userId, currentBalance - totalCostPaid);
         }
-
-        await this.walletService.withdrawWithManager(
-          queryRunner.manager,
-          wallet.id,
-          totalCost,
-          `Pre-assigned reservation for game ${game.id}`,
-        );
-        balancesByUserId.set(userId, currentBalance - totalCost);
 
         const reservation = queryRunner.manager.create(Reservation, {
           slotId: slot.id,
           userId,
           gameId: game.id,
-          status: instantCost
-            ? ReservationStatus.CONFIRMED
-            : ReservationStatus.RESERVED,
-          reservationCostPaid: totalCost,
+          status: ReservationStatus.CONFIRMED,
+          reservationCostPaid: totalCostPaid,
           confirmationCostPaid: 0,
-          totalCostPaid: totalCost,
+          totalCostPaid,
           reservedAt: new Date(),
-          confirmedAt: instantCost ? new Date() : null,
+          confirmedAt: new Date(),
         });
         await queryRunner.manager.save(reservation);
 

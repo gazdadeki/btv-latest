@@ -53,6 +53,7 @@ export const GAME_STATUS_DISPLAY: Record<GameStatus, string> = {
 export interface Game {
   id: number;
   scheduleId: number;
+  gameIndex?: number | null;
   scheduledStartTime: string;
   actualStartTime?: string;
   actualEndTime?: string;

@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import * as NodeCache from 'node-cache';
+import NodeCache from 'node-cache';
 import { ConfigService } from '../config/config.service';
 
 /**

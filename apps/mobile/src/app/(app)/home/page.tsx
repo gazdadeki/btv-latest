@@ -23,7 +23,7 @@ import { Loading } from "@/components/loading";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorDisplay } from "@/components/error-display";
 import { Button } from "@/components/button";
-import { cn, formatTime, formatDate, formatDateTime } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import type {
   Game,
   Reservation,
@@ -91,7 +91,7 @@ function GameCard({
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-lg font-bold text-gray-900">
-          {formatTime(game.scheduledStartTime)}
+          Game {game.gameIndex ?? game.id}
         </span>
         <span
           className={cn(

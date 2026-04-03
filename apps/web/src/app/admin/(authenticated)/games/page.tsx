@@ -19,7 +19,6 @@ import type { Game } from "@/types";
 import { CreateGameDialog } from "./_components/create-game-dialog";
 import { FinishGameDialog } from "./_components/finish-game-dialog";
 import { GameDetailDialog } from "./_components/game-detail-dialog";
-import { StreamBanner } from "./_components/stream-banner";
 
 interface ScheduleOption {
   id: number;
@@ -130,6 +129,7 @@ export default function GamesPage() {
         load();
       }),
     );
+    unsubs.push(webSocketManager.on("stream:changed", () => load()));
     return () => {
       unsubs.forEach((u) => u());
     };
@@ -220,14 +220,25 @@ export default function GamesPage() {
   };
 
   const columns = [
-    columnHelper.accessor("id", { header: "ID" }),
-    columnHelper.accessor(
-      (r) => r.schedule?.name || `Schedule #${r.scheduleId}`,
-      { id: "schedule", header: "Schedule" },
-    ),
-    columnHelper.accessor("scheduledStartTime", {
-      header: "Start Time",
-      cell: (i) => formatDate(i.getValue()),
+    columnHelper.accessor("id", {
+      header: "Game",
+      cell: (i) => {
+        const g = i.row.original;
+        return `Game ${g.gameIndex ?? g.id}`;
+      },
+    }),
+    columnHelper.display({
+      id: "stream",
+      header: "Stream",
+      cell: (i) => i.row.original.stream?.title || "—",
+    }),
+    columnHelper.display({
+      id: "started",
+      header: "Started",
+      cell: (i) => {
+        const g = i.row.original;
+        return g.actualStartTime ? formatDate(g.actualStartTime) : "—";
+      },
     }),
     columnHelper.accessor("status", {
       header: "Status",
@@ -238,15 +249,23 @@ export default function GamesPage() {
     columnHelper.display({
       id: "slots",
       header: "Slots",
-      cell: (i) =>
-        `${i.row.original.slotsReserved || 0}/${i.row.original.totalSlots || "?"}`,
+      cell: (i) => {
+        const g = i.row.original;
+        const total = g.slots?.length ?? g.totalSlots ?? "?";
+        const reserved =
+          g.slotsReserved ?? g.slots?.filter((s) => s.isReserved).length ?? 0;
+        return `${reserved}/${total}`;
+      },
     }),
     columnHelper.display({
       id: "actions",
       header: "Actions",
       cell: (i) => {
         const g = i.row.original;
-        const canModify = g.status === "CREATED" || g.status === "IN_PROGRESS";
+        const canModify =
+          g.status === "CREATED" ||
+          g.status === "OPEN" ||
+          g.status === "IN_PROGRESS";
         return (
           <div className="flex gap-1">
             <Button
@@ -257,7 +276,7 @@ export default function GamesPage() {
             >
               <i className="fas fa-eye" />
             </Button>
-            {g.status === "CREATED" && (
+            {(g.status === "CREATED" || g.status === "OPEN") && (
               <Button
                 variant="success"
                 size="xs"
@@ -314,8 +333,6 @@ export default function GamesPage() {
           </div>
         }
       />
-
-      <StreamBanner onStreamChange={load} />
 
       <div className="bg-white rounded-lg shadow p-4 mb-4">
         <div className="flex flex-wrap items-end gap-3">
