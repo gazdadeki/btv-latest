@@ -83,20 +83,19 @@ export interface Schedule {
   reservationCost: number;
   instantReservationCost?: number;
   confirmationWindowMinutes: number;
+  requiresConfirmation: boolean;
   refundPolicy: string;
   refundPercentage?: number;
   isExclusiveToGold: boolean;
   firstGameStartTime?: string;
   gameCreationTime?: string;
-  reservationOpenTime?: string | null;
+  reservationOpenTime?: string;
   scheduleStartDate?: string | null;
   scheduleEndDate?: string | null;
   gamesPerDay: number;
-  spacingAfterFinishMinutes?: number;
   teamAName: string;
   teamBName: string;
   reminderMinutesBefore?: number[];
-  url?: string;
   createdAt: string;
   slotConfigs?: SlotConfig[];
   games?: Pick<

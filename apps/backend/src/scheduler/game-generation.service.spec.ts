@@ -35,13 +35,11 @@ describe('GameGenerationService', () => {
     const schedule = {
       id: 12,
       firstGameStartTime: '10:00',
-      spacingAfterFinishMinutes: 30,
       gamesPerDay: 2,
       slotsPerGame: 10,
-      teamAName: 'A',
-      teamBName: 'B',
+      teamAName: 'Sentinel',
+      teamBName: 'Scourge',
       isExclusiveToGold: false,
-      url: null,
       slotConfigs: [],
     } as Schedule;
 
@@ -91,10 +89,9 @@ describe('GameGenerationService', () => {
       firstGameStartTime: '10:00',
       gamesPerDay: 1,
       slotsPerGame: 10,
-      teamAName: 'A',
-      teamBName: 'B',
+      teamAName: 'Sentinel',
+      teamBName: 'Scourge',
       isExclusiveToGold: false,
-      url: null,
       slotConfigs: [],
     } as Schedule;
 

@@ -16,6 +16,11 @@ export enum Team {
   B = 'B',
 }
 
+export const TEAM_NAMES: Record<Team, string> = {
+  [Team.A]: 'Sentinel',
+  [Team.B]: 'Scourge',
+};
+
 @Entity('slots')
 @Index(['gameId'])
 @Index(['team'])

@@ -144,13 +144,8 @@ export class CalendarService {
         baseStartTime.setUTCHours(startHours, startMinutes, 0, 0);
 
         for (let i = 0; i < schedule.gamesPerDay; i++) {
+          // All games share the same estimated start time
           const scheduledStartTime = new Date(baseStartTime);
-          if (i > 0 && schedule.spacingAfterFinishMinutes) {
-            scheduledStartTime.setUTCMinutes(
-              scheduledStartTime.getUTCMinutes() +
-                i * schedule.spacingAfterFinishMinutes,
-            );
-          }
 
           const timeKey = `${scheduledStartTime.getUTCHours()}:${scheduledStartTime.getUTCMinutes()}`;
           const gameExists = scheduleMap

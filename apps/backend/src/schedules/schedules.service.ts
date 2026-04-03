@@ -5,8 +5,9 @@ import { Schedule, RecurrenceType } from './entities/schedule.entity';
 import { AuditService } from '../audit/audit.service';
 import { SlotConfigService } from './slot-config.service';
 import { SlotConfig } from './entities/slot-config.entity';
-import { Team } from '../games/entities/slot.entity';
+import { Team, TEAM_NAMES } from '../games/entities/slot.entity';
 import { GameCancellationService } from '../games/game-cancellation.service';
+import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 
 @Injectable()
@@ -19,17 +20,13 @@ export class SchedulesService {
     private gameCancellationService: GameCancellationService,
   ) {}
 
-  async create(
-    data: Partial<Schedule> & { slotConfigs?: Partial<SlotConfig>[] },
-    createdBy: number,
-  ): Promise<Schedule> {
-    if (data.slotsPerGame % 2 !== 0) {
-      throw new BadRequestException(
-        'slotsPerGame must be even for team balance',
-      );
-    }
+  private static readonly SLOTS_PER_GAME = 10;
 
-    const { slotConfigs, ...scheduleData } = data;
+  async create(data: CreateScheduleDto, createdBy: number): Promise<Schedule> {
+    const { slotConfigs, forceDeactivateOverlapping, ...scheduleData } = data;
+
+    // Always enforce hardcoded slots per game
+    scheduleData.slotsPerGame = SchedulesService.SLOTS_PER_GAME;
 
     // Auto-generate name if not provided
     if (!scheduleData.name || scheduleData.name.trim() === '') {
@@ -37,15 +34,21 @@ export class SchedulesService {
       scheduleData.name = `Schedule ${scheduleCount + 1}`;
     }
 
+    // Default team names
+    if (!scheduleData.teamAName) scheduleData.teamAName = TEAM_NAMES[Team.A];
+    if (!scheduleData.teamBName) scheduleData.teamBName = TEAM_NAMES[Team.B];
+
+    // Check for overlapping active schedules
+    await this.handleOverlap(
+      scheduleData.scheduleStartDate,
+      scheduleData.scheduleEndDate,
+      !!forceDeactivateOverlapping,
+    );
+
     const schedule = this.scheduleRepository.create({
       ...scheduleData,
       createdBy,
     });
-
-    // If the new schedule is active, deactivate all others first
-    if (schedule.isActive !== false) {
-      await this.deactivateAll();
-    }
 
     const saved = await this.scheduleRepository.save(schedule);
 
@@ -143,18 +146,28 @@ export class SchedulesService {
     data: UpdateScheduleDto,
     updatedBy: number,
   ): Promise<Schedule> {
-    if (data.slotsPerGame && data.slotsPerGame % 2 !== 0) {
-      throw new BadRequestException(
-        'slotsPerGame must be even for team balance',
-      );
-    }
+    const {
+      slotConfigs,
+      propagateNow,
+      forceDeactivateOverlapping,
+      ...scheduleData
+    } = data;
 
-    const { slotConfigs, propagateNow, ...scheduleData } = data;
+    // Prevent client from changing slotsPerGame
+    delete (scheduleData as any).slotsPerGame;
     const schedule = await this.findOne(id);
 
-    // If this update activates the schedule, deactivate all others first
-    if (scheduleData.isActive === true && !schedule.isActive) {
-      await this.deactivateAll();
+    // Check for overlapping active schedules if dates are being changed
+    if (
+      scheduleData.scheduleStartDate !== undefined ||
+      scheduleData.scheduleEndDate !== undefined
+    ) {
+      await this.handleOverlap(
+        scheduleData.scheduleStartDate ?? schedule.scheduleStartDate,
+        scheduleData.scheduleEndDate ?? schedule.scheduleEndDate,
+        !!forceDeactivateOverlapping,
+        id,
+      );
     }
 
     Object.assign(schedule, scheduleData);
@@ -189,19 +202,17 @@ export class SchedulesService {
   }
 
   /**
-   * Activate a schedule, deactivating all others.
-   * Only one schedule can be active at a time.
+   * Activate a schedule. Multiple schedules can be active if their
+   * date ranges don't overlap (enforced by validateNoOverlap on create/update).
    */
-  async activate(
-    id: number,
-    adminId: number,
-  ): Promise<Schedule> {
-    const schedule = await this.scheduleRepository.findOne({ where: { id, deletedAt: null } });
+  async activate(id: number, adminId: number): Promise<Schedule> {
+    const schedule = await this.scheduleRepository.findOne({
+      where: { id, deletedAt: null },
+    });
     if (!schedule) {
       throw new BadRequestException('Schedule not found');
     }
 
-    await this.deactivateAll();
     await this.scheduleRepository.update({ id }, { isActive: true });
 
     await this.auditService.log({
@@ -278,12 +289,73 @@ export class SchedulesService {
     };
   }
 
-  private async deactivateAll(): Promise<void> {
+  /**
+   * Find active schedules whose date ranges overlap with the given range.
+   */
+  private async findOverlappingSchedules(
+    startDate: string | null | undefined,
+    endDate: string | null | undefined,
+    excludeId?: number,
+  ): Promise<Schedule[]> {
+    const query = this.scheduleRepository
+      .createQueryBuilder('s')
+      .where('s.deletedAt IS NULL')
+      .andWhere('s.isActive = :active', { active: true });
+
+    if (excludeId) {
+      query.andWhere('s.id != :excludeId', { excludeId });
+    }
+
+    const existing = await query.getMany();
+    const newStart = startDate || null;
+    const newEnd = endDate || null;
+
+    return existing.filter((s) => {
+      const existingStart = s.scheduleStartDate || null;
+      const existingEnd = s.scheduleEndDate || null;
+
+      // Two ranges overlap unless one ends before the other starts
+      const noOverlap =
+        (newEnd && existingStart && newEnd < existingStart) ||
+        (existingEnd && newStart && existingEnd < newStart);
+
+      return !noOverlap;
+    });
+  }
+
+  /**
+   * Validate no overlap, or deactivate overlapping schedules if forced.
+   */
+  private async handleOverlap(
+    startDate: string | null | undefined,
+    endDate: string | null | undefined,
+    forceDeactivate: boolean,
+    excludeId?: number,
+  ): Promise<void> {
+    const overlapping = await this.findOverlappingSchedules(
+      startDate,
+      endDate,
+      excludeId,
+    );
+
+    if (overlapping.length === 0) return;
+
+    if (!forceDeactivate) {
+      const names = overlapping
+        .map((s) => `"${s.name}" (ID: ${s.id})`)
+        .join(', ');
+      throw new BadRequestException(
+        `Date range overlaps with active schedule(s): ${names}. Set forceDeactivateOverlapping to proceed.`,
+      );
+    }
+
+    // Deactivate overlapping schedules
+    const ids = overlapping.map((s) => s.id);
     await this.scheduleRepository
       .createQueryBuilder()
       .update(Schedule)
       .set({ isActive: false })
-      .where('1=1')
+      .whereInIds(ids)
       .execute();
   }
 

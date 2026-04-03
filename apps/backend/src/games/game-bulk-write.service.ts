@@ -102,30 +102,21 @@ export class GameBulkWriteService {
         const baseStartTime = new Date(normalizedDate);
         baseStartTime.setUTCHours(hours, minutes, 0, 0);
 
+        // All games share the same estimated start time (streamer controls actual pace)
+        const initialStatus = schedule.reservationOpenTime
+          ? GameStatus.CREATED
+          : GameStatus.OPEN;
+
         const gamesToCreate: Game[] = [];
         for (let i = 0; i < schedule.gamesPerDay; i += 1) {
-          const gameStartTime = new Date(baseStartTime);
-          if (i > 0 && schedule.spacingAfterFinishMinutes) {
-            gameStartTime.setUTCMinutes(
-              gameStartTime.getUTCMinutes() +
-                i * schedule.spacingAfterFinishMinutes,
-            );
-          }
-
-          // If no reservationOpenTime is set, games open for reservations immediately.
-          const initialStatus = schedule.reservationOpenTime
-            ? GameStatus.CREATED
-            : GameStatus.OPEN;
-
           gamesToCreate.push(
             manager.create(Game, {
               scheduleId: schedule.id,
               status: initialStatus,
-              scheduledStartTime: gameStartTime,
+              scheduledStartTime: baseStartTime,
               teamAName: schedule.teamAName,
               teamBName: schedule.teamBName,
               isExclusiveToGold: schedule.isExclusiveToGold,
-              url: schedule.url || null,
               generationBatchId,
               gameIndex: i + 1,
               streamId: savedStream.id,

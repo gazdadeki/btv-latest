@@ -87,8 +87,8 @@ export function reservedSlotsCount(g: Game) {
 export type Team = "A" | "B";
 
 export const TEAM_DISPLAY: Record<Team, string> = {
-  A: "Scourge",
-  B: "Sentinel",
+  A: "Sentinel",
+  B: "Scourge",
 };
 
 export interface Slot {

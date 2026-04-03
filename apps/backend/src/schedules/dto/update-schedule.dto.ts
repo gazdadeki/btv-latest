@@ -90,21 +90,18 @@ export class UpdateScheduleDto {
   @IsOptional()
   firstGameStartTime?: string;
 
-  @ApiPropertyOptional({ description: 'Auto start next event after minutes' })
-  @IsNumber()
+  @ApiPropertyOptional({
+    description: 'Whether reservations require confirmation',
+  })
+  @IsBoolean()
   @IsOptional()
-  autoStartNextAfterMinutes?: number | null;
+  requiresConfirmation?: boolean;
 
   @ApiPropertyOptional({ description: 'Number of games per day' })
   @IsNumber()
   @Min(1)
   @IsOptional()
   gamesPerDay?: number;
-
-  @ApiPropertyOptional({ description: 'Spacing after finish in minutes' })
-  @IsNumber()
-  @IsOptional()
-  spacingAfterFinishMinutes?: number | null;
 
   @ApiPropertyOptional({ description: 'Team A name' })
   @IsString()
@@ -121,11 +118,6 @@ export class UpdateScheduleDto {
   @IsNumber({}, { each: true })
   @IsOptional()
   reminderMinutesBefore?: number[] | null;
-
-  @ApiPropertyOptional({ description: 'Schedule URL for notifications' })
-  @IsString()
-  @IsOptional()
-  url?: string | null;
 
   @ApiPropertyOptional({ description: 'Is schedule active?' })
   @IsBoolean()
@@ -148,4 +140,12 @@ export class UpdateScheduleDto {
   @IsBoolean()
   @IsOptional()
   propagateNow?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Force deactivate overlapping schedules instead of returning an error',
+  })
+  @IsBoolean()
+  @IsOptional()
+  forceDeactivateOverlapping?: boolean;
 }

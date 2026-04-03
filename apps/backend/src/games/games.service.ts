@@ -165,7 +165,6 @@ export class GamesService {
           : schedule.isExclusiveToGold,
       slotsPerGame: schedule.slotsPerGame,
       slotConfigs: slotConfigs,
-      url: schedule.url || null,
       generationBatchId,
       gameIndex: 1,
       streamId: activeStreamId,
@@ -225,7 +224,13 @@ export class GamesService {
   async findOne(id: number): Promise<Game> {
     const game = await this.gameRepository.findOne({
       where: { id },
-      relations: ['schedule', 'slots', 'reservations', 'reservations.user'],
+      relations: [
+        'schedule',
+        'stream',
+        'slots',
+        'reservations',
+        'reservations.user',
+      ],
     });
     if (!game) {
       throw new BadRequestException('Game not found');
@@ -292,8 +297,7 @@ export class GamesService {
     );
 
     // Get game URL (use game URL if set, otherwise fall back to schedule URL)
-    const gameUrl =
-      updated.url || updated.schedule?.url || 'https://youtube.com';
+    const gameUrl = updated.url || updated.stream?.url || 'https://youtube.com';
 
     await this.gameNotificationService.publishGameStarted(
       updated,
@@ -505,8 +509,7 @@ export class GamesService {
     }
 
     // Get game URL (use game URL if set, otherwise fall back to schedule URL)
-    const gameUrl =
-      updated.url || updated.schedule?.url || 'https://youtube.com';
+    const gameUrl = updated.url || updated.stream?.url || 'https://youtube.com';
     const winningTeamName =
       updated.winningTeam === 'A' ? updated.teamAName : updated.teamBName;
 

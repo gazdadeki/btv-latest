@@ -88,14 +88,11 @@ export class Schedule {
   @Column({ type: 'time', nullable: true })
   reservationOpenTime: string | null;
 
-  @Column({ type: 'int', nullable: true })
-  autoStartNextAfterMinutes: number | null;
+  @Column({ default: false })
+  requiresConfirmation: boolean;
 
   @Column({ default: 1 })
   gamesPerDay: number;
-
-  @Column({ type: 'int', nullable: true })
-  spacingAfterFinishMinutes: number | null;
 
   @Column()
   teamAName: string;
@@ -112,14 +109,6 @@ export class Schedule {
 
   @Column({ type: 'json', nullable: true })
   reminderMinutesBefore: number[] | null;
-
-  @Column({
-    type: 'varchar',
-    length: 500,
-    nullable: true,
-    default: 'https://youtube.com',
-  })
-  url: string | null;
 
   @Column({ type: 'date', nullable: true })
   scheduleStartDate: string | null;

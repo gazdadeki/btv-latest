@@ -41,7 +41,6 @@ describe('GameGenerationService (integration)', () => {
       createdBy: user.id,
       slotsPerGame: 4,
       gamesPerDay: 2,
-      spacingAfterFinishMinutes: 30,
       firstGameStartTime: '09:00',
     });
     await createSlotConfigs(dataSource, schedule.id, schedule.slotsPerGame);
