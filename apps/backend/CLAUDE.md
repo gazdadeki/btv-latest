@@ -40,10 +40,10 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - Only one active (non-ENDED) stream at a time
 - Lifecycle: `PENDING` → `LIVE` → `ENDED`
 - Stream has `title` (auto-generated as "Let's GO - dd.mm.yyyy" on creation, editable when starting) and `url` (required when starting)
-- Scheduler auto-creates a stream with default title when generating games; auto-ends stale streams
+- Scheduler auto-creates a stream with default title when generating games; auto-ends stale streams and auto-cancels their CREATED/OPEN games (with refunds)
 - **Primary**: `PUT /admin/streams/:id/start` — sets title + URL and activates (PENDING → LIVE) in one step via `StartStreamDto`. This is what the admin UI uses.
 - **Legacy** (kept for API compat): `PUT /admin/streams/:id/activate` (activate without title/URL), `PUT /admin/streams/:id/url` (set URL only)
-- Other endpoints: `GET /admin/streams/active`, `PUT /admin/streams/:id/end`
+- Other endpoints: `GET /admin/streams` (list recent), `GET /admin/streams/active`, `PUT /admin/streams/:id/end`
 - Admin UI: persistent stream controls in header bar + dashboard widget
 - Mobile app shows active stream's games instead of "today's games"
 
@@ -69,10 +69,24 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 
 ## Game Statuses
 
-- `CREATED` → `OPEN` → `IN_PROGRESS` → `FINISHED` (or `CANCELLED` at any point)
+- `CREATED` → `OPEN` → `IN_PROGRESS` → `FINISHED` (or `CANCELLED` from CREATED/OPEN/IN_PROGRESS)
 - Both `CREATED` and `OPEN` games can be started by admin (transition to `IN_PROGRESS`)
+- `IN_PROGRESS` games can be **remade** back to `OPEN` via `PUT /admin/games/:id/remake` (preserves all reservations)
 - Games without `reservationOpenTime` are created directly as `OPEN`
-- Mobile and admin filters include all statuses; `CANCELLED` excluded by default
+- Games endpoint accepts `streamId` query param for filtering
+- `allowMultipleReservations` flag (default false) bypasses per-stream reservation limits for a game
+
+## Reservation Limits (Stream-Scoped)
+
+- Reservation limits are scoped **per stream**, not global — each new stream resets the allowance
+- Free users: max 1 active reservation per stream
+- Gold users: max 2 active reservations per stream, must be **at least 2 games apart** (by gameIndex)
+- Games with `allowMultipleReservations=true` bypass all limits
+
+## Calendar
+
+- Past days only show `FINISHED` games; CREATED/OPEN/CANCELLED are hidden
+- Manually created games use the stream's creation date as `scheduledStartTime` (midnight-safe)
 
 ## Admin Auto-Assignment
 

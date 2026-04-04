@@ -95,9 +95,6 @@ export class GameBulkWriteService {
           schedule.id,
         );
 
-        // Cancel CREATED/OPEN games from now-ended streams (with refunds)
-        await this.gameCancellationService.cancelGamesForEndedStreams();
-
         const generationBatchId = randomUUID();
         const [hours, minutes] = schedule.firstGameStartTime
           .split(':')
@@ -149,6 +146,11 @@ export class GameBulkWriteService {
           streamId: savedStream.id,
         };
       });
+
+    // Cancel stale games after transaction commits (stream status now visible)
+    if (createdGames.length > 0) {
+      await this.gameCancellationService.cancelGamesForEndedStreams();
+    }
 
     return {
       createdGames,

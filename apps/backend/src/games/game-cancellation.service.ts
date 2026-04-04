@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Game, GameStatus } from './entities/game.entity';
 import { StreamStatus } from '../streams/entities/stream.entity';
 import {
@@ -256,7 +256,10 @@ export class GameCancellationService {
 
   private async refundReservationsForCancelledGame(game: Game): Promise<void> {
     const reservations = await this.reservationRepository.find({
-      where: { gameId: game.id, status: ReservationStatus.RESERVED },
+      where: {
+        gameId: game.id,
+        status: In([ReservationStatus.RESERVED, ReservationStatus.CONFIRMED]),
+      },
       relations: ['user', 'user.wallet'],
     });
 

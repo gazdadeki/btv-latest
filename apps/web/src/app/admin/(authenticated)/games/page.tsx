@@ -154,6 +154,7 @@ export default function GamesPage() {
       }),
     );
     return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
       unsubs.forEach((u) => u());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

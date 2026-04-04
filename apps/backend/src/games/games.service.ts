@@ -348,25 +348,18 @@ export class GamesService {
       throw new BadRequestException('Game cannot be started');
     }
 
-    // Check if another game is IN_PROGRESS for same schedule/day
-    const gameDate = new Date(game.scheduledStartTime);
-    gameDate.setUTCHours(0, 0, 0, 0);
-    const nextDay = new Date(gameDate);
-    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+    // Check if another game is IN_PROGRESS in the same stream
+    if (game.streamId) {
+      const inProgressGame = await this.gameRepository.findOne({
+        where: {
+          streamId: game.streamId,
+          status: GameStatus.IN_PROGRESS,
+        },
+      });
 
-    const inProgressGame = await this.gameRepository.findOne({
-      where: {
-        scheduleId: game.scheduleId,
-        status: GameStatus.IN_PROGRESS,
-      },
-    });
-
-    if (inProgressGame && inProgressGame.id !== id) {
-      const inProgressDate = new Date(inProgressGame.scheduledStartTime);
-      inProgressDate.setUTCHours(0, 0, 0, 0);
-      if (inProgressDate.getTime() === gameDate.getTime()) {
+      if (inProgressGame && inProgressGame.id !== id) {
         throw new BadRequestException(
-          'Another game is already in progress for this schedule/day. Only one game can be in progress at a time.',
+          'Another game is already in progress in this stream. Only one game can be in progress at a time.',
         );
       }
     }
@@ -402,28 +395,48 @@ export class GamesService {
   }
 
   async remake(id: number, adminId: number): Promise<Game> {
-    const game = await this.findOne(id);
-    if (game.status !== GameStatus.IN_PROGRESS) {
-      throw new BadRequestException('Only IN_PROGRESS games can be remade');
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const game = await queryRunner.manager.findOne(Game, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!game) {
+        throw new BadRequestException('Game not found');
+      }
+      if (game.status !== GameStatus.IN_PROGRESS) {
+        throw new BadRequestException('Only IN_PROGRESS games can be remade');
+      }
+
+      game.status = GameStatus.OPEN;
+      game.actualStartTime = null;
+      const updated = await queryRunner.manager.save(game);
+
+      await queryRunner.commitTransaction();
+
+      this.websocketService.broadcast(WebsocketEvents.GameStatusChanged, {
+        gameId: id,
+        status: GameStatus.OPEN,
+      });
+
+      await this.auditService.log({
+        userId: adminId,
+        action: 'GAME_REMADE',
+        entityType: 'Game',
+        entityId: id.toString(),
+      });
+
+      return updated;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
     }
-
-    game.status = GameStatus.OPEN;
-    game.actualStartTime = null;
-    const updated = await this.gameRepository.save(game);
-
-    this.websocketService.broadcast(WebsocketEvents.GameStatusChanged, {
-      gameId: id,
-      status: GameStatus.OPEN,
-    });
-
-    await this.auditService.log({
-      userId: adminId,
-      action: 'GAME_REMADE',
-      entityType: 'Game',
-      entityId: id.toString(),
-    });
-
-    return updated;
   }
 
   private async isFirstGameForScheduleDay(
