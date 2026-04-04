@@ -8,7 +8,7 @@ export const GAME_STATUS_COLORS: Record<string, string> = {
   CREATED: "bg-blue-100 text-blue-700",
   OPEN: "bg-emerald-100 text-emerald-700",
   IN_PROGRESS: "bg-yellow-100 text-yellow-700",
-  FINISHED: "bg-green-100 text-green-700",
+  FINISHED: "bg-slate-100 text-slate-700",
   CANCELLED: "bg-red-100 text-red-700",
 };
 
@@ -30,7 +30,7 @@ export const CALENDAR_STATUS_HEX: Record<string, string> = {
   CREATED: "#3b82f6",
   OPEN: "#10b981",
   IN_PROGRESS: "#f59e0b",
-  FINISHED: "#22c55e",
+  FINISHED: "#64748b",
   CANCELLED: "#ef4444",
   PSEUDO: "#9ca3af",
 };

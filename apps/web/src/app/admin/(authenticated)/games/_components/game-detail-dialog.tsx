@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { formatDate, toastError } from "@/lib/utils";
@@ -33,6 +33,7 @@ export function GameDetailDialog({
   const [editUrl, setEditUrl] = useState("");
   const [editStartTime, setEditStartTime] = useState("");
   const [editGold, setEditGold] = useState(false);
+  const [editMultiRes, setEditMultiRes] = useState(false);
   const [editReady, setEditReady] = useState(false);
   const { confirmAction, confirm, reset } = useConfirmAction();
   const [slotAssign, setSlotAssign] = useState<{
@@ -61,13 +62,13 @@ export function GameDetailDialog({
       setEditStartTime("");
     }
     setEditGold(g.isExclusiveToGold);
+    setEditMultiRes(!!g.allowMultipleReservations);
     setEditReady(true);
   };
 
-  const handleOpen = () => {
+  useEffect(() => {
     if (game && !editReady) initEdit(game);
-  };
-  handleOpen();
+  }, [game?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleClose = () => {
     setEditReady(false);
@@ -82,13 +83,17 @@ export function GameDetailDialog({
   const saveGameDetails = async () => {
     if (!game) return;
     try {
-      const data: Record<string, unknown> = { url: editUrl };
+      const data: Record<string, unknown> = {
+        url: editUrl,
+        allowMultipleReservations: editMultiRes,
+      };
       if (game.status === "CREATED") {
         data.scheduledStartTime = new Date(editStartTime).toISOString();
         data.isExclusiveToGold = editGold;
       }
       await api.updateGame(game.id, data);
       toast.success("Game updated");
+      handleClose();
       mutated();
     } catch (err) {
       toastError(err);
@@ -321,6 +326,28 @@ export function GameDetailDialog({
                   </td>
                 </tr>
                 <tr>
+                  <td className="py-2 font-medium">Unrestricted Slots</td>
+                  <td>
+                    {isModifiable ? (
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={editMultiRes}
+                          onChange={(e) => setEditMultiRes(e.target.checked)}
+                          className="rounded"
+                        />
+                        <span className="text-xs text-gray-500">
+                          Allow players with existing reservations
+                        </span>
+                      </label>
+                    ) : game.allowMultipleReservations ? (
+                      "Yes"
+                    ) : (
+                      "No"
+                    )}
+                  </td>
+                </tr>
+                <tr>
                   <td className="py-2 font-medium">URL</td>
                   <td>
                     <input
@@ -376,7 +403,33 @@ export function GameDetailDialog({
                 </tr>
               </tbody>
             </table>
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-end gap-2 mt-4">
+              {game.status === "IN_PROGRESS" && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    confirm({
+                      title: "Remake Game",
+                      message:
+                        "Reset this game back to OPEN? All reservations will be kept.",
+                      onConfirm: async () => {
+                        try {
+                          await api.remakeGame(game.id);
+                          toast.success("Game remade — back to OPEN");
+                          handleClose();
+                          mutated();
+                          reset();
+                        } catch (err) {
+                          toastError(err);
+                          reset();
+                        }
+                      },
+                    });
+                  }}
+                >
+                  Remake
+                </Button>
+              )}
               <Button onClick={saveGameDetails}>Save Changes</Button>
             </div>
           </div>

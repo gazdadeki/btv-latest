@@ -79,10 +79,6 @@ export function StreamControl() {
   if (stream.status === "PENDING") {
     return (
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 text-sm text-yellow-700">
-          <span className="inline-block w-2 h-2 rounded-full bg-yellow-500" />
-          Stream ready
-        </div>
         <Button
           variant="success"
           size="sm"
@@ -108,13 +104,6 @@ export function StreamControl() {
   // LIVE — show End Stream button
   return (
     <div className="flex items-center gap-3">
-      <div className="flex items-center gap-2 text-sm text-green-700">
-        <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-        <span className="font-medium">LIVE</span>
-        {stream.title && (
-          <span className="text-gray-500 font-normal">· {stream.title}</span>
-        )}
-      </div>
       <Button
         variant="danger"
         size="sm"

@@ -62,6 +62,9 @@ export class Game {
   @Column({ default: false })
   isExclusiveToGold: boolean;
 
+  @Column({ default: false })
+  allowMultipleReservations: boolean;
+
   @Column({ type: 'enum', enum: ['A', 'B'], nullable: true })
   winningTeam: 'A' | 'B' | null;
 

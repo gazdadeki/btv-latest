@@ -206,8 +206,12 @@ export default function HomePage() {
     queryFn: api.getMyReservations,
   });
 
-  const activeReservations = myReservations.filter((r) =>
-    reservationIsActive(r),
+  const streamId = activeStream?.stream?.id;
+  const activeReservations = myReservations.filter(
+    (r) =>
+      reservationIsActive(r) &&
+      r.game?.streamId != null &&
+      r.game.streamId === streamId,
   );
   const hasActiveReservation = activeReservations.length > 0;
   const finishedReservations = myReservations.filter(

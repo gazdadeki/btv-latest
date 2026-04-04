@@ -85,7 +85,12 @@ export function ScheduleDetailDialog({
         return new Date().toISOString().split("T")[0];
       })(),
     });
-    setEditSlots(schedule.slotConfigs || []);
+    setEditSlots(
+      (schedule.slotConfigs || []).map((c: any) => ({
+        ...c,
+        preAssignedUsername: c.preAssignedUser?.username ?? null,
+      })),
+    );
     setEditMode(true);
   };
 
@@ -551,7 +556,10 @@ export function ScheduleDetailDialog({
                     <td className="px-3 py-2">{s.isGoldOnly ? "Yes" : "No"}</td>
                     <td className="px-3 py-2">{s.coinsCost ?? "Default"}</td>
                     <td className="px-3 py-2">
-                      {s.preAssignedUserId || "None"}
+                      {(s as any).preAssignedUser?.username ||
+                        (s.preAssignedUserId
+                          ? `User #${s.preAssignedUserId}`
+                          : "None")}
                     </td>
                   </tr>
                 ))}

@@ -17,6 +17,11 @@ export class UpdateGameDto {
   @IsOptional()
   isExclusiveToGold?: boolean;
 
+  @ApiPropertyOptional({ description: 'Allow unrestricted reservations?' })
+  @IsBoolean()
+  @IsOptional()
+  allowMultipleReservations?: boolean;
+
   @ApiPropertyOptional({
     description: 'Game URL (inherited from schedule, editable by admin)',
   })

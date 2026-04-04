@@ -15,24 +15,26 @@ import { Button } from "@/components/button";
 import { StatusBadge } from "@/components/status-badge";
 import { useConfirmAction } from "@/hooks/use-confirm-action";
 import { GAME_STATUS_COLORS } from "@/constants";
-import type { Game } from "@/types";
+import type { Game, Stream } from "@/types";
 import { CreateGameDialog } from "./_components/create-game-dialog";
 import { FinishGameDialog } from "./_components/finish-game-dialog";
 import { GameDetailDialog } from "./_components/game-detail-dialog";
 
-interface ScheduleOption {
+interface StreamOption {
   id: number;
-  name: string;
+  title: string | null;
+  status: string;
 }
 
 const columnHelper = createColumnHelper<Game>();
 
 export default function GamesPage() {
   const [games, setGames] = useState<Game[]>([]);
-  const [schedules, setSchedules] = useState<ScheduleOption[]>([]);
+  const [streams, setStreams] = useState<StreamOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeStreamId, setActiveStreamId] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [filterSchedule, setFilterSchedule] = useState("");
+  const [filterStream, setFilterStream] = useState<string | null>(null);
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -43,10 +45,11 @@ export default function GamesPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const load = useCallback(async () => {
+    if (filterStream === null) return; // wait until stream filter is initialized
     try {
       const params: Record<string, string | undefined> = {};
       if (filterStatus) params.status = filterStatus;
-      if (filterSchedule) params.scheduleId = filterSchedule;
+      if (filterStream) params.streamId = filterStream;
       if (filterStartDate) params.startDate = filterStartDate;
       if (filterEndDate) params.endDate = filterEndDate;
       const res = await api.getGames(params);
@@ -59,23 +62,38 @@ export default function GamesPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterStatus, filterSchedule, filterStartDate, filterEndDate]);
+  }, [filterStatus, filterStream, filterStartDate, filterEndDate]);
 
-  const loadSchedules = useCallback(async () => {
-    try {
-      const res = await api.getSchedules();
-      setSchedules(Array.isArray(res) ? (res as ScheduleOption[]) : []);
-    } catch {
-      /* ignore */
-    }
+  // Load streams list and set the active stream as default filter
+  useEffect(() => {
+    (async () => {
+      try {
+        const [streamsList, active] = await Promise.all([
+          api.getStreams() as Promise<StreamOption[]>,
+          api.getActiveStream() as Promise<Stream | null>,
+        ]);
+        setStreams(Array.isArray(streamsList) ? streamsList : []);
+        const id = active?.id ? String(active.id) : "";
+        setActiveStreamId(id);
+        setFilterStream(id);
+      } catch {
+        setFilterStream("");
+      }
+    })();
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
-  useEffect(() => {
-    loadSchedules();
-  }, [loadSchedules]);
+
+  const loadStreams = useCallback(async () => {
+    try {
+      const res = await api.getStreams();
+      setStreams(Array.isArray(res) ? (res as StreamOption[]) : []);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const loadGameDetail = async (id: number) => {
     try {
@@ -129,12 +147,18 @@ export default function GamesPage() {
         load();
       }),
     );
-    unsubs.push(webSocketManager.on("stream:changed", () => load()));
+    unsubs.push(
+      webSocketManager.on("stream:changed", () => {
+        load();
+        loadStreams();
+      }),
+    );
     return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
       unsubs.forEach((u) => u());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [load, detailGame?.id]);
+  }, [load, loadStreams, detailGame?.id]);
 
   const handleStart = (id: number) => {
     confirm({
@@ -144,6 +168,25 @@ export default function GamesPage() {
         try {
           await api.startGame(id);
           toast.success("Game started");
+          load();
+          reset();
+        } catch (err) {
+          toastError(err);
+          reset();
+        }
+      },
+    });
+  };
+
+  const handleRemake = (id: number) => {
+    confirm({
+      title: "Remake Game",
+      message:
+        "Reset this game back to OPEN? All reservations will be kept. You can start it again when ready.",
+      onConfirm: async () => {
+        try {
+          await api.remakeGame(id);
+          toast.success("Game remade — back to OPEN");
           load();
           reset();
         } catch (err) {
@@ -214,8 +257,7 @@ export default function GamesPage() {
     }
   };
 
-  const handleDetailMutated = (gameId: number) => {
-    loadGameDetail(gameId);
+  const handleDetailMutated = () => {
     load();
   };
 
@@ -287,14 +329,24 @@ export default function GamesPage() {
               </Button>
             )}
             {g.status === "IN_PROGRESS" && (
-              <Button
-                variant="orange"
-                size="xs"
-                onClick={() => openFinish(g.id)}
-                title="Finish"
-              >
-                <i className="fas fa-stop" />
-              </Button>
+              <>
+                <Button
+                  variant="orange"
+                  size="xs"
+                  onClick={() => openFinish(g.id)}
+                  title="Finish"
+                >
+                  <i className="fas fa-stop" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="xs"
+                  onClick={() => handleRemake(g.id)}
+                  title="Remake"
+                >
+                  <i className="fas fa-redo" />
+                </Button>
+              </>
             )}
             {canModify && (
               <Button
@@ -337,16 +389,16 @@ export default function GamesPage() {
       <div className="bg-white rounded-lg shadow p-4 mb-4">
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Schedule</label>
+            <label className="block text-xs text-gray-500 mb-1">Stream</label>
             <select
-              value={filterSchedule}
-              onChange={(e) => setFilterSchedule(e.target.value)}
+              value={filterStream ?? ""}
+              onChange={(e) => setFilterStream(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
             >
-              <option value="">All Schedules</option>
-              {schedules.map((s) => (
+              <option value="">All Streams</option>
+              {streams.map((s) => (
                 <option key={s.id} value={String(s.id)}>
-                  {s.name}
+                  {s.title || `Stream #${s.id}`}
                 </option>
               ))}
             </select>
@@ -389,7 +441,7 @@ export default function GamesPage() {
             size="lg"
             onClick={() => {
               setFilterStatus("");
-              setFilterSchedule("");
+              setFilterStream(activeStreamId);
               setFilterStartDate("");
               setFilterEndDate("");
             }}

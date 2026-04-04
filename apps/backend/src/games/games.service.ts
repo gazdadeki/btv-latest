@@ -111,10 +111,18 @@ export class GamesService {
   async createManually(
     data: {
       scheduleId?: number;
-      scheduledStartTime: string;
+      scheduledStartTime?: string;
       teamAName?: string;
       teamBName?: string;
       isExclusiveToGold?: boolean;
+      allowMultipleReservations?: boolean;
+      slotConfigs?: Array<{
+        slotNumber: number;
+        team: string;
+        isGoldOnly?: boolean;
+        coinsCost?: number | null;
+        preAssignedUserId?: number | null;
+      }>;
     },
     adminId: number,
   ): Promise<Game> {
@@ -141,15 +149,20 @@ export class GamesService {
 
     const schedule = await this.schedulesService.findOne(resolvedScheduleId);
 
-    const scheduledStartTime = new Date(data.scheduledStartTime);
+    const scheduledStartTime = data.scheduledStartTime
+      ? new Date(data.scheduledStartTime)
+      : activeStream
+        ? new Date(activeStream.createdAt)
+        : new Date();
     if (isNaN(scheduledStartTime.getTime())) {
       throw new BadRequestException('Invalid scheduledStartTime format');
     }
 
-    // Get slot configs from schedule
-    const slotConfigs =
-      schedule.slotConfigs ||
-      (await this.slotConfigService.findBySchedule(schedule.id));
+    // Use custom slot configs if provided, otherwise fall back to schedule defaults
+    const slotConfigs = data.slotConfigs?.length
+      ? (data.slotConfigs as unknown as SlotConfig[])
+      : schedule.slotConfigs ||
+        (await this.slotConfigService.findBySchedule(schedule.id));
 
     // Generate a new batch ID for manually created games
     const generationBatchId = randomUUID();
@@ -164,6 +177,7 @@ export class GamesService {
         data.isExclusiveToGold !== undefined
           ? data.isExclusiveToGold
           : schedule.isExclusiveToGold,
+      allowMultipleReservations: !!data.allowMultipleReservations,
       slotsPerGame: schedule.slotsPerGame,
       slotConfigs: slotConfigs,
       generationBatchId,
@@ -254,6 +268,7 @@ export class GamesService {
   async findAll(filters?: {
     status?: GameStatus;
     scheduleId?: number;
+    streamId?: number;
     startDate?: Date;
     endDate?: Date;
   }): Promise<Game[]> {
@@ -264,6 +279,11 @@ export class GamesService {
     if (filters?.scheduleId) {
       query.andWhere('game.scheduleId = :scheduleId', {
         scheduleId: filters.scheduleId,
+      });
+    }
+    if (filters?.streamId) {
+      query.andWhere('game.streamId = :streamId', {
+        streamId: filters.streamId,
       });
     }
     if (filters?.startDate) {
@@ -328,25 +348,18 @@ export class GamesService {
       throw new BadRequestException('Game cannot be started');
     }
 
-    // Check if another game is IN_PROGRESS for same schedule/day
-    const gameDate = new Date(game.scheduledStartTime);
-    gameDate.setUTCHours(0, 0, 0, 0);
-    const nextDay = new Date(gameDate);
-    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+    // Check if another game is IN_PROGRESS in the same stream
+    if (game.streamId) {
+      const inProgressGame = await this.gameRepository.findOne({
+        where: {
+          streamId: game.streamId,
+          status: GameStatus.IN_PROGRESS,
+        },
+      });
 
-    const inProgressGame = await this.gameRepository.findOne({
-      where: {
-        scheduleId: game.scheduleId,
-        status: GameStatus.IN_PROGRESS,
-      },
-    });
-
-    if (inProgressGame && inProgressGame.id !== id) {
-      const inProgressDate = new Date(inProgressGame.scheduledStartTime);
-      inProgressDate.setUTCHours(0, 0, 0, 0);
-      if (inProgressDate.getTime() === gameDate.getTime()) {
+      if (inProgressGame && inProgressGame.id !== id) {
         throw new BadRequestException(
-          'Another game is already in progress for this schedule/day. Only one game can be in progress at a time.',
+          'Another game is already in progress in this stream. Only one game can be in progress at a time.',
         );
       }
     }
@@ -379,6 +392,51 @@ export class GamesService {
     });
 
     return updated;
+  }
+
+  async remake(id: number, adminId: number): Promise<Game> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const game = await queryRunner.manager.findOne(Game, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!game) {
+        throw new BadRequestException('Game not found');
+      }
+      if (game.status !== GameStatus.IN_PROGRESS) {
+        throw new BadRequestException('Only IN_PROGRESS games can be remade');
+      }
+
+      game.status = GameStatus.OPEN;
+      game.actualStartTime = null;
+      const updated = await queryRunner.manager.save(game);
+
+      await queryRunner.commitTransaction();
+
+      this.websocketService.broadcast(WebsocketEvents.GameStatusChanged, {
+        gameId: id,
+        status: GameStatus.OPEN,
+      });
+
+      await this.auditService.log({
+        userId: adminId,
+        action: 'GAME_REMADE',
+        entityType: 'Game',
+        entityId: id.toString(),
+      });
+
+      return updated;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   private async isFirstGameForScheduleDay(
@@ -671,13 +729,14 @@ export class GamesService {
   async cancel(id: number, adminId: number): Promise<Game> {
     const game = await this.findOne(id);
 
-    // Allow cancelling CREATED and IN_PROGRESS games
+    // Allow cancelling CREATED, OPEN, and IN_PROGRESS games
     if (
       game.status !== GameStatus.CREATED &&
+      game.status !== GameStatus.OPEN &&
       game.status !== GameStatus.IN_PROGRESS
     ) {
       throw new BadRequestException(
-        'Only CREATED or IN_PROGRESS games can be cancelled',
+        'Only CREATED, OPEN, or IN_PROGRESS games can be cancelled',
       );
     }
 
@@ -712,7 +771,7 @@ export class GamesService {
       .createQueryBuilder('game')
       .select('game.id', 'id')
       .where('game.status IN (:...statuses)', {
-        statuses: [GameStatus.CREATED, GameStatus.IN_PROGRESS],
+        statuses: [GameStatus.CREATED, GameStatus.OPEN, GameStatus.IN_PROGRESS],
       })
       .getRawMany();
     const activeGameIds = activeGameRows.map((row) => Number(row.id));
@@ -773,7 +832,11 @@ export class GamesService {
       cancelledCount += await this.gameCancellationService.cancelGamesByIds(
         Array.from(gameIdsWithReservations),
         {
-          statuses: [GameStatus.CREATED, GameStatus.IN_PROGRESS],
+          statuses: [
+            GameStatus.CREATED,
+            GameStatus.OPEN,
+            GameStatus.IN_PROGRESS,
+          ],
           adminId,
           audit: true,
           emitWebsocket: emitPerGameEvents,
@@ -824,15 +887,14 @@ export class GamesService {
   ): Promise<Game> {
     const game = await this.findOne(id);
 
-    // Check if we're trying to update fields other than URL
-    const hasNonUrlUpdates =
+    // Check if we're trying to update fields that are only editable for CREATED games
+    const hasCreatedOnlyUpdates =
       data.teamAName !== undefined ||
       data.teamBName !== undefined ||
       data.isExclusiveToGold !== undefined ||
       data.scheduledStartTime !== undefined;
 
-    // Only allow non-URL updates for CREATED games
-    if (hasNonUrlUpdates && game.status !== GameStatus.CREATED) {
+    if (hasCreatedOnlyUpdates && game.status !== GameStatus.CREATED) {
       throw new BadRequestException(
         'Game details can only be edited when status is CREATED',
       );
@@ -842,6 +904,8 @@ export class GamesService {
     if (data.teamBName) game.teamBName = data.teamBName;
     if (data.isExclusiveToGold !== undefined)
       game.isExclusiveToGold = data.isExclusiveToGold;
+    if (data.allowMultipleReservations !== undefined)
+      game.allowMultipleReservations = data.allowMultipleReservations;
     if (data.url !== undefined) game.url = data.url;
     if (data.scheduledStartTime) {
       const scheduledStartTime = new Date(data.scheduledStartTime);

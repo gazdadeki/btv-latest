@@ -89,7 +89,7 @@ export class GameBulkWriteService {
           }
         }
 
-        // Create a new stream for this generation run
+        // Create a new stream (auto-ends stale streams)
         const savedStream = await this.streamsService.createStreamInTransaction(
           manager,
           schedule.id,
@@ -146,6 +146,11 @@ export class GameBulkWriteService {
           streamId: savedStream.id,
         };
       });
+
+    // Cancel stale games after transaction commits (stream status now visible)
+    if (createdGames.length > 0) {
+      await this.gameCancellationService.cancelGamesForEndedStreams();
+    }
 
     return {
       createdGames,

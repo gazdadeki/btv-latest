@@ -73,6 +73,8 @@ export class CalendarService {
       currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
 
+    const todayKey = toUtcDateString(utcStartOfDay(new Date()));
+
     const realGamesByDate = new Map<
       string,
       Map<number, { games: Game[]; timeKeys: Set<string> }>
@@ -81,6 +83,12 @@ export class CalendarService {
     for (const game of realGames) {
       const gameDate = new Date(game.scheduledStartTime);
       const dateKey = toUtcDateString(gameDate);
+
+      // For past days, only show games that were actually played
+      if (dateKey < todayKey && game.status !== 'FINISHED') {
+        continue;
+      }
+
       if (!realGamesByDate.has(dateKey)) {
         realGamesByDate.set(dateKey, new Map());
       }
