@@ -53,12 +53,15 @@ export const GAME_STATUS_DISPLAY: Record<GameStatus, string> = {
 export interface Game {
   id: number;
   scheduleId: number;
+  streamId?: number | null;
   gameIndex?: number | null;
   scheduledStartTime: string;
   actualStartTime?: string;
   actualEndTime?: string;
   status: GameStatus;
   isExclusiveToGold: boolean;
+  allowMultipleReservations?: boolean;
+  winningTeam?: "A" | "B" | null;
   slots: Slot[];
   createdAt: string;
   updatedAt: string;
@@ -128,6 +131,7 @@ export interface Reservation {
   userId: number;
   team: Team;
   status: ReservationStatus;
+  game?: Game;
   confirmedAt?: string;
   createdAt: string;
   updatedAt: string;

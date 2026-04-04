@@ -187,6 +187,8 @@ export const api = {
     }),
   startGame: (id: number) =>
     apiRequest(`/admin/games/${id}/start`, { method: "PUT" }),
+  remakeGame: (id: number) =>
+    apiRequest(`/admin/games/${id}/remake`, { method: "PUT" }),
   finishGame: (id: number, data: { winningTeam: string; mvpUserId?: number }) =>
     apiRequest(`/admin/games/${id}/finish`, {
       method: "PUT",
@@ -206,6 +208,7 @@ export const api = {
   shufflePlayers: (id: number) =>
     apiRequest(`/admin/games/${id}/shuffle`, { method: "POST" }),
   // Streams
+  getStreams: () => apiRequest("/admin/streams"),
   getActiveStream: () => apiRequest("/admin/streams/active"),
   startStream: (id: number, data: { title?: string; url: string }) =>
     apiRequest(`/admin/streams/${id}/start`, {

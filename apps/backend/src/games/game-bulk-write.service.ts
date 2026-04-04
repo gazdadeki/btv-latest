@@ -89,11 +89,14 @@ export class GameBulkWriteService {
           }
         }
 
-        // Create a new stream for this generation run
+        // Create a new stream (auto-ends stale streams)
         const savedStream = await this.streamsService.createStreamInTransaction(
           manager,
           schedule.id,
         );
+
+        // Cancel CREATED/OPEN games from now-ended streams (with refunds)
+        await this.gameCancellationService.cancelGamesForEndedStreams();
 
         const generationBatchId = randomUUID();
         const [hours, minutes] = schedule.firstGameStartTime

@@ -28,6 +28,13 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 export class StreamsController {
   constructor(private readonly streamsService: StreamsService) {}
 
+  @Get()
+  @ApiOperation({ summary: 'List recent streams (newest first, max 20)' })
+  @ApiResponse({ status: 200, description: 'List of streams' })
+  async findAll() {
+    return this.streamsService.findAll();
+  }
+
   @Get('active')
   @ApiOperation({ summary: 'Get the active stream with its games' })
   @ApiResponse({ status: 200, description: 'Active stream or null' })

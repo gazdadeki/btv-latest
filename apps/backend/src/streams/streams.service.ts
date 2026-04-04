@@ -17,6 +17,13 @@ export class StreamsService {
     private streamRepository: Repository<Stream>,
   ) {}
 
+  async findAll(): Promise<Stream[]> {
+    return this.streamRepository.find({
+      order: { createdAt: 'DESC' },
+      take: 20,
+    });
+  }
+
   async findActiveStream(): Promise<Stream | null> {
     return this.streamRepository.findOne({
       where: { status: Not(StreamStatus.ENDED) },

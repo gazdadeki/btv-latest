@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Game, GameStatus } from './entities/game.entity';
+import { StreamStatus } from '../streams/entities/stream.entity';
 import {
   Reservation,
   ReservationStatus,
@@ -33,6 +34,8 @@ interface CancelGamesByIdsOptions {
 
 @Injectable()
 export class GameCancellationService {
+  private readonly logger = new Logger(GameCancellationService.name);
+
   constructor(
     @InjectRepository(Game)
     private gameRepository: Repository<Game>,
@@ -102,6 +105,38 @@ export class GameCancellationService {
       }
 
       await this.refundReservationsForCancelledGame(game);
+      cancelledCount++;
+    }
+
+    return cancelledCount;
+  }
+
+  async cancelGamesForEndedStreams(): Promise<number> {
+    const games = await this.gameRepository
+      .createQueryBuilder('game')
+      .innerJoin('game.stream', 'stream')
+      .leftJoinAndSelect('game.schedule', 'schedule')
+      .where('stream.status = :ended', { ended: StreamStatus.ENDED })
+      .andWhere('game.status IN (:...statuses)', {
+        statuses: [GameStatus.CREATED, GameStatus.OPEN],
+      })
+      .getMany();
+
+    if (games.length === 0) return 0;
+
+    this.logger.log(
+      `Auto-cancelling ${games.length} stale game(s) from ended streams`,
+    );
+
+    let cancelledCount = 0;
+    for (const game of games) {
+      game.status = GameStatus.CANCELLED;
+      await this.gameRepository.save(game);
+      await this.refundReservationsForCancelledGame(game);
+      this.websocketService.broadcast(WebsocketEvents.GameStatusChanged, {
+        gameId: game.id,
+        status: GameStatus.CANCELLED,
+      });
       cancelledCount++;
     }
 

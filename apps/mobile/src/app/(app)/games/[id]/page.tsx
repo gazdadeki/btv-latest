@@ -27,6 +27,9 @@ import {
   slotIsPending,
   slotIsConfirmed,
   reservationIsActive,
+  gameIsInProgress,
+  gameIsFinished,
+  gameIsCancelled,
 } from "@/types";
 
 // ─── Confirm dialog ────────────────────────────────────────────────────────────
@@ -79,6 +82,7 @@ function SlotCard({
   slot,
   userId,
   hasActiveReservation,
+  locked,
   onReserve,
   onConfirm,
   onLeave,
@@ -86,6 +90,7 @@ function SlotCard({
   slot: Slot;
   userId?: number;
   hasActiveReservation: boolean;
+  locked: boolean;
   onReserve: () => void;
   onConfirm: () => void;
   onLeave: () => void;
@@ -157,28 +162,38 @@ function SlotCard({
         </div>
 
         <div className="flex gap-1.5 flex-shrink-0">
-          {isOwn && isPending && (
-            <Button variant="success" size="sm" onClick={onConfirm}>
-              Confirm
-            </Button>
-          )}
-          {isOwn && (
-            <Button variant="danger" size="sm" onClick={onLeave}>
-              Leave
-            </Button>
-          )}
-          {!slot.isReserved && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={onReserve}
-              disabled={hasActiveReservation}
-            >
-              Reserve
-            </Button>
-          )}
-          {slot.isReserved && !isOwn && (
-            <span className="text-xs text-gray-400 py-1.5">Occupied</span>
+          {locked ? (
+            slot.isReserved && !isOwn ? (
+              <span className="text-xs text-gray-400 py-1.5">Occupied</span>
+            ) : !slot.isReserved ? (
+              <span className="text-xs text-gray-400 py-1.5">Locked</span>
+            ) : null
+          ) : (
+            <>
+              {isOwn && isPending && (
+                <Button variant="success" size="sm" onClick={onConfirm}>
+                  Confirm
+                </Button>
+              )}
+              {isOwn && (
+                <Button variant="danger" size="sm" onClick={onLeave}>
+                  Leave
+                </Button>
+              )}
+              {!slot.isReserved && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={onReserve}
+                  disabled={hasActiveReservation}
+                >
+                  Reserve
+                </Button>
+              )}
+              {slot.isReserved && !isOwn && (
+                <span className="text-xs text-gray-400 py-1.5">Occupied</span>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -214,6 +229,23 @@ function DetailsTab({ game }: { game: Game }) {
           <span className="text-sm text-gray-800">{value}</span>
         </div>
       ))}
+      {gameIsFinished(game) && game.winningTeam && (
+        <div className="flex py-3 border-b border-gray-100">
+          <span className="w-28 text-xs font-bold text-gray-400 uppercase shrink-0">
+            Winner
+          </span>
+          <span
+            className={cn(
+              "text-xs font-bold px-2 py-0.5 rounded border",
+              game.winningTeam === "A"
+                ? "text-red-600 bg-red-50 border-red-200"
+                : "text-green-600 bg-green-50 border-green-200",
+            )}
+          >
+            {TEAM_DISPLAY[game.winningTeam]}
+          </span>
+        </div>
+      )}
       {game.isExclusiveToGold && (
         <div className="mt-4 bg-amber-50 border border-amber-300 rounded-lg p-3 flex items-center gap-2">
           <Star className="w-4 h-4 text-amber-500 shrink-0" />
@@ -231,6 +263,7 @@ function SlotsTab({
   game,
   userId,
   hasActiveReservation,
+  locked,
   onReserve,
   onConfirm,
   onLeave,
@@ -238,6 +271,7 @@ function SlotsTab({
   game: Game;
   userId?: number;
   hasActiveReservation: boolean;
+  locked: boolean;
   onReserve: (slotId: number, team: Team) => void;
   onConfirm: (slot: Slot) => void;
   onLeave: (slot: Slot) => void;
@@ -262,6 +296,7 @@ function SlotsTab({
           slot={slot}
           userId={userId}
           hasActiveReservation={hasActiveReservation}
+          locked={locked}
           onReserve={() => onReserve(slot.id, slot.team)}
           onConfirm={() => onConfirm(slot)}
           onLeave={() => onLeave(slot)}
@@ -272,7 +307,16 @@ function SlotsTab({
 
   return (
     <div className="p-4 overflow-y-auto">
-      {hasActiveReservation && (
+      {locked && gameIsInProgress(game) && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 flex items-start gap-2">
+          <Info className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-gray-600">
+            This game is in progress. Slots are locked and reservations are no
+            longer available.
+          </p>
+        </div>
+      )}
+      {!locked && hasActiveReservation && (
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 flex items-start gap-2">
           <Info className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
           <p className="text-xs text-orange-700">
@@ -322,9 +366,15 @@ export default function GameDetailsPage({
     queryFn: api.getMyReservations,
   });
 
-  const hasActiveReservation = myReservations.some(
-    (r) => reservationIsActive(r) && r.gameId !== gameId,
-  );
+  const hasActiveReservation =
+    !game?.allowMultipleReservations &&
+    myReservations.some(
+      (r) =>
+        reservationIsActive(r) &&
+        r.gameId !== gameId &&
+        r.game?.streamId != null &&
+        r.game.streamId === game?.streamId,
+    );
 
   // Join/leave WebSocket event room
   useEffect(() => {
@@ -381,6 +431,10 @@ export default function GameDetailsPage({
     onError: (err) =>
       toast.error(err instanceof Error ? err.message : "Failed to cancel"),
   });
+
+  const slotsLocked =
+    !!game &&
+    (gameIsInProgress(game) || gameIsFinished(game) || gameIsCancelled(game));
 
   if (isLoading) return <Loading message="Loading game details..." />;
   if (error || !game)
@@ -442,6 +496,7 @@ export default function GameDetailsPage({
             game={game}
             userId={user?.id}
             hasActiveReservation={hasActiveReservation}
+            locked={slotsLocked}
             onReserve={(slotId, team) => {
               if (hasActiveReservation) {
                 toast.warning("You already have an active reservation");

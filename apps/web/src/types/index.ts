@@ -43,6 +43,7 @@ export interface Game {
   teamAName: string;
   teamBName: string;
   isExclusiveToGold: boolean;
+  allowMultipleReservations?: boolean;
   winningTeam?: string;
   mvpUserId?: number;
   url?: string;
@@ -74,6 +75,7 @@ export interface SlotConfig {
   isGoldOnly?: boolean;
   coinsCost?: number | null;
   preAssignedUserId?: number | null;
+  preAssignedUsername?: string | null;
 }
 
 export interface Schedule {

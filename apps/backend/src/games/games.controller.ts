@@ -36,6 +36,7 @@ export class GamesController {
   @ApiOperation({ summary: 'List all games' })
   @ApiQuery({ name: 'status', required: false, enum: GameStatus })
   @ApiQuery({ name: 'scheduleId', required: false, type: Number })
+  @ApiQuery({ name: 'streamId', required: false, type: Number })
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })
   @ApiResponse({ status: 200, description: 'List of games' })
@@ -44,12 +45,14 @@ export class GamesController {
   async findAll(
     @Query('status') status?: GameStatus,
     @Query('scheduleId') scheduleId?: string,
+    @Query('streamId') streamId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
     const filters: any = {};
     if (status) filters.status = status;
     if (scheduleId) filters.scheduleId = parseInt(scheduleId, 10);
+    if (streamId) filters.streamId = parseInt(streamId, 10);
     if (startDate) filters.startDate = new Date(startDate);
     if (endDate) filters.endDate = new Date(endDate);
     return this.gamesService.findAll(filters);
@@ -94,6 +97,17 @@ export class GamesController {
   @ApiResponse({ status: 404, description: 'Game not found' })
   async start(@Param('id') id: string, @Request() req: any) {
     return this.gamesService.start(+id, req.user.id);
+  }
+
+  @Put(':id/remake')
+  @ApiOperation({ summary: 'Remake game (IN_PROGRESS → OPEN)' })
+  @ApiResponse({ status: 200, description: 'Game remade' })
+  @ApiResponse({ status: 400, description: 'Game is not in progress' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game not found' })
+  async remake(@Param('id') id: string, @Request() req: any) {
+    return this.gamesService.remake(+id, req.user.id);
   }
 
   @Put(':id/finish')
