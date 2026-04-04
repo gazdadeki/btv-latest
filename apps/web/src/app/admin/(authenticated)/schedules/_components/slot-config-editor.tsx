@@ -65,6 +65,14 @@ function UserSearchInput({
   };
 
   useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (
         containerRef.current &&

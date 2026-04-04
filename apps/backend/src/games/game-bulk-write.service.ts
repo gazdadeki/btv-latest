@@ -149,7 +149,14 @@ export class GameBulkWriteService {
 
     // Cancel stale games after transaction commits (stream status now visible)
     if (createdGames.length > 0) {
-      await this.gameCancellationService.cancelGamesForEndedStreams();
+      try {
+        await this.gameCancellationService.cancelGamesForEndedStreams();
+      } catch (error) {
+        this.logger.error(
+          'Post-commit cleanup failed: cancelGamesForEndedStreams',
+          error,
+        );
+      }
     }
 
     return {

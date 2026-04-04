@@ -115,7 +115,7 @@ export class GameCancellationService {
     const games = await this.gameRepository
       .createQueryBuilder('game')
       .innerJoin('game.stream', 'stream')
-      .leftJoinAndSelect('game.schedule', 'schedule')
+      .innerJoinAndSelect('game.schedule', 'schedule')
       .where('stream.status = :ended', { ended: StreamStatus.ENDED })
       .andWhere('game.status IN (:...statuses)', {
         statuses: [GameStatus.CREATED, GameStatus.OPEN],

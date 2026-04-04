@@ -88,7 +88,8 @@ export function ScheduleDetailDialog({
     setEditSlots(
       (schedule.slotConfigs || []).map((c: any) => ({
         ...c,
-        preAssignedUsername: c.preAssignedUser?.username ?? null,
+        preAssignedUsername:
+          c.preAssignedUser?.username ?? c.preAssignedUsername ?? null,
       })),
     );
     setEditMode(true);

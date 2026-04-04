@@ -84,11 +84,6 @@ export class CalendarService {
       const gameDate = new Date(game.scheduledStartTime);
       const dateKey = toUtcDateString(gameDate);
 
-      // For past days, only show games that were actually played
-      if (dateKey < todayKey && game.status !== 'FINISHED') {
-        continue;
-      }
-
       if (!realGamesByDate.has(dateKey)) {
         realGamesByDate.set(dateKey, new Map());
       }
@@ -97,10 +92,18 @@ export class CalendarService {
         scheduleMap.set(game.scheduleId, { games: [], timeKeys: new Set() });
       }
       const bucket = scheduleMap.get(game.scheduleId)!;
-      bucket.games.push(game);
+
+      // Always record timeKeys so pseudo-game backfill preserves calendar slots
       bucket.timeKeys.add(
         `${gameDate.getUTCHours()}:${gameDate.getUTCMinutes()}`,
       );
+
+      // For past days, only show games that were actually played
+      if (dateKey < todayKey && game.status !== 'FINISHED') {
+        continue;
+      }
+
+      bucket.games.push(game);
     }
 
     for (const date of dates) {

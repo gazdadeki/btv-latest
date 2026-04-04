@@ -369,6 +369,8 @@ export class GamesService {
     const updated = await this.gameRepository.save(game);
 
     // Determine game position for the schedule day
+    const gameDate = new Date(game.scheduledStartTime);
+    gameDate.setUTCHours(0, 0, 0, 0);
     const position = await this.getGamePositionInScheduleDay(
       id,
       game.scheduleId,

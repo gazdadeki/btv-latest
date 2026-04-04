@@ -257,7 +257,7 @@ export default function GamesPage() {
     }
   };
 
-  const handleDetailMutated = () => {
+  const handleDetailMutated = (_gameId: number) => {
     load();
   };
 
