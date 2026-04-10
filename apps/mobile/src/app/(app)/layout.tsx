@@ -56,6 +56,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const fgUnsubscribe = useRef<(() => void) | null>(null);
 
   const setupForegroundMessages = useCallback(() => {
+    let mounted = true;
     onForegroundMessage((payload) => {
       if (payload.title) {
         const url = payload.data?.url;
@@ -67,7 +68,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
           action: safeUrl
             ? {
                 label: "Watch Live",
-                onClick: () => window.open(safeUrl, "_blank"),
+                onClick: () =>
+                  window.open(safeUrl, "_blank", "noopener,noreferrer"),
               }
             : undefined,
           classNames: {
@@ -80,13 +82,27 @@ function AppShell({ children }: { children: React.ReactNode }) {
         });
       }
     }).then((unsub) => {
-      fgUnsubscribe.current = unsub;
+      if (mounted) {
+        fgUnsubscribe.current = unsub;
+      } else {
+        unsub?.();
+      }
     });
     return () => {
+      mounted = false;
       fgUnsubscribe.current?.();
       fgUnsubscribe.current = null;
     };
   }, []);
+
+  // Reset FCM registration state on logout
+  useEffect(() => {
+    if (!isAuthenticated) {
+      fcmRegistered.current = false;
+      fgUnsubscribe.current?.();
+      fgUnsubscribe.current = null;
+    }
+  }, [isAuthenticated]);
 
   // Register FCM push notifications when authenticated
   useEffect(() => {

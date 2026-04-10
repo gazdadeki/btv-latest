@@ -12,7 +12,6 @@ import { WebsocketService } from '../websocket/websocket.service';
 /**
  * Service for checking and processing reservation confirmations.
  * Automatically expires unconfirmed reservations when the confirmation deadline passes.
- * Also sends reminder notifications before the confirmation deadline.
  */
 @Injectable()
 export class ConfirmationCheckerService {

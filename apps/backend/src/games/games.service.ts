@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Game, GameStatus } from './entities/game.entity';
 import { Slot, Team } from './entities/slot.entity';
@@ -502,11 +502,11 @@ export class GamesService {
     const nextDay = new Date(date);
     nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
-    // Find all CREATED games for the same schedule/day that come after this game
+    // Find all upcoming games for the same schedule/day that come after this game
     const laterGames = await this.gameRepository.find({
       where: {
         scheduleId,
-        status: GameStatus.CREATED,
+        status: In([GameStatus.CREATED, GameStatus.OPEN]),
       },
       order: {
         scheduledStartTime: 'ASC',
@@ -604,7 +604,7 @@ export class GamesService {
     const nextGame = await this.gameRepository.findOne({
       where: {
         scheduleId: game.scheduleId,
-        status: GameStatus.CREATED,
+        status: In([GameStatus.CREATED, GameStatus.OPEN]),
       },
       order: {
         scheduledStartTime: 'ASC',
@@ -1069,7 +1069,7 @@ export class GamesService {
     const nextGame = await this.gameRepository.findOne({
       where: {
         scheduleId: game.scheduleId,
-        status: GameStatus.CREATED,
+        status: In([GameStatus.CREATED, GameStatus.OPEN]),
       },
       order: {
         scheduledStartTime: 'ASC',

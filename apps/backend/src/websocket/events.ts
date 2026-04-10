@@ -14,8 +14,11 @@ export const WebsocketEvents = {
   GamePlayersShuffled: 'game:players_shuffled',
   GamesBatchChanged: 'games:batch_changed',
   SlotAvailabilityChanged: 'slot:availability_changed',
+  ReservationCreated: 'reservation:created',
   ReservationConfirmed: 'reservation:confirmed',
+  ReservationCancelled: 'reservation:cancelled',
   ReservationStatusChanged: 'reservation:status_changed',
+  MessageNew: 'message:new',
 } as const;
 
 export type WebsocketEventName =

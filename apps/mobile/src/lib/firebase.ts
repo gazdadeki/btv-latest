@@ -60,12 +60,19 @@ export async function registerPushNotifications(): Promise<string | null> {
         ? `${window.location.origin}/api/v1`
         : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/v1`;
 
-    await fetch(`${apiBase}/players/devices/register`, {
+    const response = await fetch(`${apiBase}/players/devices/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ token, platform: "WEB" }),
     });
+
+    if (!response.ok) {
+      console.error(
+        `Failed to register FCM token: ${response.status} ${response.statusText}`,
+      );
+      return null;
+    }
 
     console.log("FCM token registered with backend");
     return token;
