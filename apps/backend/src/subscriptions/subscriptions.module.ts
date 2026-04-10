@@ -7,7 +7,6 @@ import { SubscriptionCheckerService } from './subscription-checker.service';
 import { UsersModule } from '../users/users.module';
 import { StripeModule } from '../stripe/stripe.module';
 import { AuditModule } from '../audit/audit.module';
-import { FirebaseModule } from '../firebase/firebase.module';
 import { WebsocketModule } from '../websocket/websocket.module';
 import { EmailModule } from '../email/email.module';
 
@@ -17,7 +16,6 @@ import { EmailModule } from '../email/email.module';
     forwardRef(() => UsersModule),
     forwardRef(() => StripeModule),
     AuditModule,
-    FirebaseModule,
     forwardRef(() => WebsocketModule),
     EmailModule,
   ],

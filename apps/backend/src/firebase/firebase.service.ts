@@ -363,19 +363,7 @@ export class FirebaseService implements OnModuleInit {
     type: NotificationType,
   ): boolean {
     switch (type) {
-      case NotificationType.EVENT_REMINDER:
-        return preferences.eventReminders;
-      case NotificationType.CONFIRMATION_DEADLINE:
-        return preferences.confirmationDeadlines;
-      case NotificationType.SUBSCRIPTION_UPDATE:
-        return preferences.subscriptionUpdates;
-      case NotificationType.RESERVATION_UPDATE:
-        return preferences.reservationUpdates;
-      case NotificationType.ADMIN_ALERT:
-        return preferences.adminAlerts;
-      case NotificationType.SCHEDULE_START:
-        return preferences.eventReminders;
-      case NotificationType.SCHEDULE_FINISHED:
+      case NotificationType.STREAM_START:
         return preferences.eventReminders;
       default:
         return true;

@@ -15,9 +15,7 @@ import {
 import { UsersService } from '../users/users.service';
 import { StripeService } from '../stripe/stripe.service';
 import { AuditService } from '../audit/audit.service';
-import { FirebaseService } from '../firebase/firebase.service';
 import { WebsocketService } from '../websocket/websocket.service';
-import { NotificationType } from '@/firebase/entities/notification-history.entity';
 import { IEmailService } from '../email/email.service.interface';
 
 /**
@@ -43,7 +41,6 @@ export class SubscriptionsService {
     @Inject(forwardRef(() => StripeService))
     private stripeService: StripeService,
     private auditService: AuditService,
-    private firebaseService: FirebaseService,
     private websocketService: WebsocketService,
     @Inject('IEmailService')
     private emailService: IEmailService,
@@ -176,12 +173,6 @@ export class SubscriptionsService {
       action: 'SUBSCRIPTION_CANCELLED',
       entityType: 'Subscription',
       entityId: subscription.id.toString(),
-    });
-
-    await this.firebaseService.sendNotification(userId, {
-      type: NotificationType.SUBSCRIPTION_UPDATE,
-      title: 'Subscription Cancelled',
-      body: 'Your subscription will remain active until the end of the current billing period.',
     });
 
     await this.websocketService.broadcastToUser(

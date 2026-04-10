@@ -10,6 +10,7 @@ import { Team, TEAM_NAMES } from '../games/entities/slot.entity';
 import { GameCancellationService } from '../games/game-cancellation.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
+import { utcStartOfDay } from '../common/date.utils';
 
 @Injectable()
 export class SchedulesService {
@@ -409,13 +410,15 @@ export class SchedulesService {
 
   shouldCreateGameOnDate(schedule: Schedule, date: Date): boolean {
     // Enforce optional schedule date window (dates stored as 'YYYY-MM-DD' UTC).
+    // Compare date-only (start of day) to avoid time-of-day affecting boundary checks.
+    const dateOnly = utcStartOfDay(date);
     if (schedule.scheduleStartDate) {
       const start = new Date(schedule.scheduleStartDate + 'T00:00:00Z');
-      if (date < start) return false;
+      if (dateOnly < start) return false;
     }
     if (schedule.scheduleEndDate) {
       const end = new Date(schedule.scheduleEndDate + 'T00:00:00Z');
-      if (date > end) return false;
+      if (dateOnly > end) return false;
     }
 
     const dayOfWeek = date.getUTCDay();

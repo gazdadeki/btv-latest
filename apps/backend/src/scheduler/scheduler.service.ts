@@ -87,10 +87,10 @@ export class SchedulerService {
       const startedAt = Date.now();
       try {
         this.logger.log('Starting scheduled confirmation check');
-        const { expiredCount, reminderNotifications } =
+        const { expiredCount } =
           await this.confirmationCheckerService.checkConfirmations();
         this.logger.log(
-          `Confirmation check completed successfully (expired: ${expiredCount}, reminders: ${reminderNotifications}, durationMs: ${Date.now() - startedAt})`,
+          `Confirmation check completed successfully (expired: ${expiredCount}, durationMs: ${Date.now() - startedAt})`,
         );
       } catch (error) {
         this.logger.error(

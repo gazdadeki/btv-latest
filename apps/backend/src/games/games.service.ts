@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Game, GameStatus } from './entities/game.entity';
 import { Slot, Team } from './entities/slot.entity';
@@ -18,7 +18,6 @@ import { StatisticsService } from '../statistics/statistics.service';
 import { CacheService } from '../cache/cache.service';
 import { UpdateGameDto } from './dto/update-game.dto';
 import { GameBatchService } from './game-batch.service';
-import { GameNotificationService } from './game-notification.service';
 import { SlotAdminAssignmentService } from './slot-admin-assignment.service';
 import { GamesBatchChangedPayload, WebsocketEvents } from '../websocket/events';
 import { shouldEmitPerGameEvents } from './bulk-game-event-mode';
@@ -53,7 +52,6 @@ export class GamesService {
     private cacheService: CacheService,
     private gameCancellationService: GameCancellationService,
     private gameBatchService: GameBatchService,
-    private gameNotificationService: GameNotificationService,
     private slotAdminAssignmentService: SlotAdminAssignmentService,
     private streamsService: StreamsService,
     private dataSource: DataSource,
@@ -169,7 +167,7 @@ export class GamesService {
 
     const game = await this.create({
       scheduleId: schedule.id,
-      status: GameStatus.CREATED,
+      status: GameStatus.OPEN,
       scheduledStartTime,
       teamAName: data.teamAName || schedule.teamAName,
       teamBName: data.teamBName || schedule.teamBName,
@@ -369,6 +367,8 @@ export class GamesService {
     const updated = await this.gameRepository.save(game);
 
     // Determine game position for the schedule day
+    const gameDate = new Date(game.scheduledStartTime);
+    gameDate.setUTCHours(0, 0, 0, 0);
     const position = await this.getGamePositionInScheduleDay(
       id,
       game.scheduleId,
@@ -378,11 +378,28 @@ export class GamesService {
     // Get game URL (use game URL if set, otherwise fall back to schedule URL)
     const gameUrl = updated.url || updated.stream?.url || 'https://youtube.com';
 
-    await this.gameNotificationService.publishGameStarted(
-      updated,
+    const wsEventData = {
+      gameId: updated.id,
+      scheduleId: updated.scheduleId,
+      url: gameUrl,
+      teamAName: updated.teamAName,
+      teamBName: updated.teamBName,
+      scheduledStartTime: updated.scheduledStartTime.toISOString(),
       position,
-      gameUrl,
-    );
+    };
+
+    const positionEvent =
+      position === 'first'
+        ? WebsocketEvents.GameFirstStarted
+        : position === 'last'
+          ? WebsocketEvents.GameLastStarted
+          : WebsocketEvents.GameStarted;
+
+    this.websocketService.broadcast(positionEvent, wsEventData);
+    this.websocketService.broadcast(WebsocketEvents.GameStatusChanged, {
+      gameId: updated.id,
+      status: GameStatus.IN_PROGRESS,
+    });
 
     await this.auditService.log({
       userId: adminId,
@@ -485,11 +502,11 @@ export class GamesService {
     const nextDay = new Date(date);
     nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
-    // Find all CREATED games for the same schedule/day that come after this game
+    // Find all upcoming games for the same schedule/day that come after this game
     const laterGames = await this.gameRepository.find({
       where: {
         scheduleId,
-        status: GameStatus.CREATED,
+        status: In([GameStatus.CREATED, GameStatus.OPEN]),
       },
       order: {
         scheduledStartTime: 'ASC',
@@ -587,7 +604,7 @@ export class GamesService {
     const nextGame = await this.gameRepository.findOne({
       where: {
         scheduleId: game.scheduleId,
-        status: GameStatus.CREATED,
+        status: In([GameStatus.CREATED, GameStatus.OPEN]),
       },
       order: {
         scheduledStartTime: 'ASC',
@@ -634,16 +651,31 @@ export class GamesService {
 
     // Get game URL (use game URL if set, otherwise fall back to schedule URL)
     const gameUrl = updated.url || updated.stream?.url || 'https://youtube.com';
-    const winningTeamName =
-      updated.winningTeam === 'A' ? updated.teamAName : updated.teamBName;
 
-    await this.gameNotificationService.publishGameFinished(
-      updated,
-      finishPosition,
-      gameUrl,
-      winningTeamName,
-      isLastGame,
-    );
+    const wsFinishData = {
+      gameId: updated.id,
+      scheduleId: updated.scheduleId,
+      url: gameUrl,
+      winningTeam: updated.winningTeam,
+      teamAName: updated.teamAName,
+      teamBName: updated.teamBName,
+      actualEndTime: updated.actualEndTime?.toISOString() || null,
+      position: finishPosition,
+    };
+
+    const finishEvent =
+      finishPosition === 'first'
+        ? WebsocketEvents.GameFirstFinished
+        : finishPosition === 'last'
+          ? WebsocketEvents.GameLastFinished
+          : WebsocketEvents.GameFinished;
+
+    this.websocketService.broadcast(finishEvent, wsFinishData);
+    this.websocketService.broadcast(WebsocketEvents.GameStatusChanged, {
+      gameId: updated.id,
+      status: GameStatus.FINISHED,
+      winningTeam: updated.winningTeam,
+    });
 
     await this.auditService.log({
       userId: adminId,
@@ -1037,7 +1069,7 @@ export class GamesService {
     const nextGame = await this.gameRepository.findOne({
       where: {
         scheduleId: game.scheduleId,
-        status: GameStatus.CREATED,
+        status: In([GameStatus.CREATED, GameStatus.OPEN]),
       },
       order: {
         scheduledStartTime: 'ASC',

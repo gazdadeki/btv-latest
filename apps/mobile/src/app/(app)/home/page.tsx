@@ -1,9 +1,9 @@
 "use client";
 
 // Translated from Mobile/lib/features/home/pages/home_page.dart
-// Features: filter chips, filter bottom sheet, games history section, schedule sections, pull-to-refresh
+// Features: filter chips, filter bottom sheet, games history section, schedule sections
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -33,7 +33,7 @@ import type {
 import {
   GAME_STATUS_DISPLAY,
   reservationIsActive,
-  reservationIsCompleted,
+  reservationIsExpired,
   reservationIsConfirmed,
   availableSlotsCount,
   gameIsCancelled,
@@ -215,30 +215,40 @@ export default function HomePage() {
   );
   const hasActiveReservation = activeReservations.length > 0;
   const finishedReservations = myReservations.filter(
-    (r) => reservationIsCompleted(r) || reservationIsConfirmed(r),
+    (r) => reservationIsExpired(r) || reservationIsConfirmed(r),
   );
-
-  const handleRefresh = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["activeStream"] }),
-      queryClient.invalidateQueries({ queryKey: ["myReservations"] }),
-    ]);
-  }, [queryClient]);
 
   // Refresh games list on real-time game lifecycle events
   useEffect(() => {
-    const events = [
+    const gameEvents = [
       "game:created",
       "game:status_changed",
       "game:updated",
       "games:batch_changed",
     ];
-    const offs = events.map((evt) =>
+    const offs = gameEvents.map((evt) =>
       wsManager.on(evt, () => {
         queryClient.invalidateQueries({ queryKey: ["activeStream"] });
       }),
     );
-    return () => offs.forEach((off) => off());
+
+    // Refresh reservations on slot/reservation changes (e.g. admin kick)
+    const reservationEvents = [
+      "slot:availability_changed",
+      "reservation:cancelled",
+      "reservation:status_changed",
+    ];
+    const resOffs = reservationEvents.map((evt) =>
+      wsManager.on(evt, () => {
+        queryClient.invalidateQueries({ queryKey: ["activeStream"] });
+        queryClient.invalidateQueries({ queryKey: ["myReservations"] });
+      }),
+    );
+
+    return () => {
+      offs.forEach((off) => off());
+      resOffs.forEach((off) => off());
+    };
   }, [queryClient]);
 
   const toggleFilter = (key: keyof GameStatusFilter) => {
@@ -293,17 +303,7 @@ export default function HomePage() {
       </div>
 
       {/* Content */}
-      <div
-        className="flex-1 overflow-y-auto px-2 py-2"
-        onTouchStart={() => {}} // enables pull-to-refresh feel on mobile
-      >
-        <button
-          onClick={handleRefresh}
-          className="w-full text-xs text-gray-400 py-1 mb-1 text-center"
-        >
-          Pull to refresh
-        </button>
-
+      <div className="flex-1 overflow-y-auto px-2 py-2">
         {finishedReservations.length > 0 && (
           <GamesHistorySection
             reservations={finishedReservations}
