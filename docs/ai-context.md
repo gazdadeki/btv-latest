@@ -87,7 +87,7 @@ All modules registered in `app.module.ts`:
 | `database`      | TypeORM DataSource, migrations                                                      |
 | `downloads`     | Download management                                                                 |
 | `email`         | Email delivery (Mailtrap / console), templates                                      |
-| `firebase`      | Firebase Admin SDK, push notifications                                              |
+| `firebase`      | Firebase Admin SDK, push notifications (stream start only), device token management |
 | `games`         | Game entity management, bulk creation, cancellation                                 |
 | `messages`      | In-app messaging system                                                             |
 | `players`       | Player-specific APIs                                                                |

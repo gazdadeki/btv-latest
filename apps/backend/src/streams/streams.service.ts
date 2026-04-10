@@ -7,6 +7,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Not, Repository } from 'typeorm';
 import { Stream, StreamStatus } from './entities/stream.entity';
+import { FirebaseService } from '../firebase/firebase.service';
+import { NotificationType } from '../firebase/entities/notification-history.entity';
 
 @Injectable()
 export class StreamsService {
@@ -15,6 +17,7 @@ export class StreamsService {
   constructor(
     @InjectRepository(Stream)
     private streamRepository: Repository<Stream>,
+    private firebaseService: FirebaseService,
   ) {}
 
   async findAll(): Promise<Stream[]> {
@@ -95,7 +98,23 @@ export class StreamsService {
     stream.title = title?.trim() || `Let's GO - ${dateStr}`;
     stream.url = url;
     stream.status = StreamStatus.LIVE;
-    return this.streamRepository.save(stream);
+    const saved = await this.streamRepository.save(stream);
+
+    this.firebaseService
+      .sendBroadcastNotification({
+        type: NotificationType.STREAM_START,
+        title: saved.title,
+        body: 'Stream is now live! Join and reserve your slot.',
+        data: {
+          streamId: saved.id.toString(),
+          url: saved.url,
+        },
+      })
+      .catch((err) => {
+        this.logger.error('Failed to send stream start notification', err);
+      });
+
+    return saved;
   }
 
   async setUrl(streamId: number, url: string): Promise<Stream> {
@@ -112,6 +131,33 @@ export class StreamsService {
     await this.streamRepository.update(streamId, {
       status: StreamStatus.ENDED,
     });
+  }
+
+  /**
+   * Auto-end streams created before today (UTC). Streams are day-scoped;
+   * a non-ENDED stream from a previous day is stale.
+   * Also cancels CREATED/OPEN games belonging to those ended streams.
+   * @returns Number of streams auto-ended
+   */
+  async autoEndStaleStreams(): Promise<number> {
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+
+    const result = await this.streamRepository
+      .createQueryBuilder()
+      .update(Stream)
+      .set({ status: StreamStatus.ENDED })
+      .where('status != :ended', { ended: StreamStatus.ENDED })
+      .andWhere('createdAt < :todayStart', { todayStart })
+      .execute();
+
+    const affected = result.affected ?? 0;
+    if (affected > 0) {
+      this.logger.warn(
+        `Auto-ended ${affected} stale stream(s) from previous days`,
+      );
+    }
+    return affected;
   }
 
   async createStreamInTransaction(

@@ -119,10 +119,10 @@ export function slotIsConfirmed(s: Slot) {
 // ─── Reservation ──────────────────────────────────────────────────────────────
 
 export type ReservationStatus =
-  | "PENDING"
+  | "RESERVED"
   | "CONFIRMED"
   | "CANCELLED"
-  | "COMPLETED";
+  | "EXPIRED";
 
 export interface Reservation {
   id: number;
@@ -138,7 +138,7 @@ export interface Reservation {
 }
 
 export function reservationIsPending(r: Reservation) {
-  return r.status === "PENDING";
+  return r.status === "RESERVED";
 }
 export function reservationIsConfirmed(r: Reservation) {
   return r.status === "CONFIRMED";
@@ -146,11 +146,11 @@ export function reservationIsConfirmed(r: Reservation) {
 export function reservationIsCancelled(r: Reservation) {
   return r.status === "CANCELLED";
 }
-export function reservationIsCompleted(r: Reservation) {
-  return r.status === "COMPLETED";
+export function reservationIsExpired(r: Reservation) {
+  return r.status === "EXPIRED";
 }
 export function reservationIsActive(r: Reservation) {
-  return r.status === "PENDING" || r.status === "CONFIRMED";
+  return r.status === "RESERVED" || r.status === "CONFIRMED";
 }
 
 // ─── Product ──────────────────────────────────────────────────────────────────

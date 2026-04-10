@@ -12,9 +12,9 @@ import { GameGenerationService } from './game-generation.service';
 import { GamePreAssignmentService } from './game-pre-assignment.service';
 import { SchedulesModule } from '../schedules/schedules.module';
 import { GamesModule } from '../games/games.module';
+import { StreamsModule } from '../streams/streams.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { UsersModule } from '../users/users.module';
-import { FirebaseModule } from '../firebase/firebase.module';
 import { WebsocketModule } from '../websocket/websocket.module';
 import { ReservationsModule } from '../reservations/reservations.module';
 import { SlotConfigModule } from '../schedules/slot-config.module';
@@ -25,9 +25,9 @@ import { AuditModule } from '../audit/audit.module';
     TypeOrmModule.forFeature([Schedule, Game, Slot, Reservation, SlotConfig]),
     forwardRef(() => SchedulesModule),
     GamesModule,
+    StreamsModule,
     WalletModule,
     forwardRef(() => UsersModule),
-    FirebaseModule,
     forwardRef(() => WebsocketModule),
     ReservationsModule,
     SlotConfigModule,

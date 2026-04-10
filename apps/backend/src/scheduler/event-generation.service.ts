@@ -3,6 +3,7 @@ import {
   BadRequestException,
   Inject,
   forwardRef,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,6 +11,8 @@ import { Schedule } from '../schedules/entities/schedule.entity';
 import { Game, GameStatus } from '../games/entities/game.entity';
 import { SchedulesService } from '../schedules/schedules.service';
 import { GameGenerationService } from './game-generation.service';
+import { GameCancellationService } from '../games/game-cancellation.service';
+import { StreamsService } from '../streams/streams.service';
 import { utcStartOfDay, utcEndOfDay } from '../common/date.utils';
 import { WebsocketService } from '../websocket/websocket.service';
 import { WebsocketEvents } from '../websocket/events';
@@ -24,6 +27,8 @@ function utcHHMM(date: Date): string {
  */
 @Injectable()
 export class EventGenerationService {
+  private readonly logger = new Logger(EventGenerationService.name);
+
   constructor(
     @InjectRepository(Schedule)
     private scheduleRepository: Repository<Schedule>,
@@ -32,6 +37,8 @@ export class EventGenerationService {
     @Inject(forwardRef(() => SchedulesService))
     private schedulesService: SchedulesService,
     private gameGenerationService: GameGenerationService,
+    private gameCancellationService: GameCancellationService,
+    private streamsService: StreamsService,
     private websocketService: WebsocketService,
   ) {}
 
@@ -43,6 +50,18 @@ export class EventGenerationService {
     schedulesProcessed: number;
     gamesCreated: number;
   }> {
+    // Auto-end stale streams from previous days and cancel their CREATED/OPEN games
+    const staleEnded = await this.streamsService.autoEndStaleStreams();
+    if (staleEnded > 0) {
+      const cancelledCount =
+        await this.gameCancellationService.cancelGamesForEndedStreams();
+      if (cancelledCount > 0) {
+        this.logger.log(
+          `Cancelled ${cancelledCount} stale game(s) from auto-ended streams`,
+        );
+      }
+    }
+
     const activeSchedules = await this.scheduleRepository.find({
       where: { isActive: true },
       relations: ['slotConfigs'],

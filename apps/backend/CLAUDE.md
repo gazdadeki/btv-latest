@@ -94,3 +94,13 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - Applies to both cron-generated and manually created games
 - Pre-assignment creates a confirmed reservation with 0 cost
 - `username` is required on all users (used for display in slot reservations)
+
+## Push Notifications (Firebase)
+
+- Only **one push notification**: stream start (when admin starts a stream → LIVE)
+- Sent via `FirebaseService.sendBroadcastNotification()` to all registered device tokens
+- Fire-and-forget: notification failure does not block stream start
+- `NotificationType` enum has a single value: `STREAM_START`
+- Device token registration: `POST /api/v1/players/devices/register` (JWT-protected)
+- `FIREBASE_SERVICE_ACCOUNT_PATH` env var required for backend to send notifications
+- Game start/finish events use WebSocket broadcasts only (no push notifications)

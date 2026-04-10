@@ -387,8 +387,12 @@ export default function GameDetailsPage({
     const invalidateGame = () => {
       queryClient.invalidateQueries({ queryKey: ["game", gameId] });
     };
+    const invalidateGameAndReservations = () => {
+      queryClient.invalidateQueries({ queryKey: ["game", gameId] });
+      queryClient.invalidateQueries({ queryKey: ["myReservations"] });
+    };
     const offs = [
-      wsManager.on("slot:availability_changed", invalidateGame),
+      wsManager.on("slot:availability_changed", invalidateGameAndReservations),
       wsManager.on("game:status_changed", invalidateGame),
       wsManager.on("game:updated", invalidateGame),
     ];
