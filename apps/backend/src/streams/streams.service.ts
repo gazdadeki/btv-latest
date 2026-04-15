@@ -14,6 +14,7 @@ import { NotificationType } from '../firebase/entities/notification-history.enti
 import { GameCancellationService } from '../games/game-cancellation.service';
 import { WebsocketService } from '../websocket/websocket.service';
 import { WebsocketEvents } from '../websocket/events';
+import { formatUtcDateDDMMYYYY } from '../common/date.utils';
 
 @Injectable()
 export class StreamsService {
@@ -103,7 +104,7 @@ export class StreamsService {
       );
     }
     const now = new Date();
-    const dateStr = `${now.getUTCDate().toString().padStart(2, '0')}.${(now.getUTCMonth() + 1).toString().padStart(2, '0')}.${now.getUTCFullYear()}`;
+    const dateStr = formatUtcDateDDMMYYYY(now);
     stream.title = title?.trim() || `Let's GO - ${dateStr}`;
     stream.url = url;
     stream.status = StreamStatus.LIVE;
@@ -208,7 +209,7 @@ export class StreamsService {
     }
 
     const now = new Date();
-    const dateStr = `${now.getUTCDate().toString().padStart(2, '0')}.${(now.getUTCMonth() + 1).toString().padStart(2, '0')}.${now.getUTCFullYear()}`;
+    const dateStr = formatUtcDateDDMMYYYY(now);
     const stream = manager.create(Stream, {
       scheduleId,
       status: StreamStatus.PENDING,

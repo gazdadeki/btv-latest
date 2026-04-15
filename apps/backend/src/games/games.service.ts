@@ -22,6 +22,7 @@ import { SlotAdminAssignmentService } from './slot-admin-assignment.service';
 import { GamesBatchChangedPayload, WebsocketEvents } from '../websocket/events';
 import { shouldEmitPerGameEvents } from './bulk-game-event-mode';
 import { StreamsService } from '../streams/streams.service';
+import { buildZeroCostReservation } from '../common/reservation.utils';
 
 /**
  * Service for managing games and their lifecycle.
@@ -106,17 +107,13 @@ export class GamesService {
     );
     if (preAssignedSlots.length > 0) {
       const reservations = preAssignedSlots.map((s) =>
-        this.reservationRepository.create({
-          slotId: s.id,
-          userId: s.preAssignedUserId!,
-          gameId: saved.id,
-          status: ReservationStatus.CONFIRMED,
-          reservationCostPaid: 0,
-          confirmationCostPaid: 0,
-          totalCostPaid: 0,
-          reservedAt: new Date(),
-          confirmedAt: new Date(),
-        }),
+        this.reservationRepository.create(
+          buildZeroCostReservation({
+            slotId: s.id,
+            userId: s.preAssignedUserId!,
+            gameId: saved.id,
+          }),
+        ),
       );
       await this.reservationRepository.save(reservations);
     }

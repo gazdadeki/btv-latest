@@ -21,6 +21,7 @@ import { ConfigService } from '../config/config.service';
 import { AuditService } from '../audit/audit.service';
 import { WebsocketService } from '../websocket/websocket.service';
 import { StatisticsService } from '../statistics/statistics.service';
+import { clearSlotAssignment } from '../common/reservation.utils';
 
 @Injectable()
 export class ReservationsService {
@@ -517,10 +518,7 @@ export class ReservationsService {
       reservation.cancelledAt = new Date();
       await queryRunner.manager.save(reservation);
 
-      reservation.slot.isReserved = false;
-      reservation.slot.reservedByUserId = null;
-      reservation.slot.isPreAssigned = false;
-      reservation.slot.preAssignedUserId = null;
+      clearSlotAssignment(reservation.slot);
       await queryRunner.manager.save(reservation.slot);
 
       await queryRunner.commitTransaction();

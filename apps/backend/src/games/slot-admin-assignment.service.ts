@@ -12,6 +12,29 @@ import { AuditService } from '../audit/audit.service';
 import { WebsocketService } from '../websocket/websocket.service';
 import { SlotConfigService } from '../schedules/slot-config.service';
 import { WebsocketEvents } from '../websocket/events';
+import {
+  ACTIVE_RESERVATION_STATUSES,
+  buildZeroCostReservation,
+  cancelActiveReservation,
+  clearSlotAssignment,
+} from '../common/reservation.utils';
+
+// ─── Module-level helpers ──────────────────────────────────────────────────────
+
+function assertGameModifiable(
+  game: Game,
+  message: string,
+  { checkCancelled = true }: { checkCancelled?: boolean } = {},
+): void {
+  if (
+    game.status === GameStatus.FINISHED ||
+    (checkCancelled && game.status === GameStatus.CANCELLED)
+  ) {
+    throw new BadRequestException(message);
+  }
+}
+
+// ─── Service ───────────────────────────────────────────────────────────────────
 
 @Injectable()
 export class SlotAdminAssignmentService {
@@ -34,14 +57,10 @@ export class SlotAdminAssignmentService {
     userId: number | null,
     adminId: number,
   ): Promise<Slot> {
-    if (
-      game.status === GameStatus.FINISHED ||
-      game.status === GameStatus.CANCELLED
-    ) {
-      throw new BadRequestException(
-        'Cannot modify pre-assignments on finished or cancelled games',
-      );
-    }
+    assertGameModifiable(
+      game,
+      'Cannot modify pre-assignments on finished or cancelled games',
+    );
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -97,40 +116,12 @@ export class SlotAdminAssignmentService {
           );
         }
 
-        // Cancel any stale reservation on this slot
-        const staleReservation = await queryRunner.manager.findOne(
-          Reservation,
-          {
-            where: {
-              slotId,
-              gameId: game.id,
-              status: In([
-                ReservationStatus.RESERVED,
-                ReservationStatus.CONFIRMED,
-              ]),
-            },
-          },
-        );
-        if (staleReservation) {
-          staleReservation.status = ReservationStatus.CANCELLED;
-          staleReservation.cancelledAt = new Date();
-          await queryRunner.manager.save(staleReservation);
-        }
+        await cancelActiveReservation(queryRunner.manager, slotId, game.id);
 
-        // Create a confirmed reservation at zero cost
-        const reservation = queryRunner.manager.create(Reservation, {
-          slotId,
-          userId,
-          gameId: game.id,
-          status: ReservationStatus.CONFIRMED,
-          reservationCostPaid: 0,
-          confirmationCostPaid: 0,
-          totalCostPaid: 0,
-          discountApplied: 0,
-          originalCost: 0,
-          reservedAt: new Date(),
-          confirmedAt: new Date(),
-        });
+        const reservation = queryRunner.manager.create(
+          Reservation,
+          buildZeroCostReservation({ slotId, userId, gameId: game.id }),
+        );
         await queryRunner.manager.save(reservation);
 
         slot.isPreAssigned = true;
@@ -179,14 +170,10 @@ export class SlotAdminAssignmentService {
     userId: number,
     adminId: number,
   ): Promise<Slot> {
-    if (
-      game.status === GameStatus.FINISHED ||
-      game.status === GameStatus.CANCELLED
-    ) {
-      throw new BadRequestException(
-        'Cannot assign users to finished or cancelled games',
-      );
-    }
+    assertGameModifiable(
+      game,
+      'Cannot assign users to finished or cancelled games',
+    );
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
@@ -211,34 +198,12 @@ export class SlotAdminAssignmentService {
         throw new BadRequestException('Slot is already reserved');
       }
 
-      // Cancel any stale reservation on this slot
-      const staleReservation = await queryRunner.manager.findOne(Reservation, {
-        where: {
-          slotId,
-          gameId: game.id,
-          status: In([ReservationStatus.RESERVED, ReservationStatus.CONFIRMED]),
-        },
-      });
-      if (staleReservation) {
-        staleReservation.status = ReservationStatus.CANCELLED;
-        staleReservation.cancelledAt = new Date();
-        await queryRunner.manager.save(staleReservation);
-      }
+      await cancelActiveReservation(queryRunner.manager, slotId, game.id);
 
-      const reservation = queryRunner.manager.create(Reservation, {
-        slotId,
-        userId,
-        gameId: game.id,
-        status: ReservationStatus.CONFIRMED,
-        reservationCostPaid: 0,
-        confirmationCostPaid: 0,
-        totalCostPaid: 0,
-        discountApplied: 0,
-        originalCost: 0,
-        reservedAt: new Date(),
-        confirmedAt: new Date(),
-      });
-
+      const reservation = queryRunner.manager.create(
+        Reservation,
+        buildZeroCostReservation({ slotId, userId, gameId: game.id }),
+      );
       await queryRunner.manager.save(reservation);
 
       slot.isReserved = true;
@@ -274,9 +239,9 @@ export class SlotAdminAssignmentService {
     slotId: number,
     adminId: number,
   ): Promise<Slot> {
-    if (game.status === GameStatus.FINISHED) {
-      throw new BadRequestException('Cannot remove users from finished games');
-    }
+    assertGameModifiable(game, 'Cannot remove users from finished games', {
+      checkCancelled: false,
+    });
 
     const slot = await this.slotRepository.findOne({
       where: { id: slotId, gameId: game.id },
@@ -296,7 +261,7 @@ export class SlotAdminAssignmentService {
       where: {
         slotId,
         gameId: game.id,
-        status: In([ReservationStatus.RESERVED, ReservationStatus.CONFIRMED]),
+        status: In([...ACTIVE_RESERVATION_STATUSES]),
       },
     });
     if (activeReservation) {
@@ -305,10 +270,7 @@ export class SlotAdminAssignmentService {
       await this.reservationRepository.save(activeReservation);
     }
 
-    slot.isReserved = false;
-    slot.reservedByUserId = null;
-    slot.isPreAssigned = false;
-    slot.preAssignedUserId = null;
+    clearSlotAssignment(slot);
     const updated = await this.slotRepository.save(slot);
 
     await this.auditService.log({
@@ -332,14 +294,10 @@ export class SlotAdminAssignmentService {
     slotId: number,
     adminId: number,
   ): Promise<Reservation> {
-    if (
-      game.status === GameStatus.FINISHED ||
-      game.status === GameStatus.CANCELLED
-    ) {
-      throw new BadRequestException(
-        'Cannot confirm reservations for finished or cancelled games',
-      );
-    }
+    assertGameModifiable(
+      game,
+      'Cannot confirm reservations for finished or cancelled games',
+    );
 
     const slot = await this.slotRepository.findOne({
       where: { id: slotId, gameId: game.id },
@@ -396,14 +354,10 @@ export class SlotAdminAssignmentService {
     game: Game,
     adminId: number,
   ): Promise<{ confirmedCount: number }> {
-    if (
-      game.status === GameStatus.FINISHED ||
-      game.status === GameStatus.CANCELLED
-    ) {
-      throw new BadRequestException(
-        'Cannot confirm reservations for finished or cancelled games',
-      );
-    }
+    assertGameModifiable(
+      game,
+      'Cannot confirm reservations for finished or cancelled games',
+    );
 
     const slots = await this.slotRepository.find({
       where: { gameId: game.id },
@@ -457,14 +411,10 @@ export class SlotAdminAssignmentService {
     game: Game,
     adminId: number,
   ): Promise<{ cancelledCount: number }> {
-    if (
-      game.status === GameStatus.FINISHED ||
-      game.status === GameStatus.CANCELLED
-    ) {
-      throw new BadRequestException(
-        'Cannot cancel confirmations for finished or cancelled games',
-      );
-    }
+    assertGameModifiable(
+      game,
+      'Cannot cancel confirmations for finished or cancelled games',
+    );
 
     const slots = await this.slotRepository.find({
       where: { gameId: game.id },
@@ -518,11 +468,9 @@ export class SlotAdminAssignmentService {
     game: Game,
     adminId: number,
   ): Promise<{ shuffled: number; message: string }> {
-    if (game.status === GameStatus.FINISHED) {
-      throw new BadRequestException(
-        'Cannot shuffle players for finished games',
-      );
-    }
+    assertGameModifiable(game, 'Cannot shuffle players for finished games', {
+      checkCancelled: false,
+    });
 
     const slots = await this.slotRepository.find({
       where: { gameId: game.id },
@@ -693,10 +641,7 @@ export class SlotAdminAssignmentService {
           where: { id: assignment.slotId },
         });
         if (oldSlot) {
-          oldSlot.isReserved = false;
-          oldSlot.reservedByUserId = null;
-          oldSlot.isPreAssigned = false;
-          oldSlot.preAssignedUserId = null;
+          clearSlotAssignment(oldSlot);
           await queryRunner.manager.save(oldSlot);
         }
       }
@@ -722,19 +667,14 @@ export class SlotAdminAssignmentService {
           );
         }
 
-        const newReservation = queryRunner.manager.create(Reservation, {
-          slotId: targetSlotId,
-          userId: userAssignment.userId,
-          gameId: game.id,
-          status: ReservationStatus.CONFIRMED,
-          reservationCostPaid: 0,
-          confirmationCostPaid: 0,
-          totalCostPaid: 0,
-          discountApplied: 0,
-          originalCost: 0,
-          reservedAt: new Date(),
-          confirmedAt: new Date(),
-        });
+        const newReservation = queryRunner.manager.create(
+          Reservation,
+          buildZeroCostReservation({
+            slotId: targetSlotId,
+            userId: userAssignment.userId,
+            gameId: game.id,
+          }),
+        );
         await queryRunner.manager.save(newReservation);
 
         targetSlot.isReserved = true;

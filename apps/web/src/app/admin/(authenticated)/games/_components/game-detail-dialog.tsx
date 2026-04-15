@@ -37,6 +37,26 @@ export function GameDetailDialog({
   const [editMultiRes, setEditMultiRes] = useState(false);
   const [editReady, setEditReady] = useState(false);
   const { confirmAction, confirm, reset } = useConfirmAction();
+
+  const safeConfirm = (opts: {
+    title: string;
+    message: string;
+    variant?: "danger";
+    onConfirm: () => Promise<void>;
+  }) => {
+    confirm({
+      ...opts,
+      onConfirm: async () => {
+        try {
+          await opts.onConfirm();
+        } catch (err) {
+          toastError(err);
+        } finally {
+          reset();
+        }
+      },
+    });
+  };
   const [slotAssign, setSlotAssign] = useState<{
     gameId: number;
     slotId: number;
@@ -103,64 +123,46 @@ export function GameDetailDialog({
 
   const handleShuffle = () => {
     if (!game) return;
-    confirm({
+    safeConfirm({
       title: "Shuffle Players",
       message:
         "Shuffle players? This will randomly reassign non-admin players, excluding admin slots and gold-only slots.",
       onConfirm: async () => {
-        try {
-          await api.shufflePlayers(game.id);
-          toast.success("Players shuffled");
-          mutated();
-          reset();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        await api.shufflePlayers(game.id);
+        toast.success("Players shuffled");
+        mutated();
       },
     });
   };
 
   const handleKick = (slotId: number) => {
     if (!game) return;
-    confirm({
+    safeConfirm({
       title: "Remove User",
       message: "Remove user from this slot?",
       variant: "danger",
       onConfirm: async () => {
-        try {
-          await api.kickUserFromSlot(game.id, slotId);
-          toast.success("User removed");
-          mutated();
-          reset();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        await api.kickUserFromSlot(game.id, slotId);
+        toast.success("User removed");
+        mutated();
       },
     });
   };
 
   const handleAssignUser = (user: { id: number; email: string }) => {
     if (!slotAssign) return;
-    confirm({
+    safeConfirm({
       title: "Assign User",
       message: `Assign ${user.email} (ID: ${user.id}) to this slot?`,
       onConfirm: async () => {
-        try {
-          await api.assignUserToSlot(
-            slotAssign.gameId,
-            slotAssign.slotId,
-            user.id,
-          );
-          toast.success("User assigned");
-          setSlotAssign(null);
-          reset();
-          mutated();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        await api.assignUserToSlot(
+          slotAssign.gameId,
+          slotAssign.slotId,
+          user.id,
+        );
+        toast.success("User assigned");
+        setSlotAssign(null);
+        mutated();
       },
     });
   };
@@ -172,78 +174,54 @@ export function GameDetailDialog({
   ) => {
     if (!game) return;
     if (userId === null) return;
-    confirm({
+    safeConfirm({
       title: "Pre-assign User",
       message: `Pre-assign ${username || `User #${userId}`} to this slot? This will reserve the slot for them.`,
       onConfirm: async () => {
-        try {
-          await api.preAssignSlot(game.id, slotId, userId);
-          toast.success("User pre-assigned");
-          reset();
-          mutated();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        await api.preAssignSlot(game.id, slotId, userId);
+        toast.success("User pre-assigned");
+        mutated();
       },
     });
   };
 
   const handleConfirmReservation = (slotId: number) => {
     if (!game) return;
-    confirm({
+    safeConfirm({
       title: "Confirm Reservation",
       message:
         "Confirm this reservation? This bypasses the confirmation window and costs.",
       onConfirm: async () => {
-        try {
-          await api.confirmSlotReservation(game.id, slotId);
-          toast.success("Reservation confirmed");
-          mutated();
-          reset();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        await api.confirmSlotReservation(game.id, slotId);
+        toast.success("Reservation confirmed");
+        mutated();
       },
     });
   };
 
   const handleConfirmAll = () => {
     if (!game) return;
-    confirm({
+    safeConfirm({
       title: "Confirm All",
       message: "Confirm all reserved slots?",
       onConfirm: async () => {
-        try {
-          const res = await api.confirmAllSlots(game.id);
-          toast.success(`${res.confirmedCount} reservation(s) confirmed`);
-          mutated();
-          reset();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        const res = await api.confirmAllSlots(game.id);
+        toast.success(`${res.confirmedCount} reservation(s) confirmed`);
+        mutated();
       },
     });
   };
 
   const handleCancelAllConfirmations = () => {
     if (!game) return;
-    confirm({
+    safeConfirm({
       title: "Cancel All Confirmations",
       message: "Cancel all confirmations?",
       variant: "danger",
       onConfirm: async () => {
-        try {
-          const res = await api.cancelAllConfirmations(game.id);
-          toast.success(`${res.cancelledCount} confirmation(s) cancelled`);
-          mutated();
-          reset();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        const res = await api.cancelAllConfirmations(game.id);
+        toast.success(`${res.cancelledCount} confirmation(s) cancelled`);
+        mutated();
       },
     });
   };
@@ -433,21 +411,15 @@ export function GameDetailDialog({
                 <Button
                   variant="secondary"
                   onClick={() => {
-                    confirm({
+                    safeConfirm({
                       title: "Remake Game",
                       message:
                         "Reset this game back to OPEN? All reservations will be kept.",
                       onConfirm: async () => {
-                        try {
-                          await api.remakeGame(game.id);
-                          toast.success("Game remade — back to OPEN");
-                          handleClose();
-                          mutated();
-                          reset();
-                        } catch (err) {
-                          toastError(err);
-                          reset();
-                        }
+                        await api.remakeGame(game.id);
+                        toast.success("Game remade — back to OPEN");
+                        handleClose();
+                        mutated();
                       },
                     });
                   }}
