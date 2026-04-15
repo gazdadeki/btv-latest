@@ -254,7 +254,7 @@ export class GameCancellationService {
     return cancelledCount;
   }
 
-  private async refundReservationsForCancelledGame(game: Game): Promise<void> {
+  async refundReservationsForCancelledGame(game: Game): Promise<void> {
     const reservations = await this.reservationRepository.find({
       where: {
         gameId: game.id,

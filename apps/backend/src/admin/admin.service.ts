@@ -9,7 +9,7 @@ import {
   Subscription,
   SubscriptionStatus,
 } from '../subscriptions/entities/subscription.entity';
-import { ActivityService, ActivityState } from '../activity/activity.service';
+import { WebsocketGateway } from '../websocket/websocket.gateway';
 
 /**
  * Service for admin dashboard operations.
@@ -36,7 +36,7 @@ export class AdminService {
     private walletRepository: Repository<Wallet>,
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
-    private activityService: ActivityService,
+    private websocketGateway: WebsocketGateway,
   ) {}
 
   /**
@@ -94,18 +94,7 @@ export class AdminService {
       where: { status: SubscriptionStatus.EXPIRED },
     });
 
-    // Count online users by checking activity state for all users
-    const allUsers = await this.userRepository.find({ select: ['id'] });
-    let onlineUsers = 0;
-    for (const user of allUsers) {
-      const activityState = this.activityService.getActivityState(user.id);
-      if (
-        activityState === ActivityState.ONLINE ||
-        activityState === ActivityState.ACTIVE
-      ) {
-        onlineUsers++;
-      }
-    }
+    const onlineUsers = this.websocketGateway.getOnlineUserCount();
 
     return {
       activeSchedules,

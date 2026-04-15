@@ -17,6 +17,14 @@ export function utcStartOfDay(date: Date): Date {
   );
 }
 
+/** Formats a Date as dd.mm.yyyy using UTC components. */
+export function formatUtcDateDDMMYYYY(date: Date): string {
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const yyyy = date.getUTCFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+}
+
 /** Returns a new Date at UTC end-of-day (23:59:59.999) on the same UTC calendar day. */
 export function utcEndOfDay(date: Date): Date {
   return new Date(

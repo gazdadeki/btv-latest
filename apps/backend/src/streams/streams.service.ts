@@ -1,14 +1,20 @@
 import {
   Injectable,
   BadRequestException,
+  Inject,
   Logger,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Not, Repository } from 'typeorm';
 import { Stream, StreamStatus } from './entities/stream.entity';
 import { FirebaseService } from '../firebase/firebase.service';
 import { NotificationType } from '../firebase/entities/notification-history.entity';
+import { GameCancellationService } from '../games/game-cancellation.service';
+import { WebsocketService } from '../websocket/websocket.service';
+import { WebsocketEvents } from '../websocket/events';
+import { formatUtcDateDDMMYYYY } from '../common/date.utils';
 
 @Injectable()
 export class StreamsService {
@@ -18,6 +24,10 @@ export class StreamsService {
     @InjectRepository(Stream)
     private streamRepository: Repository<Stream>,
     private firebaseService: FirebaseService,
+    @Inject(forwardRef(() => GameCancellationService))
+    private gameCancellationService: GameCancellationService,
+    @Inject(forwardRef(() => WebsocketService))
+    private websocketService: WebsocketService,
   ) {}
 
   async findAll(): Promise<Stream[]> {
@@ -94,7 +104,7 @@ export class StreamsService {
       );
     }
     const now = new Date();
-    const dateStr = `${now.getUTCDate().toString().padStart(2, '0')}.${(now.getUTCMonth() + 1).toString().padStart(2, '0')}.${now.getUTCFullYear()}`;
+    const dateStr = formatUtcDateDDMMYYYY(now);
     stream.title = title?.trim() || `Let's GO - ${dateStr}`;
     stream.url = url;
     stream.status = StreamStatus.LIVE;
@@ -114,6 +124,13 @@ export class StreamsService {
         this.logger.error('Failed to send stream start notification', err);
       });
 
+    this.websocketService.broadcast(WebsocketEvents.StreamStarted, {
+      streamId: saved.id,
+      title: saved.title,
+      url: saved.url,
+      scheduleId: saved.scheduleId,
+    });
+
     return saved;
   }
 
@@ -130,6 +147,19 @@ export class StreamsService {
     }
     await this.streamRepository.update(streamId, {
       status: StreamStatus.ENDED,
+    });
+
+    // Immediately cancel CREATED/OPEN games from this ended stream (with refunds)
+    const cancelledCount =
+      await this.gameCancellationService.cancelGamesForEndedStreams();
+    if (cancelledCount > 0) {
+      this.logger.log(
+        `Cancelled ${cancelledCount} game(s) from ended stream #${streamId}`,
+      );
+    }
+
+    this.websocketService.broadcast(WebsocketEvents.StreamEnded, {
+      streamId,
     });
   }
 
@@ -179,7 +209,7 @@ export class StreamsService {
     }
 
     const now = new Date();
-    const dateStr = `${now.getUTCDate().toString().padStart(2, '0')}.${(now.getUTCMonth() + 1).toString().padStart(2, '0')}.${now.getUTCFullYear()}`;
+    const dateStr = formatUtcDateDDMMYYYY(now);
     const stream = manager.create(Stream, {
       scheduleId,
       status: StreamStatus.PENDING,

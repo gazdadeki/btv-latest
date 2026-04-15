@@ -179,6 +179,7 @@ export class GameBulkWriteService {
           reservedByUserId: config.preAssignedUserId || null,
           isPreAssigned: hasPreAssignedUser,
           preAssignedUserId: config.preAssignedUserId || null,
+          isGoldOnly: config.isGoldOnly ?? false,
         });
       });
     }

@@ -10,6 +10,7 @@ import { Button } from "@/components/button";
 import { Tabs } from "@/components/tabs";
 import { StatusBadge } from "@/components/status-badge";
 import { UserSearchDialog } from "@/components/user-search-dialog";
+import { UserSearchInput } from "@/components/user-search-input";
 import { useConfirmAction } from "@/hooks/use-confirm-action";
 import {
   GAME_STATUS_COLORS,
@@ -36,6 +37,26 @@ export function GameDetailDialog({
   const [editMultiRes, setEditMultiRes] = useState(false);
   const [editReady, setEditReady] = useState(false);
   const { confirmAction, confirm, reset } = useConfirmAction();
+
+  const safeConfirm = (opts: {
+    title: string;
+    message: string;
+    variant?: "danger";
+    onConfirm: () => Promise<void>;
+  }) => {
+    confirm({
+      ...opts,
+      onConfirm: async () => {
+        try {
+          await opts.onConfirm();
+        } catch (err) {
+          toastError(err);
+        } finally {
+          reset();
+        }
+      },
+    });
+  };
   const [slotAssign, setSlotAssign] = useState<{
     gameId: number;
     slotId: number;
@@ -102,123 +123,105 @@ export function GameDetailDialog({
 
   const handleShuffle = () => {
     if (!game) return;
-    confirm({
+    safeConfirm({
       title: "Shuffle Players",
       message:
         "Shuffle players? This will randomly reassign non-admin players, excluding admin slots and gold-only slots.",
       onConfirm: async () => {
-        try {
-          await api.shufflePlayers(game.id);
-          toast.success("Players shuffled");
-          mutated();
-          reset();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        await api.shufflePlayers(game.id);
+        toast.success("Players shuffled");
+        mutated();
       },
     });
   };
 
   const handleKick = (slotId: number) => {
     if (!game) return;
-    confirm({
+    safeConfirm({
       title: "Remove User",
       message: "Remove user from this slot?",
       variant: "danger",
       onConfirm: async () => {
-        try {
-          await api.kickUserFromSlot(game.id, slotId);
-          toast.success("User removed");
-          mutated();
-          reset();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        await api.kickUserFromSlot(game.id, slotId);
+        toast.success("User removed");
+        mutated();
       },
     });
   };
 
   const handleAssignUser = (user: { id: number; email: string }) => {
     if (!slotAssign) return;
-    confirm({
+    safeConfirm({
       title: "Assign User",
       message: `Assign ${user.email} (ID: ${user.id}) to this slot?`,
       onConfirm: async () => {
-        try {
-          await api.assignUserToSlot(
-            slotAssign.gameId,
-            slotAssign.slotId,
-            user.id,
-          );
-          toast.success("User assigned");
-          setSlotAssign(null);
-          reset();
-          mutated();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        await api.assignUserToSlot(
+          slotAssign.gameId,
+          slotAssign.slotId,
+          user.id,
+        );
+        toast.success("User assigned");
+        setSlotAssign(null);
+        mutated();
+      },
+    });
+  };
+
+  const handlePreAssign = (
+    slotId: number,
+    userId: number | null,
+    username: string | null,
+  ) => {
+    if (!game) return;
+    if (userId === null) return;
+    safeConfirm({
+      title: "Pre-assign User",
+      message: `Pre-assign ${username || `User #${userId}`} to this slot? This will reserve the slot for them.`,
+      onConfirm: async () => {
+        await api.preAssignSlot(game.id, slotId, userId);
+        toast.success("User pre-assigned");
+        mutated();
       },
     });
   };
 
   const handleConfirmReservation = (slotId: number) => {
     if (!game) return;
-    confirm({
+    safeConfirm({
       title: "Confirm Reservation",
       message:
         "Confirm this reservation? This bypasses the confirmation window and costs.",
       onConfirm: async () => {
-        try {
-          await api.confirmSlotReservation(game.id, slotId);
-          toast.success("Reservation confirmed");
-          mutated();
-          reset();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        await api.confirmSlotReservation(game.id, slotId);
+        toast.success("Reservation confirmed");
+        mutated();
       },
     });
   };
 
   const handleConfirmAll = () => {
     if (!game) return;
-    confirm({
+    safeConfirm({
       title: "Confirm All",
       message: "Confirm all reserved slots?",
       onConfirm: async () => {
-        try {
-          const res = await api.confirmAllSlots(game.id);
-          toast.success(`${res.confirmedCount} reservation(s) confirmed`);
-          mutated();
-          reset();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        const res = await api.confirmAllSlots(game.id);
+        toast.success(`${res.confirmedCount} reservation(s) confirmed`);
+        mutated();
       },
     });
   };
 
   const handleCancelAllConfirmations = () => {
     if (!game) return;
-    confirm({
+    safeConfirm({
       title: "Cancel All Confirmations",
       message: "Cancel all confirmations?",
       variant: "danger",
       onConfirm: async () => {
-        try {
-          const res = await api.cancelAllConfirmations(game.id);
-          toast.success(`${res.cancelledCount} confirmation(s) cancelled`);
-          mutated();
-          reset();
-        } catch (err) {
-          toastError(err);
-          reset();
-        }
+        const res = await api.cancelAllConfirmations(game.id);
+        toast.success(`${res.cancelledCount} confirmation(s) cancelled`);
+        mutated();
       },
     });
   };
@@ -408,21 +411,15 @@ export function GameDetailDialog({
                 <Button
                   variant="secondary"
                   onClick={() => {
-                    confirm({
+                    safeConfirm({
                       title: "Remake Game",
                       message:
                         "Reset this game back to OPEN? All reservations will be kept.",
                       onConfirm: async () => {
-                        try {
-                          await api.remakeGame(game.id);
-                          toast.success("Game remade — back to OPEN");
-                          handleClose();
-                          mutated();
-                          reset();
-                        } catch (err) {
-                          toastError(err);
-                          reset();
-                        }
+                        await api.remakeGame(game.id);
+                        toast.success("Game remade — back to OPEN");
+                        handleClose();
+                        mutated();
                       },
                     });
                   }}
@@ -464,7 +461,17 @@ export function GameDetailDialog({
                     .sort((a, b) => a.slotNumber - b.slotNumber)
                     .map((slot) => (
                       <tr key={slot.id}>
-                        <td className="px-3 py-2">{slot.slotNumber}</td>
+                        <td className="px-3 py-2">
+                          <span className="flex items-center gap-1">
+                            {slot.slotNumber}
+                            {slot.isGoldOnly && !editMultiRes && (
+                              <i
+                                className="fas fa-star text-amber-500 text-xs"
+                                title="Gold Only"
+                              />
+                            )}
+                          </span>
+                        </td>
                         <td className="px-3 py-2">
                           <span
                             className={
@@ -484,18 +491,42 @@ export function GameDetailDialog({
                           </span>
                         </td>
                         <td className="px-3 py-2">
-                          {slot.reservedByUser?.username ||
-                            slot.reservedByUser?.email ||
-                            (slot.reservedByUserId
-                              ? `User #${slot.reservedByUserId}`
-                              : "None")}
+                          <span className="flex items-center gap-1">
+                            {slot.reservedByUser?.username ||
+                              slot.reservedByUser?.email ||
+                              (slot.reservedByUserId
+                                ? `User #${slot.reservedByUserId}`
+                                : "None")}
+                            {slot.reservedByUser?.subscriptionTier ===
+                              "GOLD" && (
+                              <i
+                                className="fas fa-coins text-amber-500 text-xs"
+                                title="Gold Member"
+                              />
+                            )}
+                          </span>
                         </td>
                         <td className="px-3 py-2">
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-xs ${slot.isPreAssigned ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}
-                          >
-                            {slot.isPreAssigned ? "Yes" : "No"}
-                          </span>
+                          {!slot.isReserved && isModifiable ? (
+                            <UserSearchInput
+                              value={slot.preAssignedUserId}
+                              displayName={
+                                slot.preAssignedUser?.username ||
+                                (slot.preAssignedUserId
+                                  ? `User #${slot.preAssignedUserId}`
+                                  : undefined)
+                              }
+                              onChange={(userId, username) =>
+                                handlePreAssign(slot.id, userId, username)
+                              }
+                            />
+                          ) : (
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-xs ${slot.isPreAssigned ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}
+                            >
+                              {slot.isPreAssigned ? "YES" : "NO"}
+                            </span>
+                          )}
                         </td>
                         <td className="px-3 py-2">
                           <div className="flex gap-1">

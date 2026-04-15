@@ -6,7 +6,13 @@ export interface Slot {
   reservedByUserId: number | null;
   isPreAssigned: boolean;
   preAssignedUserId: number | null;
-  reservedByUser?: { email: string; username: string };
+  isGoldOnly: boolean;
+  reservedByUser?: {
+    email: string;
+    username: string;
+    subscriptionTier?: string;
+  };
+  preAssignedUser?: { email: string; username: string };
 }
 
 export interface Reservation {

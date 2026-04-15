@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { wsManager } from "@/lib/websocket";
 import { useAuth } from "@/lib/auth-context";
+import { MESSAGES, LIMITS } from "@/lib/constants";
 import { Loading } from "@/components/loading";
 import { ErrorDisplay } from "@/components/error-display";
 import { Button } from "@/components/button";
@@ -30,6 +31,7 @@ import {
   gameIsInProgress,
   gameIsFinished,
   gameIsCancelled,
+  isGold,
 } from "@/types";
 
 // ─── Confirm dialog ────────────────────────────────────────────────────────────
@@ -81,6 +83,8 @@ function ConfirmDialog({
 function SlotCard({
   slot,
   userId,
+  isGoldUser,
+  restrictionsLifted,
   hasActiveReservation,
   locked,
   onReserve,
@@ -89,6 +93,8 @@ function SlotCard({
 }: {
   slot: Slot;
   userId?: number;
+  isGoldUser: boolean;
+  restrictionsLifted: boolean;
   hasActiveReservation: boolean;
   locked: boolean;
   onReserve: () => void;
@@ -97,6 +103,7 @@ function SlotCard({
 }) {
   const isOwn = !!userId && slot.reservedByUserId === userId;
   const isPending = slotIsPending(slot);
+  const showGoldOnly = slot.isGoldOnly && !restrictionsLifted;
   const isConfirmed = slotIsConfirmed(slot);
 
   const cardBg = isOwn
@@ -119,19 +126,22 @@ function SlotCard({
                   ? "bg-green-500"
                   : "bg-blue-500"
                 : slot.isReserved
-                  ? "bg-gray-400"
-                  : "bg-indigo-600",
+                  ? slot.reservedByRole === "admin"
+                    ? "bg-red-500"
+                    : "bg-gray-400"
+                  : showGoldOnly
+                    ? "bg-amber-500"
+                    : "bg-indigo-600",
             )}
           >
             {slot.slotNumber}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-800">
-              Position {slot.slotNumber}
-            </p>
-            <p className="text-xs text-gray-500">
-              Team: {TEAM_DISPLAY[slot.team]}
-            </p>
+            {!slot.isReserved && (
+              <p className="text-sm font-medium text-gray-400">
+                Position {slot.slotNumber}
+              </p>
+            )}
             {slot.isReserved && (
               <>
                 {isOwn ? (
@@ -143,14 +153,16 @@ function SlotCard({
                   >
                     {isPending ? "Pending Confirmation" : "Confirmed"}
                   </p>
-                ) : (
-                  <p className="text-xs font-bold text-red-500">Occupied</p>
-                )}
+                ) : null}
                 {slot.reservedByUsername && (
                   <p
                     className={cn(
-                      "text-xs",
-                      isOwn ? "text-blue-700 font-bold" : "text-gray-500",
+                      "text-sm font-semibold",
+                      isOwn
+                        ? "text-blue-700"
+                        : slot.reservedByRole === "admin"
+                          ? "text-red-600"
+                          : "text-gray-600",
                     )}
                   >
                     {isOwn ? "Your slot" : slot.reservedByUsername}
@@ -163,9 +175,7 @@ function SlotCard({
 
         <div className="flex gap-1.5 flex-shrink-0">
           {locked ? (
-            slot.isReserved && !isOwn ? (
-              <span className="text-xs text-gray-400 py-1.5">Occupied</span>
-            ) : !slot.isReserved ? (
+            !slot.isReserved ? (
               <span className="text-xs text-gray-400 py-1.5">Locked</span>
             ) : null
           ) : (
@@ -180,19 +190,22 @@ function SlotCard({
                   Leave
                 </Button>
               )}
-              {!slot.isReserved && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={onReserve}
-                  disabled={hasActiveReservation}
-                >
-                  Reserve
-                </Button>
-              )}
-              {slot.isReserved && !isOwn && (
-                <span className="text-xs text-gray-400 py-1.5">Occupied</span>
-              )}
+              {!slot.isReserved &&
+                (showGoldOnly && !isGoldUser ? (
+                  <span className="text-xs text-amber-600 py-1.5 flex items-center gap-1">
+                    <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                    Gold Only
+                  </span>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={onReserve}
+                    disabled={hasActiveReservation}
+                  >
+                    Reserve
+                  </Button>
+                ))}
             </>
           )}
         </div>
@@ -262,7 +275,10 @@ function DetailsTab({ game }: { game: Game }) {
 function SlotsTab({
   game,
   userId,
+  isGoldUser,
   hasActiveReservation,
+  atReservationLimit,
+  tooCloseToExisting,
   locked,
   onReserve,
   onConfirm,
@@ -270,7 +286,10 @@ function SlotsTab({
 }: {
   game: Game;
   userId?: number;
+  isGoldUser: boolean;
   hasActiveReservation: boolean;
+  atReservationLimit: boolean;
+  tooCloseToExisting: boolean;
   locked: boolean;
   onReserve: (slotId: number, team: Team) => void;
   onConfirm: (slot: Slot) => void;
@@ -286,7 +305,10 @@ function SlotsTab({
   const renderTeam = (slots: Slot[], label: string, colorClass: string) => (
     <div className="mb-4">
       <h3
-        className={cn("text-sm font-bold mb-2 pb-1.5 border-b-2", colorClass)}
+        className={cn(
+          "text-base font-extrabold uppercase tracking-wide mb-2 pb-1.5 border-b-2",
+          colorClass,
+        )}
       >
         {label}
       </h3>
@@ -295,6 +317,8 @@ function SlotsTab({
           key={slot.id}
           slot={slot}
           userId={userId}
+          isGoldUser={isGoldUser}
+          restrictionsLifted={!!game.allowMultipleReservations}
           hasActiveReservation={hasActiveReservation}
           locked={locked}
           onReserve={() => onReserve(slot.id, slot.team)}
@@ -320,8 +344,13 @@ function SlotsTab({
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 flex items-start gap-2">
           <Info className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
           <p className="text-xs text-orange-700">
-            You already have an active reservation. You can view slots but
-            cannot reserve a new one.
+            {tooCloseToExisting
+              ? MESSAGES.reservation.tooClose
+              : atReservationLimit
+                ? isGoldUser
+                  ? MESSAGES.reservation.goldAtLimit
+                  : MESSAGES.reservation.freeAtLimit
+                : MESSAGES.reservation.cannotReserve}
           </p>
         </div>
       )}
@@ -366,15 +395,40 @@ export default function GameDetailsPage({
     queryFn: api.getMyReservations,
   });
 
-  const hasActiveReservation =
+  const isUserGold = !!user && isGold(user);
+  const maxReservations = isUserGold
+    ? LIMITS.GOLD_MAX_RESERVATIONS
+    : LIMITS.FREE_MAX_RESERVATIONS;
+
+  const activeStreamReservations = myReservations.filter(
+    (r) =>
+      reservationIsActive(r) &&
+      r.gameId !== gameId &&
+      r.game?.streamId != null &&
+      r.game.streamId === game?.streamId &&
+      !r.game.allowMultipleReservations,
+  );
+
+  const atReservationLimit =
     !game?.allowMultipleReservations &&
-    myReservations.some(
+    activeStreamReservations.length >= maxReservations;
+
+  const tooCloseToExisting =
+    !game?.allowMultipleReservations &&
+    isUserGold &&
+    game?.gameIndex != null &&
+    activeStreamReservations.some(
       (r) =>
-        reservationIsActive(r) &&
-        r.gameId !== gameId &&
-        r.game?.streamId != null &&
-        r.game.streamId === game?.streamId,
+        r.game?.gameIndex != null &&
+        Math.abs(r.game.gameIndex - game.gameIndex!) < LIMITS.GOLD_MIN_GAME_GAP,
     );
+
+  const hasSlotInThisGame =
+    !!user &&
+    !!game?.slots?.some((s) => s.isReserved && s.reservedByUserId === user.id);
+
+  const hasActiveReservation =
+    hasSlotInThisGame || atReservationLimit || tooCloseToExisting;
 
   // Join/leave WebSocket event room
   useEffect(() => {
@@ -395,6 +449,8 @@ export default function GameDetailsPage({
       wsManager.on("slot:availability_changed", invalidateGameAndReservations),
       wsManager.on("game:status_changed", invalidateGame),
       wsManager.on("game:updated", invalidateGame),
+      wsManager.on("reservation:confirmed", invalidateGameAndReservations),
+      wsManager.on("reservation:cancelled", invalidateGameAndReservations),
     ];
     return () => offs.forEach((off) => off());
   }, [gameId, queryClient]);
@@ -499,11 +555,20 @@ export default function GameDetailsPage({
           <SlotsTab
             game={game}
             userId={user?.id}
+            isGoldUser={isUserGold}
             hasActiveReservation={hasActiveReservation}
+            atReservationLimit={atReservationLimit}
+            tooCloseToExisting={tooCloseToExisting}
             locked={slotsLocked}
             onReserve={(slotId, team) => {
               if (hasActiveReservation) {
-                toast.warning("You already have an active reservation");
+                toast.warning(
+                  hasSlotInThisGame
+                    ? MESSAGES.reservation.toastAlreadyInGame
+                    : tooCloseToExisting
+                      ? MESSAGES.reservation.toastTooClose
+                      : MESSAGES.reservation.toastAtLimit,
+                );
                 return;
               }
               setDialog({ type: "reserve", slotId, team });

@@ -383,7 +383,7 @@ export class AuthService {
         ipAddress,
         userAgent,
       });
-      throw new ForbiddenException('Validation failed');
+      throw new ForbiddenException('Access restricted to administrators');
     }
 
     this.logger.debug(

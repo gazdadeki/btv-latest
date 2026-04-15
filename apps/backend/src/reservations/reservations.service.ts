@@ -11,7 +11,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { Reservation, ReservationStatus } from './entities/reservation.entity';
 import { Slot, Team } from '../games/entities/slot.entity';
 import { Game, GameStatus } from '../games/entities/game.entity';
@@ -21,6 +21,7 @@ import { ConfigService } from '../config/config.service';
 import { AuditService } from '../audit/audit.service';
 import { WebsocketService } from '../websocket/websocket.service';
 import { StatisticsService } from '../statistics/statistics.service';
+import { clearSlotAssignment } from '../common/reservation.utils';
 
 @Injectable()
 export class ReservationsService {
@@ -168,6 +169,54 @@ export class ReservationsService {
         );
       }
 
+      // Same-game duplicate guard — always enforced, no exceptions
+      if (!isAdminAction) {
+        const existingReservation = await queryRunner.manager.findOne(
+          Reservation,
+          {
+            where: {
+              userId,
+              gameId,
+              status: In([
+                ReservationStatus.RESERVED,
+                ReservationStatus.CONFIRMED,
+              ]),
+            },
+          },
+        );
+        if (existingReservation) {
+          throw new BadRequestException(
+            'You already have a reservation in this game',
+          );
+        }
+
+        // Also check slot-level assignment (safety net for pre-assigned slots)
+        const existingSlot = await queryRunner.manager.findOne(Slot, {
+          where: {
+            gameId,
+            reservedByUserId: userId,
+            isReserved: true,
+          },
+        });
+        if (existingSlot) {
+          throw new BadRequestException(
+            'You already have a reservation in this game',
+          );
+        }
+      }
+
+      // Slot-level gold restriction (bypassed for unrestricted games)
+      if (
+        !isAdminAction &&
+        !game.allowMultipleReservations &&
+        slot.isGoldOnly &&
+        user.subscriptionTier !== SubscriptionTier.GOLD
+      ) {
+        throw new ForbiddenException(
+          'This slot is exclusive to Gold subscribers',
+        );
+      }
+
       // Reservation limit and adjacency checks (inside transaction for consistency)
       if (!isAdminAction && !game.allowMultipleReservations) {
         const countQuery = queryRunner.manager
@@ -187,6 +236,11 @@ export class ReservationsService {
               GameStatus.IN_PROGRESS,
             ],
           });
+
+        // Exclude unrestricted games from the count
+        countQuery.andWhere('game.allowMultipleReservations = :restricted', {
+          restricted: false,
+        });
 
         if (game.streamId != null) {
           countQuery.andWhere('game.streamId = :streamId', {
@@ -234,6 +288,9 @@ export class ReservationsService {
                 GameStatus.OPEN,
                 GameStatus.IN_PROGRESS,
               ],
+            })
+            .andWhere('streamGame.allowMultipleReservations = :restricted', {
+              restricted: false,
             })
             .select('streamGame.gameIndex', 'gameIndex')
             .getRawMany();
@@ -372,12 +429,26 @@ export class ReservationsService {
     // Confirmation cost is always 0 now
     const confirmationCost = 0;
 
-    reservation.status = ReservationStatus.CONFIRMED;
-    reservation.confirmedAt = new Date();
-    reservation.confirmationCostPaid = confirmationCost;
-    // Total cost remains the same since confirmation is free
-    reservation.totalCostPaid = reservation.reservationCostPaid;
-    const updated = await this.reservationRepository.save(reservation);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    let updated: Reservation;
+    try {
+      reservation.status = ReservationStatus.CONFIRMED;
+      reservation.confirmedAt = new Date();
+      reservation.confirmationCostPaid = confirmationCost;
+      // Total cost remains the same since confirmation is free
+      reservation.totalCostPaid = reservation.reservationCostPaid;
+      updated = await queryRunner.manager.save(reservation);
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
 
     await this.websocketService.broadcast('reservation:confirmed', {
       reservationId,
@@ -428,21 +499,35 @@ export class ReservationsService {
       relations: ['wallet'],
     });
 
-    if (refundAmount > 0) {
-      await this.walletService.deposit(
-        user.wallet.id,
-        refundAmount,
-        `Refund for cancelled reservation ${reservationId}`,
-      );
+    // Wrap refund + reservation update + slot update in a transaction
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      if (refundAmount > 0) {
+        await this.walletService.deposit(
+          user.wallet.id,
+          refundAmount,
+          `Refund for cancelled reservation ${reservationId}`,
+          queryRunner.manager,
+        );
+      }
+
+      reservation.status = ReservationStatus.CANCELLED;
+      reservation.cancelledAt = new Date();
+      await queryRunner.manager.save(reservation);
+
+      clearSlotAssignment(reservation.slot);
+      await queryRunner.manager.save(reservation.slot);
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    reservation.status = ReservationStatus.CANCELLED;
-    reservation.cancelledAt = new Date();
-    await this.reservationRepository.save(reservation);
-
-    reservation.slot.isReserved = false;
-    reservation.slot.reservedByUserId = null;
-    await this.slotRepository.save(reservation.slot);
 
     await this.websocketService.broadcast('reservation:cancelled', {
       reservationId,

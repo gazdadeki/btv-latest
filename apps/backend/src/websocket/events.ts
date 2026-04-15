@@ -18,6 +18,8 @@ export const WebsocketEvents = {
   ReservationConfirmed: 'reservation:confirmed',
   ReservationCancelled: 'reservation:cancelled',
   ReservationStatusChanged: 'reservation:status_changed',
+  StreamStarted: 'stream:started',
+  StreamEnded: 'stream:ended',
   MessageNew: 'message:new',
 } as const;
 
@@ -97,4 +99,15 @@ export interface ReservationStatusChangedPayload {
   reservationId: number;
   gameId: number;
   status: ReservationStatus;
+}
+
+export interface StreamStartedPayload {
+  streamId: number;
+  title: string;
+  url: string;
+  scheduleId: number;
+}
+
+export interface StreamEndedPayload {
+  streamId: number;
 }

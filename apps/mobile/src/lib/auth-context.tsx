@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 // Session restore logic translated from Mobile/lib/providers/auth_provider.dart
 // AuthNotifier._loadUser() pattern exactly preserved.
@@ -10,10 +10,11 @@ import {
   useEffect,
   useState,
   type ReactNode,
-} from 'react';
-import { api } from './api';
-import { AuthUtils } from './auth';
-import type { User } from '@/types';
+} from "react";
+import { api } from "./api";
+import { AuthUtils } from "./auth";
+import { wsManager } from "./websocket";
+import type { User } from "@/types";
 
 interface AuthContextValue {
   user: User | null;
@@ -22,7 +23,11 @@ interface AuthContextValue {
   isVerified: boolean;
   isBanned: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (email: string, username: string, password: string) => Promise<User>;
+  register: (
+    email: string,
+    username: string,
+    password: string,
+  ) => Promise<User>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   setUser: (user: User | null) => void;
@@ -34,8 +39,12 @@ const AuthContext = createContext<AuthContextValue>({
   isAuthenticated: false,
   isVerified: false,
   isBanned: false,
-  login: async () => { throw new Error('AuthProvider not mounted'); },
-  register: async () => { throw new Error('AuthProvider not mounted'); },
+  login: async () => {
+    throw new Error("AuthProvider not mounted");
+  },
+  register: async () => {
+    throw new Error("AuthProvider not mounted");
+  },
   logout: async () => {},
   refreshUser: async () => {},
   setUser: () => {},
@@ -60,8 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Optimistically show cached user while verifying
     setUser(cachedUser);
 
-    api.getMe()
-      .then(freshUser => {
+    api
+      .getMe()
+      .then((freshUser) => {
         setUser(freshUser);
         AuthUtils.setUserCookie(freshUser);
       })
@@ -72,21 +82,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<User> => {
-    const loggedInUser = await api.login(email, password);
-    AuthUtils.setUserCookie(loggedInUser);
-    setUser(loggedInUser);
-    return loggedInUser;
-  }, []);
+  const login = useCallback(
+    async (email: string, password: string): Promise<User> => {
+      const loggedInUser = await api.login(email, password);
+      AuthUtils.setUserCookie(loggedInUser);
+      setUser(loggedInUser);
+      return loggedInUser;
+    },
+    [],
+  );
 
-  const register = useCallback(async (email: string, username: string, password: string): Promise<User> => {
-    const newUser = await api.register(email, username, password);
-    AuthUtils.setUserCookie(newUser);
-    setUser(newUser);
-    return newUser;
-  }, []);
+  const register = useCallback(
+    async (
+      email: string,
+      username: string,
+      password: string,
+    ): Promise<User> => {
+      const newUser = await api.register(email, username, password);
+      AuthUtils.setUserCookie(newUser);
+      setUser(newUser);
+      return newUser;
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
+    wsManager.disconnect();
     await api.logout();
     AuthUtils.clearAuth();
     setUser(null);

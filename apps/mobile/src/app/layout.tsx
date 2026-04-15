@@ -1,23 +1,23 @@
-import type { Metadata, Viewport } from 'next';
-import { Toaster } from 'sonner';
-import './globals.css';
+import type { Metadata, Viewport } from "next";
+import { Toaster } from "sonner";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'BaltazarTV',
-  description: 'BaltazarTV Player App',
-  manifest: '/manifest.json',
+  title: "BaltazarTV",
+  description: "BaltazarTV Player App",
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
-    title: 'BaltazarTV',
+    statusBarStyle: "default",
+    title: "BaltazarTV",
   },
 };
 
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
-  viewportFit: 'cover',
-  themeColor: '#4f46e5',
+  viewportFit: "cover",
+  themeColor: "#4f46e5",
 };
 
 export default function RootLayout({
@@ -36,7 +36,14 @@ export default function RootLayout({
       </head>
       <body className="antialiased bg-gray-50 font-[Source_Sans_Pro,sans-serif]">
         {children}
-        <Toaster richColors position="top-center" />
+        <Toaster
+          richColors
+          position="top-center"
+          closeButton
+          swipeToDismiss
+          duration={3000}
+          mobileOffset={16}
+        />
       </body>
     </html>
   );

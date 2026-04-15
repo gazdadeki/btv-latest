@@ -53,6 +53,9 @@ export class Slot {
   @Column({ nullable: true })
   preAssignedUserId: number | null;
 
+  @Column({ default: false })
+  isGoldOnly: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -64,6 +67,9 @@ export class Slot {
 
   @ManyToOne(() => User, { nullable: true })
   reservedByUser: User | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  preAssignedUser: User | null;
 
   @OneToOne(() => Reservation, (reservation) => reservation.slot, {
     nullable: true,

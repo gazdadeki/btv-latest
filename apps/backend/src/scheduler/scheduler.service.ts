@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventGenerationService } from './event-generation.service';
 import { ConfirmationCheckerService } from './confirmation-checker.service';
 
 @Injectable()
-export class SchedulerService {
+export class SchedulerService implements OnModuleInit {
   private readonly logger = new Logger(SchedulerService.name);
   private readonly lockOwner = (() => {
     const host = process.env.HOSTNAME || 'unknown-host';
@@ -13,10 +13,10 @@ export class SchedulerService {
   })();
   private readonly lockTtlSeconds = (() => {
     const rawValue = Number.parseInt(
-      process.env.SCHEDULER_LOCK_TTL_SECONDS || '1800',
+      process.env.SCHEDULER_LOCK_TTL_SECONDS || '120',
       10,
     );
-    return Number.isFinite(rawValue) && rawValue > 0 ? rawValue : 1800;
+    return Number.isFinite(rawValue) && rawValue > 0 ? rawValue : 120;
   })();
 
   // Cron execution status tracking
@@ -30,6 +30,25 @@ export class SchedulerService {
     private confirmationCheckerService: ConfirmationCheckerService,
     private dataSource: DataSource,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    try {
+      const result = await this.dataSource.query(
+        'UPDATE `scheduler_locks` SET `locked_until` = NOW(6), `updated_at` = NOW(6) WHERE `locked_by` != ?',
+        [this.lockOwner],
+      );
+      const cleared = result?.affectedRows ?? result?.[0]?.affectedRows ?? 0;
+      if (cleared > 0) {
+        this.logger.warn(
+          `Cleared ${cleared} stale scheduler lock(s) from previous process`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to clear stale locks: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
 
   @Cron(CronExpression.EVERY_MINUTE)
   async handleEventGeneration() {

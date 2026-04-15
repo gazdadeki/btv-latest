@@ -20,6 +20,6 @@ import { MessagesModule } from '../messages/messages.module';
     forwardRef(() => MessagesModule),
   ],
   providers: [WebsocketGateway, WebsocketService],
-  exports: [WebsocketService],
+  exports: [WebsocketService, WebsocketGateway],
 })
 export class WebsocketModule {}
