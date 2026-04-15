@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get("admin_access_token");
+  const token = request.cookies.get("admin_access_token")?.value?.trim();
+  const userCookie = request.cookies.get("admin_user")?.value?.trim();
+  const isAuthenticated = !!token && !!userCookie;
   const isLoginPage = request.nextUrl.pathname === "/admin/login";
 
-  if (!token && !isLoginPage) {
+  if (!isAuthenticated && !isLoginPage) {
     return NextResponse.redirect(new URL("/admin/login", request.url));
   }
 
-  const userCookie = request.cookies.get("admin_user");
-  if (token && userCookie && isLoginPage) {
+  if (isAuthenticated && isLoginPage) {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
 
@@ -17,5 +18,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/((?!_next|favicon).*)"],
+  matcher: ["/admin", "/admin/((?!_next|favicon).*)"],
 };

@@ -20,6 +20,7 @@ export function buildZeroCostReservation(fields: {
   userId: number;
   gameId: number;
 }): Partial<Reservation> {
+  const now = new Date();
   return {
     slotId: fields.slotId,
     userId: fields.userId,
@@ -30,8 +31,8 @@ export function buildZeroCostReservation(fields: {
     totalCostPaid: 0,
     discountApplied: 0,
     originalCost: 0,
-    reservedAt: new Date(),
-    confirmedAt: new Date(),
+    reservedAt: now,
+    confirmedAt: now,
   };
 }
 

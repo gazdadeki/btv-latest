@@ -563,9 +563,11 @@ export default function GameDetailsPage({
             onReserve={(slotId, team) => {
               if (hasActiveReservation) {
                 toast.warning(
-                  tooCloseToExisting
-                    ? MESSAGES.reservation.toastTooClose
-                    : MESSAGES.reservation.toastAtLimit,
+                  hasSlotInThisGame
+                    ? MESSAGES.reservation.toastAlreadyInGame
+                    : tooCloseToExisting
+                      ? MESSAGES.reservation.toastTooClose
+                      : MESSAGES.reservation.toastAtLimit,
                 );
                 return;
               }

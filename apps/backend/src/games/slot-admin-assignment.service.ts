@@ -140,6 +140,9 @@ export class SlotAdminAssignmentService {
         where: { id: slot.id },
         relations: ['preAssignedUser', 'reservedByUser'],
       });
+      if (!loaded) {
+        throw new BadRequestException('Slot not found after save');
+      }
 
       await this.auditService.log({
         userId: adminId,
@@ -155,7 +158,7 @@ export class SlotAdminAssignmentService {
         slotId,
       });
 
-      return loaded!;
+      return loaded;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -243,50 +246,51 @@ export class SlotAdminAssignmentService {
       checkCancelled: false,
     });
 
-    const slot = await this.slotRepository.findOne({
-      where: { id: slotId, gameId: game.id },
-    });
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!slot) {
-      throw new BadRequestException('Slot not found');
-    }
+    try {
+      const slot = await queryRunner.manager.findOne(Slot, {
+        where: { id: slotId, gameId: game.id },
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    if (!slot.isReserved) {
-      throw new BadRequestException('Slot is not reserved');
-    }
+      if (!slot) {
+        throw new BadRequestException('Slot not found');
+      }
 
-    // Find the active reservation directly — don't rely on @OneToOne which
-    // can pick up a stale cancelled reservation when a slot has been re-reserved
-    const activeReservation = await this.reservationRepository.findOne({
-      where: {
-        slotId,
+      if (!slot.isReserved) {
+        throw new BadRequestException('Slot is not reserved');
+      }
+
+      await cancelActiveReservation(queryRunner.manager, slotId, game.id);
+
+      clearSlotAssignment(slot);
+      await queryRunner.manager.save(slot);
+
+      await queryRunner.commitTransaction();
+
+      await this.auditService.log({
+        userId: adminId,
+        action: 'SLOT_USER_REMOVED',
+        entityType: 'Slot',
+        entityId: slotId.toString(),
+        details: { gameId: game.id },
+      });
+
+      this.websocketService.broadcast(WebsocketEvents.SlotAvailabilityChanged, {
         gameId: game.id,
-        status: In([...ACTIVE_RESERVATION_STATUSES]),
-      },
-    });
-    if (activeReservation) {
-      activeReservation.status = ReservationStatus.CANCELLED;
-      activeReservation.cancelledAt = new Date();
-      await this.reservationRepository.save(activeReservation);
+        slotId,
+      });
+
+      return slot;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    clearSlotAssignment(slot);
-    const updated = await this.slotRepository.save(slot);
-
-    await this.auditService.log({
-      userId: adminId,
-      action: 'SLOT_USER_REMOVED',
-      entityType: 'Slot',
-      entityId: slotId.toString(),
-      details: { gameId: game.id },
-    });
-
-    this.websocketService.broadcast(WebsocketEvents.SlotAvailabilityChanged, {
-      gameId: game.id,
-      slotId,
-    });
-
-    return updated;
   }
 
   async confirmSlotReservation(

@@ -234,6 +234,9 @@ export class GamesController {
   @ApiOperation({ summary: 'Pre-assign or clear pre-assignment on a slot' })
   @ApiResponse({ status: 200, description: 'Pre-assignment updated' })
   @ApiResponse({ status: 400, description: 'Slot is already reserved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Game or slot not found' })
   async preAssignSlot(
     @Param('id') id: string,
     @Param('slotId') slotId: string,

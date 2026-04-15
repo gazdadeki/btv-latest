@@ -124,7 +124,7 @@ export class StreamsService {
         this.logger.error('Failed to send stream start notification', err);
       });
 
-    await this.websocketService.broadcast(WebsocketEvents.StreamStarted, {
+    this.websocketService.broadcast(WebsocketEvents.StreamStarted, {
       streamId: saved.id,
       title: saved.title,
       url: saved.url,
@@ -158,7 +158,7 @@ export class StreamsService {
       );
     }
 
-    await this.websocketService.broadcast(WebsocketEvents.StreamEnded, {
+    this.websocketService.broadcast(WebsocketEvents.StreamEnded, {
       streamId,
     });
   }

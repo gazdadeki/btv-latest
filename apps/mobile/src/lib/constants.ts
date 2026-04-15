@@ -39,5 +39,7 @@ export const MESSAGES = {
     toastTooClose: "This game is too close to your other reservation",
     /** Toast: reservation limit reached */
     toastAtLimit: "You've reached your reservation limit for this stream",
+    /** Toast: already has a slot in this game */
+    toastAlreadyInGame: "You already have a slot in this game",
   },
 } as const;
