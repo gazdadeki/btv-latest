@@ -1,13 +1,13 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { Game, GameStatus } from './entities/game.entity';
 import { Slot } from './entities/slot.entity';
 import {
   Reservation,
   ReservationStatus,
 } from '../reservations/entities/reservation.entity';
-import { User, UserRole } from '@/users/entities/user.entity';
+import { User, UserRole, SubscriptionTier } from '@/users/entities/user.entity';
 import { AuditService } from '../audit/audit.service';
 import { WebsocketService } from '../websocket/websocket.service';
 import { SlotConfigService } from '../schedules/slot-config.service';
@@ -27,6 +27,151 @@ export class SlotAdminAssignmentService {
     private slotConfigService: SlotConfigService,
     private dataSource: DataSource,
   ) {}
+
+  async preAssignSlot(
+    game: Game,
+    slotId: number,
+    userId: number | null,
+    adminId: number,
+  ): Promise<Slot> {
+    if (
+      game.status === GameStatus.FINISHED ||
+      game.status === GameStatus.CANCELLED
+    ) {
+      throw new BadRequestException(
+        'Cannot modify pre-assignments on finished or cancelled games',
+      );
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const slot = await queryRunner.manager.findOne(Slot, {
+        where: { id: slotId, gameId: game.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!slot) {
+        throw new BadRequestException('Slot not found');
+      }
+
+      if (slot.isReserved) {
+        throw new BadRequestException(
+          'Cannot change pre-assignment on a reserved slot',
+        );
+      }
+
+      if (userId !== null) {
+        const user = await queryRunner.manager.findOne(User, {
+          where: { id: userId },
+        });
+        if (!user) {
+          throw new BadRequestException('User not found');
+        }
+
+        // Prevent assigning free users to gold-only slots (unless game is unrestricted)
+        if (
+          slot.isGoldOnly &&
+          !game.allowMultipleReservations &&
+          user.subscriptionTier !== SubscriptionTier.GOLD &&
+          user.role !== UserRole.ADMIN
+        ) {
+          throw new BadRequestException(
+            'Cannot assign a free user to a gold-only slot',
+          );
+        }
+
+        // Check if user is already assigned to another slot in this game
+        const existingSlot = await queryRunner.manager.findOne(Slot, {
+          where: {
+            gameId: game.id,
+            reservedByUserId: userId,
+            isReserved: true,
+          },
+        });
+        if (existingSlot && existingSlot.id !== slotId) {
+          throw new BadRequestException(
+            'This user is already assigned to another slot in this game',
+          );
+        }
+
+        // Cancel any stale reservation on this slot
+        const staleReservation = await queryRunner.manager.findOne(
+          Reservation,
+          {
+            where: {
+              slotId,
+              gameId: game.id,
+              status: In([
+                ReservationStatus.RESERVED,
+                ReservationStatus.CONFIRMED,
+              ]),
+            },
+          },
+        );
+        if (staleReservation) {
+          staleReservation.status = ReservationStatus.CANCELLED;
+          staleReservation.cancelledAt = new Date();
+          await queryRunner.manager.save(staleReservation);
+        }
+
+        // Create a confirmed reservation at zero cost
+        const reservation = queryRunner.manager.create(Reservation, {
+          slotId,
+          userId,
+          gameId: game.id,
+          status: ReservationStatus.CONFIRMED,
+          reservationCostPaid: 0,
+          confirmationCostPaid: 0,
+          totalCostPaid: 0,
+          discountApplied: 0,
+          originalCost: 0,
+          reservedAt: new Date(),
+          confirmedAt: new Date(),
+        });
+        await queryRunner.manager.save(reservation);
+
+        slot.isPreAssigned = true;
+        slot.preAssignedUserId = userId;
+        slot.isReserved = true;
+        slot.reservedByUserId = userId;
+      } else {
+        slot.isPreAssigned = false;
+        slot.preAssignedUserId = null;
+      }
+
+      await queryRunner.manager.save(slot);
+      await queryRunner.commitTransaction();
+
+      const loaded = await this.slotRepository.findOne({
+        where: { id: slot.id },
+        relations: ['preAssignedUser', 'reservedByUser'],
+      });
+
+      await this.auditService.log({
+        userId: adminId,
+        action:
+          userId !== null ? 'SLOT_PRE_ASSIGNED' : 'SLOT_PRE_ASSIGNMENT_CLEARED',
+        entityType: 'Slot',
+        entityId: slotId.toString(),
+        details: { gameId: game.id, preAssignedUserId: userId },
+      });
+
+      this.websocketService.broadcast(WebsocketEvents.SlotAvailabilityChanged, {
+        gameId: game.id,
+        slotId,
+      });
+
+      return loaded!;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
 
   async assignUserToSlot(
     game: Game,
@@ -55,7 +200,6 @@ export class SlotAdminAssignmentService {
     try {
       const slot = await queryRunner.manager.findOne(Slot, {
         where: { id: slotId, gameId: game.id },
-        relations: ['reservation'],
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -67,19 +211,18 @@ export class SlotAdminAssignmentService {
         throw new BadRequestException('Slot is already reserved');
       }
 
-      if (slot.reservation) {
-        const existingReservation = await queryRunner.manager.findOne(
-          Reservation,
-          {
-            where: { id: slot.reservation.id },
-          },
-        );
-        if (existingReservation) {
-          existingReservation.status = ReservationStatus.CANCELLED;
-          existingReservation.cancelledAt = new Date();
-          await queryRunner.manager.save(existingReservation);
-        }
-        slot.reservation = null;
+      // Cancel any stale reservation on this slot
+      const staleReservation = await queryRunner.manager.findOne(Reservation, {
+        where: {
+          slotId,
+          gameId: game.id,
+          status: In([ReservationStatus.RESERVED, ReservationStatus.CONFIRMED]),
+        },
+      });
+      if (staleReservation) {
+        staleReservation.status = ReservationStatus.CANCELLED;
+        staleReservation.cancelledAt = new Date();
+        await queryRunner.manager.save(staleReservation);
       }
 
       const reservation = queryRunner.manager.create(Reservation, {
@@ -96,11 +239,10 @@ export class SlotAdminAssignmentService {
         confirmedAt: new Date(),
       });
 
-      const savedReservation = await queryRunner.manager.save(reservation);
+      await queryRunner.manager.save(reservation);
 
       slot.isReserved = true;
       slot.reservedByUserId = userId;
-      slot.reservation = savedReservation;
       const updated = await queryRunner.manager.save(slot);
 
       await queryRunner.commitTransaction();
@@ -138,7 +280,6 @@ export class SlotAdminAssignmentService {
 
     const slot = await this.slotRepository.findOne({
       where: { id: slotId, gameId: game.id },
-      relations: ['reservation'],
     });
 
     if (!slot) {
@@ -149,19 +290,25 @@ export class SlotAdminAssignmentService {
       throw new BadRequestException('Slot is not reserved');
     }
 
-    if (slot.reservation) {
-      const reservation = await this.reservationRepository.findOne({
-        where: { id: slot.reservation.id },
-      });
-      if (reservation) {
-        reservation.status = ReservationStatus.CANCELLED;
-        reservation.cancelledAt = new Date();
-        await this.reservationRepository.save(reservation);
-      }
+    // Find the active reservation directly — don't rely on @OneToOne which
+    // can pick up a stale cancelled reservation when a slot has been re-reserved
+    const activeReservation = await this.reservationRepository.findOne({
+      where: {
+        slotId,
+        gameId: game.id,
+        status: In([ReservationStatus.RESERVED, ReservationStatus.CONFIRMED]),
+      },
+    });
+    if (activeReservation) {
+      activeReservation.status = ReservationStatus.CANCELLED;
+      activeReservation.cancelledAt = new Date();
+      await this.reservationRepository.save(activeReservation);
     }
 
     slot.isReserved = false;
     slot.reservedByUserId = null;
+    slot.isPreAssigned = false;
+    slot.preAssignedUserId = null;
     const updated = await this.slotRepository.save(slot);
 
     await this.auditService.log({

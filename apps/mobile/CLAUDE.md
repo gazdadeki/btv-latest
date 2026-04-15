@@ -48,6 +48,14 @@
 - `RESERVED` (was PENDING), `CONFIRMED`, `CANCELLED`, `EXPIRED` (was COMPLETED)
 - `reservationIsActive()` checks for `RESERVED` or `CONFIRMED`
 
+## Slot Card UI (Game Details)
+
+- Circle colors: red=admin, green=own confirmed, blue=own pending, gray=other player, amber=gold-only unreserved, indigo=free unreserved
+- Admin usernames displayed in red text
+- Unreserved slots show "Position N" label; reserved slots show username only
+- No "Occupied" label — reserved slots by others are implicitly disabled (no action buttons)
+- Toasts: `closeButton`, `swipeToDismiss`, 3s auto-dismiss
+
 ## Development
 
 - Dev server binds to `0.0.0.0` (not `localhost`) for LAN testing from mobile devices

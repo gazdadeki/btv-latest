@@ -103,8 +103,10 @@ export interface Slot {
   isReserved: boolean;
   reservedByUserId?: number;
   reservedByUsername?: string;
+  reservedByRole?: string;
   reservationId?: number;
   reservationStatus?: string;
+  isGoldOnly?: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { toastError, localTimeToUtc } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
 import { Dialog } from "@/components/dialog";
 import { Button } from "@/components/button";
 import {
@@ -70,6 +71,7 @@ export function CreateScheduleDialog({
   onClose,
   onCreated,
 }: CreateScheduleDialogProps) {
+  const { user: adminUser } = useAuth();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Record<string, unknown>>(defaultCreate());
   const [slots, setSlots] = useState<SlotConfig[]>([]);
@@ -94,9 +96,10 @@ export function CreateScheduleDialog({
           existing || {
             slotNumber: i,
             team: i <= SLOTS_PER_GAME / 2 ? "A" : "B",
-            isGoldOnly: i === 2 || i === 3,
+            isGoldOnly: i === 2 || i === 3 || i === 6 || i === 7,
             coinsCost: null,
-            preAssignedUserId: null,
+            preAssignedUserId: i === 1 ? (adminUser?.id ?? null) : null,
+            preAssignedUsername: i === 1 ? (adminUser?.username ?? null) : null,
           },
         );
       }

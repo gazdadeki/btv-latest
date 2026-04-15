@@ -133,7 +133,15 @@ export function CreateGameDialog({
             <input
               type="checkbox"
               checked={allowMultipleReservations}
-              onChange={(e) => setAllowMultipleReservations(e.target.checked)}
+              onChange={(e) => {
+                const unrestricted = e.target.checked;
+                setAllowMultipleReservations(unrestricted);
+                if (unrestricted) {
+                  setSlots((prev) =>
+                    prev.map((s) => ({ ...s, isGoldOnly: false })),
+                  );
+                }
+              }}
               className="rounded"
             />
             Allow unrestricted reservations
@@ -148,7 +156,11 @@ export function CreateGameDialog({
       )}
       {step === 2 && (
         <div className="space-y-4">
-          <SlotConfigEditor slots={slots} setSlots={setSlots} />
+          <SlotConfigEditor
+            slots={slots}
+            setSlots={setSlots}
+            disableGold={allowMultipleReservations}
+          />
           <div className="flex justify-between pt-2">
             <Button variant="secondary" onClick={() => setStep(1)}>
               Back

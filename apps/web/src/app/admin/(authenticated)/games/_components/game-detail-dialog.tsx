@@ -10,6 +10,7 @@ import { Button } from "@/components/button";
 import { Tabs } from "@/components/tabs";
 import { StatusBadge } from "@/components/status-badge";
 import { UserSearchDialog } from "@/components/user-search-dialog";
+import { UserSearchInput } from "@/components/user-search-input";
 import { useConfirmAction } from "@/hooks/use-confirm-action";
 import {
   GAME_STATUS_COLORS,
@@ -154,6 +155,30 @@ export function GameDetailDialog({
           );
           toast.success("User assigned");
           setSlotAssign(null);
+          reset();
+          mutated();
+        } catch (err) {
+          toastError(err);
+          reset();
+        }
+      },
+    });
+  };
+
+  const handlePreAssign = (
+    slotId: number,
+    userId: number | null,
+    username: string | null,
+  ) => {
+    if (!game) return;
+    if (userId === null) return;
+    confirm({
+      title: "Pre-assign User",
+      message: `Pre-assign ${username || `User #${userId}`} to this slot? This will reserve the slot for them.`,
+      onConfirm: async () => {
+        try {
+          await api.preAssignSlot(game.id, slotId, userId);
+          toast.success("User pre-assigned");
           reset();
           mutated();
         } catch (err) {
@@ -464,7 +489,17 @@ export function GameDetailDialog({
                     .sort((a, b) => a.slotNumber - b.slotNumber)
                     .map((slot) => (
                       <tr key={slot.id}>
-                        <td className="px-3 py-2">{slot.slotNumber}</td>
+                        <td className="px-3 py-2">
+                          <span className="flex items-center gap-1">
+                            {slot.slotNumber}
+                            {slot.isGoldOnly && !editMultiRes && (
+                              <i
+                                className="fas fa-star text-amber-500 text-xs"
+                                title="Gold Only"
+                              />
+                            )}
+                          </span>
+                        </td>
                         <td className="px-3 py-2">
                           <span
                             className={
@@ -484,18 +519,42 @@ export function GameDetailDialog({
                           </span>
                         </td>
                         <td className="px-3 py-2">
-                          {slot.reservedByUser?.username ||
-                            slot.reservedByUser?.email ||
-                            (slot.reservedByUserId
-                              ? `User #${slot.reservedByUserId}`
-                              : "None")}
+                          <span className="flex items-center gap-1">
+                            {slot.reservedByUser?.username ||
+                              slot.reservedByUser?.email ||
+                              (slot.reservedByUserId
+                                ? `User #${slot.reservedByUserId}`
+                                : "None")}
+                            {slot.reservedByUser?.subscriptionTier ===
+                              "GOLD" && (
+                              <i
+                                className="fas fa-coins text-amber-500 text-xs"
+                                title="Gold Member"
+                              />
+                            )}
+                          </span>
                         </td>
                         <td className="px-3 py-2">
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-xs ${slot.isPreAssigned ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}
-                          >
-                            {slot.isPreAssigned ? "Yes" : "No"}
-                          </span>
+                          {!slot.isReserved && isModifiable ? (
+                            <UserSearchInput
+                              value={slot.preAssignedUserId}
+                              displayName={
+                                slot.preAssignedUser?.username ||
+                                (slot.preAssignedUserId
+                                  ? `User #${slot.preAssignedUserId}`
+                                  : undefined)
+                              }
+                              onChange={(userId, username) =>
+                                handlePreAssign(slot.id, userId, username)
+                              }
+                            />
+                          ) : (
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-xs ${slot.isPreAssigned ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}
+                            >
+                              {slot.isPreAssigned ? "YES" : "NO"}
+                            </span>
+                          )}
                         </td>
                         <td className="px-3 py-2">
                           <div className="flex gap-1">

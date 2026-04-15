@@ -44,7 +44,14 @@ async function apiRequest<T = unknown>(
 
   let res = await fetch(url, config);
 
-  if (res.status === 401) {
+  const isAuthEndpoint =
+    endpoint.startsWith("/auth/login") ||
+    endpoint.startsWith("/auth/admin/login") ||
+    endpoint.startsWith("/auth/register") ||
+    endpoint.startsWith("/auth/forgot-password") ||
+    endpoint.startsWith("/auth/reset-password");
+
+  if (res.status === 401 && !isAuthEndpoint) {
     const refreshed = await refreshToken();
     if (refreshed) {
       res = await fetch(url, config);
@@ -226,6 +233,11 @@ export const api = {
   kickUserFromSlot: (gameId: number, slotId: number) =>
     apiRequest(`/admin/games/${gameId}/slots/${slotId}/kick`, {
       method: "PUT",
+    }),
+  preAssignSlot: (gameId: number, slotId: number, userId: number | null) =>
+    apiRequest(`/admin/games/${gameId}/slots/${slotId}/pre-assign`, {
+      method: "PUT",
+      body: JSON.stringify({ userId }),
     }),
   confirmSlotReservation: (gameId: number, slotId: number) =>
     apiRequest(`/admin/games/${gameId}/slots/${slotId}/confirm`, {

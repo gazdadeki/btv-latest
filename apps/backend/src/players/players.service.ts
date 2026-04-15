@@ -21,10 +21,12 @@ export interface SlotWithUsername {
   isReserved: boolean;
   reservedByUserId: number | null;
   reservedByUsername: string | null;
+  reservedByRole: string | null;
   reservationId: number | null;
   reservationStatus: string | null;
   isPreAssigned: boolean;
   preAssignedUserId: number | null;
+  isGoldOnly: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -81,7 +83,10 @@ export class PlayersService {
       });
     }
 
-    return query.orderBy('game.scheduledStartTime', 'ASC').getMany();
+    return query
+      .orderBy('game.gameIndex', 'ASC')
+      .addOrderBy('game.id', 'ASC')
+      .getMany();
   }
 
   /**
@@ -131,10 +136,12 @@ export class PlayersService {
         isReserved: slot.isReserved,
         reservedByUserId: slot.reservedByUserId,
         reservedByUsername: reservation?.user?.username || null,
+        reservedByRole: reservation?.user?.role || null,
         reservationId: reservation?.id || null,
         reservationStatus: reservation?.status || null,
         isPreAssigned: slot.isPreAssigned,
         preAssignedUserId: slot.preAssignedUserId,
+        isGoldOnly: slot.isGoldOnly,
         createdAt: slot.createdAt,
         updatedAt: slot.updatedAt,
       };
@@ -243,7 +250,8 @@ export class PlayersService {
         .andWhere('game.scheduledStartTime < :tomorrow', { tomorrow })
         .andWhere('game.status IN (:...statuses)', { statuses })
         .leftJoinAndSelect('game.slots', 'slots')
-        .orderBy('game.scheduledStartTime', 'ASC');
+        .orderBy('game.gameIndex', 'ASC')
+        .addOrderBy('game.id', 'ASC');
 
       const todayGames = await query.getMany();
 
@@ -325,7 +333,8 @@ export class PlayersService {
       .leftJoinAndSelect('game.slots', 'slots')
       .where('game.streamId = :streamId', { streamId: stream.id })
       .andWhere('game.status IN (:...statuses)', { statuses })
-      .orderBy('game.scheduledStartTime', 'ASC');
+      .orderBy('game.gameIndex', 'ASC')
+      .addOrderBy('game.id', 'ASC');
 
     if (user.subscriptionTier !== SubscriptionTier.GOLD) {
       query.andWhere('game.isExclusiveToGold = :exclusive', {

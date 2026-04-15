@@ -225,6 +225,8 @@ export default function HomePage() {
       "game:status_changed",
       "game:updated",
       "games:batch_changed",
+      "stream:started",
+      "stream:ended",
     ];
     const offs = gameEvents.map((evt) =>
       wsManager.on(evt, () => {
@@ -235,6 +237,7 @@ export default function HomePage() {
     // Refresh reservations on slot/reservation changes (e.g. admin kick)
     const reservationEvents = [
       "slot:availability_changed",
+      "reservation:confirmed",
       "reservation:cancelled",
       "reservation:status_changed",
     ];

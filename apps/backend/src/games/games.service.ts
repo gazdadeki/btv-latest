@@ -65,6 +65,7 @@ export class GamesService {
     const saved = await this.gameRepository.save(game);
 
     // Create slots based on slot configs if provided, otherwise use default distribution
+    const forceNoGold = !!saved.allowMultipleReservations;
     const slots: Slot[] = [];
     if (data.slotConfigs && data.slotConfigs.length > 0) {
       // Use slot configs
@@ -79,6 +80,7 @@ export class GamesService {
             reservedByUserId: config.preAssignedUserId || null,
             isPreAssigned: hasPreAssignedUser,
             preAssignedUserId: config.preAssignedUserId || null,
+            isGoldOnly: forceNoGold ? false : (config.isGoldOnly ?? false),
           }),
         );
       }
@@ -96,7 +98,28 @@ export class GamesService {
         );
       }
     }
-    await this.slotRepository.save(slots);
+    const savedSlots = await this.slotRepository.save(slots);
+
+    // Create confirmed reservations (zero cost) for pre-assigned users
+    const preAssignedSlots = savedSlots.filter(
+      (s) => s.isPreAssigned && s.preAssignedUserId,
+    );
+    if (preAssignedSlots.length > 0) {
+      const reservations = preAssignedSlots.map((s) =>
+        this.reservationRepository.create({
+          slotId: s.id,
+          userId: s.preAssignedUserId!,
+          gameId: saved.id,
+          status: ReservationStatus.CONFIRMED,
+          reservationCostPaid: 0,
+          confirmationCostPaid: 0,
+          totalCostPaid: 0,
+          reservedAt: new Date(),
+          confirmedAt: new Date(),
+        }),
+      );
+      await this.reservationRepository.save(reservations);
+    }
 
     const shouldEmitWebsocket = options.emitWebsocket !== false;
     if (shouldEmitWebsocket) {
@@ -312,6 +335,7 @@ export class GamesService {
         'stream',
         'slots',
         'slots.reservedByUser',
+        'slots.preAssignedUser',
         'reservations',
         'reservations.user',
       ],
@@ -341,37 +365,63 @@ export class GamesService {
   }
 
   async start(id: number, adminId: number): Promise<Game> {
-    const game = await this.findOne(id);
-    if (game.status !== GameStatus.CREATED && game.status !== GameStatus.OPEN) {
-      throw new BadRequestException('Game cannot be started');
-    }
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // Check if another game is IN_PROGRESS in the same stream
-    if (game.streamId) {
-      const inProgressGame = await this.gameRepository.findOne({
-        where: {
-          streamId: game.streamId,
-          status: GameStatus.IN_PROGRESS,
-        },
+    let updated: Game;
+    try {
+      const game = await queryRunner.manager.findOne(Game, {
+        where: { id },
+        relations: ['schedule', 'stream', 'slots'],
+        lock: { mode: 'pessimistic_write' },
       });
 
-      if (inProgressGame && inProgressGame.id !== id) {
-        throw new BadRequestException(
-          'Another game is already in progress in this stream. Only one game can be in progress at a time.',
-        );
+      if (!game) {
+        throw new BadRequestException('Game not found');
       }
+
+      if (
+        game.status !== GameStatus.CREATED &&
+        game.status !== GameStatus.OPEN
+      ) {
+        throw new BadRequestException('Game cannot be started');
+      }
+
+      // Check if another game is IN_PROGRESS in the same stream
+      if (game.streamId) {
+        const inProgressGame = await queryRunner.manager.findOne(Game, {
+          where: {
+            streamId: game.streamId,
+            status: GameStatus.IN_PROGRESS,
+          },
+        });
+
+        if (inProgressGame && inProgressGame.id !== id) {
+          throw new BadRequestException(
+            'Another game is already in progress in this stream. Only one game can be in progress at a time.',
+          );
+        }
+      }
+
+      game.status = GameStatus.IN_PROGRESS;
+      game.actualStartTime = new Date();
+      updated = await queryRunner.manager.save(game);
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
 
-    game.status = GameStatus.IN_PROGRESS;
-    game.actualStartTime = new Date();
-    const updated = await this.gameRepository.save(game);
-
     // Determine game position for the schedule day
-    const gameDate = new Date(game.scheduledStartTime);
+    const gameDate = new Date(updated.scheduledStartTime);
     gameDate.setUTCHours(0, 0, 0, 0);
     const position = await this.getGamePositionInScheduleDay(
       id,
-      game.scheduleId,
+      updated.scheduleId,
       gameDate,
     );
 
@@ -775,6 +825,11 @@ export class GamesService {
     game.status = GameStatus.CANCELLED;
     const updated = await this.gameRepository.save(game);
 
+    // Refund all RESERVED/CONFIRMED reservations on this game
+    await this.gameCancellationService.refundReservationsForCancelledGame(
+      updated,
+    );
+
     await this.websocketService.broadcast(WebsocketEvents.GameStatusChanged, {
       gameId: id,
       status: GameStatus.CANCELLED,
@@ -949,6 +1004,17 @@ export class GamesService {
 
     const updated = await this.gameRepository.save(game);
 
+    // When unrestricted mode is enabled, clear gold-only on all slots
+    if (data.allowMultipleReservations === true) {
+      await this.slotRepository
+        .createQueryBuilder()
+        .update(Slot)
+        .set({ isGoldOnly: false })
+        .where('gameId = :gameId', { gameId: id })
+        .andWhere('isGoldOnly = :gold', { gold: true })
+        .execute();
+    }
+
     await this.websocketService.broadcast(WebsocketEvents.GameUpdated, {
       gameId: id,
     });
@@ -962,6 +1028,21 @@ export class GamesService {
     });
 
     return updated;
+  }
+
+  async preAssignSlot(
+    gameId: number,
+    slotId: number,
+    userId: number | null,
+    adminId: number,
+  ): Promise<Slot> {
+    const game = await this.findOne(gameId);
+    return this.slotAdminAssignmentService.preAssignSlot(
+      game,
+      slotId,
+      userId,
+      adminId,
+    );
   }
 
   async assignUserToSlot(

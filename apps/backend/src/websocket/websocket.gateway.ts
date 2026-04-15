@@ -162,6 +162,10 @@ export class WebsocketGateway
     }
   }
 
+  getOnlineUserCount(): number {
+    return this.connectedUsers.size;
+  }
+
   @SubscribeMessage('join:event')
   handleJoinEvent(
     @ConnectedSocket() client: Socket,

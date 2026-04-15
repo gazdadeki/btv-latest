@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Dialog } from './dialog';
-import { Button } from './button';
-import { api } from '@/lib/api';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Dialog } from "./dialog";
+import { Button } from "./button";
+import { api } from "@/lib/api";
 
 interface User {
   id: number;
@@ -27,11 +27,11 @@ export function UserSearchDialog({
   open,
   onClose,
   onSelect,
-  title = 'Search User',
+  title = "Search User",
   multiSelect = false,
   onMultiSelect,
 }: UserSearchDialogProps) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
@@ -40,7 +40,7 @@ export function UserSearchDialog({
 
   useEffect(() => {
     if (open) {
-      setQuery('');
+      setQuery("");
       setResults([]);
       setSelectedUsers([]);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -54,7 +54,7 @@ export function UserSearchDialog({
     }
     setLoading(true);
     try {
-      const data = await api.getUsers({ search: term }) as User[];
+      const data = (await api.getUsers({ search: term })) as User[];
       setResults(Array.isArray(data) ? data : []);
     } catch {
       setResults([]);
@@ -105,7 +105,7 @@ export function UserSearchDialog({
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search by email or ID..."
+          placeholder="Search by username..."
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -118,7 +118,7 @@ export function UserSearchDialog({
                 key={user.id}
                 className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full"
               >
-                {user.email}
+                {user.username || user.email}
                 <button
                   onClick={() => removeUser(user.id)}
                   className="text-indigo-600 hover:text-indigo-800 cursor-pointer"
@@ -132,7 +132,9 @@ export function UserSearchDialog({
 
         <div className="max-h-[300px] overflow-y-auto">
           {loading && (
-            <p className="text-sm text-gray-400 py-4 text-center">Searching...</p>
+            <p className="text-sm text-gray-400 py-4 text-center">
+              Searching...
+            </p>
           )}
           {!loading && query.length > 0 && query.length < 2 && (
             <p className="text-sm text-gray-400 py-4 text-center">
@@ -140,7 +142,9 @@ export function UserSearchDialog({
             </p>
           )}
           {!loading && query.length >= 2 && filteredResults.length === 0 && (
-            <p className="text-sm text-gray-400 py-4 text-center">No users found</p>
+            <p className="text-sm text-gray-400 py-4 text-center">
+              No users found
+            </p>
           )}
           {!loading &&
             filteredResults.map((user) => (
@@ -150,19 +154,20 @@ export function UserSearchDialog({
                 className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-md flex items-center justify-between cursor-pointer"
               >
                 <div>
-                  <span className="text-sm font-medium">{user.email}</span>
-                  <span className="text-xs text-gray-400 ml-2">ID: {user.id}</span>
+                  <span className="text-sm font-medium">
+                    {user.username || user.email}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  {user.subscriptionTier === 'GOLD' && (
+                  {user.subscriptionTier === "GOLD" && (
                     <span className="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded">
                       Gold
                     </span>
                   )}
                   <span
-                    className={`px-1.5 py-0.5 text-xs rounded ${user.isVerified ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}
+                    className={`px-1.5 py-0.5 text-xs rounded ${user.isVerified ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}
                   >
-                    {user.isVerified ? 'Verified' : 'Unverified'}
+                    {user.isVerified ? "Verified" : "Unverified"}
                   </span>
                 </div>
               </button>

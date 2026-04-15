@@ -66,6 +66,7 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - Only admin force-regenerate (calendar "Generate" button) cancels existing CREATED games and recreates
 - Schedule `gameCreationTime` is stored as UTC — cron compares current UTC time against it
 - Default schedule recurrence: all 7 days `[0,1,2,3,4,5,6]` (Sun-Sat)
+- **Scheduler locks**: DB-based locks prevent duplicate cron execution across instances. On startup, stale locks from dead processes are auto-cleared. Lock TTL is 120s (configurable via `SCHEDULER_LOCK_TTL_SECONDS`)
 
 ## Game Statuses
 
@@ -74,14 +75,15 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - `IN_PROGRESS` games can be **remade** back to `OPEN` via `PUT /admin/games/:id/remake` (preserves all reservations)
 - Games without `reservationOpenTime` are created directly as `OPEN`
 - Games endpoint accepts `streamId` query param for filtering
-- `allowMultipleReservations` flag (default false) bypasses per-stream reservation limits for a game
+- `allowMultipleReservations` flag (default false) bypasses per-stream reservation limits AND gold-only slot restrictions for a game. Toggling this on clears `isGoldOnly` on all slots.
 
 ## Reservation Limits (Stream-Scoped)
 
+- **One slot per game per player** — always enforced, no exceptions (checked via both reservations table and slots table)
 - Reservation limits are scoped **per stream**, not global — each new stream resets the allowance
 - Free users: max 1 active reservation per stream
 - Gold users: max 2 active reservations per stream, must be **at least 2 games apart** (by gameIndex)
-- Games with `allowMultipleReservations=true` bypass all limits
+- Games with `allowMultipleReservations=true` bypass stream-level limits and gold-only slot restrictions (but NOT one-slot-per-game)
 
 ## Calendar
 
@@ -92,7 +94,9 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 
 - Admin (schedule creator) is always pre-assigned to slot 1 of every game for free (no coin cost)
 - Applies to both cron-generated and manually created games
-- Pre-assignment creates a confirmed reservation with 0 cost
+- Pre-assignment creates a confirmed reservation with 0 cost (both cron and manual game creation)
+- Admin pre-assign cannot place free users into gold-only slots (unless game is unrestricted)
+- Kicking a user or player leaving also clears pre-assignment fields
 - `username` is required on all users (used for display in slot reservations)
 
 ## Push Notifications (Firebase)

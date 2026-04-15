@@ -8,10 +8,10 @@ import { Subscription } from '../subscriptions/entities/subscription.entity';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { CalendarService } from './calendar.service';
-import { ActivityModule } from '../activity/activity.module';
 import { AuditModule } from '../audit/audit.module';
 import { AuditController } from './audit.controller';
 import { SchedulerModule } from '../scheduler/scheduler.module';
+import { WebsocketModule } from '../websocket/websocket.module';
 
 /**
  * Admin module for dashboard and administrative functions.
@@ -27,9 +27,9 @@ import { SchedulerModule } from '../scheduler/scheduler.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Schedule, Game, User, Wallet, Subscription]),
-    ActivityModule,
     AuditModule, // Import AuditModule to access AuditService
     SchedulerModule, // Import SchedulerModule to access SchedulerService
+    WebsocketModule,
   ],
   providers: [AdminService, CalendarService],
   controllers: [AdminController, AuditController],

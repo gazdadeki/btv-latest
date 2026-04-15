@@ -23,6 +23,7 @@ import { UserRole } from '../users/entities/user.entity';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { GameStatus } from './entities/game.entity';
 import { UpdateGameDto } from './dto/update-game.dto';
+import { PreAssignSlotDto } from './dto/pre-assign-slot.dto';
 
 @ApiTags('Games')
 @ApiBearerAuth()
@@ -227,6 +228,24 @@ export class GamesController {
   @ApiResponse({ status: 404, description: 'Game not found' })
   async cancelAllConfirmations(@Param('id') id: string, @Request() req: any) {
     return this.gamesService.cancelAllConfirmations(+id, req.user.id);
+  }
+
+  @Put(':id/slots/:slotId/pre-assign')
+  @ApiOperation({ summary: 'Pre-assign or clear pre-assignment on a slot' })
+  @ApiResponse({ status: 200, description: 'Pre-assignment updated' })
+  @ApiResponse({ status: 400, description: 'Slot is already reserved' })
+  async preAssignSlot(
+    @Param('id') id: string,
+    @Param('slotId') slotId: string,
+    @Body() body: PreAssignSlotDto,
+    @Request() req: any,
+  ) {
+    return this.gamesService.preAssignSlot(
+      +id,
+      +slotId,
+      body.userId ?? null,
+      req.user.id,
+    );
   }
 
   @Post(':id/auto-start-next')
