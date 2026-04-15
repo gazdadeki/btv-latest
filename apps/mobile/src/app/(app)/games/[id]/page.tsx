@@ -86,6 +86,7 @@ function SlotCard({
   isGoldUser,
   restrictionsLifted,
   hasActiveReservation,
+  goldSlotsAvailable,
   locked,
   onReserve,
   onConfirm,
@@ -96,6 +97,7 @@ function SlotCard({
   isGoldUser: boolean;
   restrictionsLifted: boolean;
   hasActiveReservation: boolean;
+  goldSlotsAvailable: boolean;
   locked: boolean;
   onReserve: () => void;
   onConfirm: () => void;
@@ -105,6 +107,9 @@ function SlotCard({
   const isPending = slotIsPending(slot);
   const showGoldOnly = slot.isGoldOnly && !restrictionsLifted;
   const isConfirmed = slotIsConfirmed(slot);
+  // Gold users must fill gold slots first before reserving free slots
+  const mustUseGoldFirst =
+    isGoldUser && !restrictionsLifted && !slot.isGoldOnly && goldSlotsAvailable;
 
   const cardBg = isOwn
     ? isConfirmed
@@ -201,7 +206,7 @@ function SlotCard({
                     variant="primary"
                     size="sm"
                     onClick={onReserve}
-                    disabled={hasActiveReservation}
+                    disabled={hasActiveReservation || mustUseGoldFirst}
                   >
                     Reserve
                   </Button>
@@ -301,6 +306,9 @@ function SlotsTab({
   const teamB = game.slots
     .filter((s) => s.team === "B")
     .sort((a, b) => a.slotNumber - b.slotNumber);
+  const goldSlotsAvailable = game.slots.some(
+    (s) => s.isGoldOnly && !s.isReserved,
+  );
 
   const renderTeam = (slots: Slot[], label: string, colorClass: string) => (
     <div className="mb-4">
@@ -320,6 +328,7 @@ function SlotsTab({
           isGoldUser={isGoldUser}
           restrictionsLifted={!!game.allowMultipleReservations}
           hasActiveReservation={hasActiveReservation}
+          goldSlotsAvailable={goldSlotsAvailable}
           locked={locked}
           onReserve={() => onReserve(slot.id, slot.team)}
           onConfirm={() => onConfirm(slot)}
@@ -389,6 +398,12 @@ export default function GameDetailsPage({
     queryKey: ["game", gameId],
     queryFn: () => api.getGameDetails(gameId),
   });
+
+  useEffect(() => {
+    if (game && gameIsFinished(game)) {
+      setActiveTab("details");
+    }
+  }, [game?.id, game?.status]);
 
   const { data: myReservations = [] } = useQuery({
     queryKey: ["myReservations"],

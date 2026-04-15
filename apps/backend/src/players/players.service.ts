@@ -284,6 +284,7 @@ export class PlayersService {
     stream: {
       id: number;
       status: string;
+      title: string | null;
       scheduleId: number;
       scheduleName: string;
       teamAName: string;
@@ -319,6 +320,7 @@ export class PlayersService {
         stream: {
           id: stream.id,
           status: stream.status,
+          title: stream.title,
           scheduleId: stream.scheduleId,
           scheduleName: stream.schedule?.name || '',
           teamAName: stream.schedule?.teamAName || '',

@@ -31,6 +31,8 @@ import {
   Coins,
   ArrowUpRight,
   AlertCircle,
+  History,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -274,6 +276,7 @@ function WalletTab() {
 
 // ─── Statistics Tab ───────────────────────────────────────────────────────────
 function StatisticsTab() {
+  const router = useRouter();
   const {
     data: stats,
     isLoading,
@@ -283,6 +286,18 @@ function StatisticsTab() {
     queryKey: ["myStatistics"],
     queryFn: api.getMyStatistics,
   });
+
+  const { data: myReservations = [] } = useQuery({
+    queryKey: ["myReservations"],
+    queryFn: api.getMyReservations,
+  });
+
+  const finishedGameReservations = myReservations.filter(
+    (r) => r.game?.status === "FINISHED",
+  );
+  const finishedGameIds = [
+    ...new Set(finishedGameReservations.map((r) => r.gameId)),
+  ];
 
   if (isLoading) return <Loading message="Loading statistics..." />;
   if (error) return <ErrorDisplay message={String(error)} onRetry={refetch} />;
@@ -405,6 +420,47 @@ function StatisticsTab() {
           </p>
         </div>
       </div>
+
+      {/* Games History */}
+      {finishedGameIds.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-bold text-gray-900">
+                Games History
+              </span>
+              <span className="text-xs text-gray-500">
+                ({finishedGameIds.length})
+              </span>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {finishedGameIds.map((gameId) => {
+              const r = finishedGameReservations.find(
+                (res) => res.gameId === gameId,
+              )!;
+              return (
+                <button
+                  key={gameId}
+                  onClick={() => router.push(`/games/${gameId}`)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 text-left"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">
+                      Game #{gameId}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatDate(r.createdAt)}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
