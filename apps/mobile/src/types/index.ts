@@ -445,6 +445,7 @@ export interface ActiveStream {
   stream: {
     id: number;
     status: string;
+    title: string | null;
     scheduleId: number;
     scheduleName: string;
     teamAName: string;

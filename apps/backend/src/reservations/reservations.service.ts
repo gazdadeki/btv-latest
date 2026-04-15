@@ -217,6 +217,27 @@ export class ReservationsService {
         );
       }
 
+      // Gold-first rule: gold users must fill gold slots before reserving free slots
+      if (
+        !isAdminAction &&
+        !game.allowMultipleReservations &&
+        !slot.isGoldOnly &&
+        user.subscriptionTier === SubscriptionTier.GOLD
+      ) {
+        const availableGoldSlots = await queryRunner.manager.count(Slot, {
+          where: {
+            gameId,
+            isGoldOnly: true,
+            isReserved: false,
+          },
+        });
+        if (availableGoldSlots > 0) {
+          throw new BadRequestException(
+            'Please reserve a gold slot first. Gold slots are still available.',
+          );
+        }
+      }
+
       // Reservation limit and adjacency checks (inside transaction for consistency)
       if (!isAdminAction && !game.allowMultipleReservations) {
         const countQuery = queryRunner.manager

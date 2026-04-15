@@ -12,9 +12,7 @@ import {
   Play,
   CheckCircle,
   XCircle,
-  History,
   ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { wsManager } from "@/lib/websocket";
@@ -23,22 +21,12 @@ import { Loading } from "@/components/loading";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorDisplay } from "@/components/error-display";
 import { Button } from "@/components/button";
-import { cn, formatDate } from "@/lib/utils";
-import type {
-  Game,
-  Reservation,
-  GameStatusFilter,
-  ActiveStream,
-} from "@/types";
+import { cn } from "@/lib/utils";
+import type { Game, GameStatusFilter, ActiveStream } from "@/types";
 import {
   GAME_STATUS_DISPLAY,
   reservationIsActive,
-  reservationIsExpired,
-  reservationIsConfirmed,
   availableSlotsCount,
-  gameIsCancelled,
-  gameIsFinished,
-  gameIsInProgress,
 } from "@/types";
 
 const DEFAULT_FILTER: GameStatusFilter = {
@@ -126,64 +114,6 @@ function GameCard({
   );
 }
 
-function GamesHistorySection({
-  reservations,
-  onGameTap,
-}: {
-  reservations: Reservation[];
-  onGameTap: (id: number) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const uniqueGameIds = [...new Set(reservations.map((r) => r.gameId))];
-
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-3">
-      <button
-        className="w-full flex items-center justify-between px-4 py-3"
-        onClick={() => setOpen((o) => !o)}
-      >
-        <div className="flex items-center gap-2">
-          <History className="w-5 h-5 text-gray-500" />
-          <span className="font-semibold text-gray-800">Games History</span>
-          <span className="text-xs text-gray-500">
-            ({uniqueGameIds.length} past game
-            {uniqueGameIds.length !== 1 ? "s" : ""})
-          </span>
-        </div>
-        {open ? (
-          <ChevronUp className="w-4 h-4 text-gray-400" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-gray-400" />
-        )}
-      </button>
-      {open && (
-        <div className="border-t border-gray-100 divide-y divide-gray-100">
-          {uniqueGameIds.map((gameId) => {
-            const r = reservations.find((res) => res.gameId === gameId)!;
-            return (
-              <button
-                key={gameId}
-                onClick={() => onGameTap(gameId)}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 text-left"
-              >
-                <div>
-                  <p className="text-sm font-medium text-gray-800">
-                    Game #{gameId}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Reserved: {formatDate(r.createdAt)}
-                  </p>
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-400 -rotate-90" />
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function HomePage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -214,9 +144,6 @@ export default function HomePage() {
       r.game.streamId === streamId,
   );
   const hasActiveReservation = activeReservations.length > 0;
-  const finishedReservations = myReservations.filter(
-    (r) => reservationIsExpired(r) || reservationIsConfirmed(r),
-  );
 
   // Refresh games list on real-time game lifecycle events
   useEffect(() => {
@@ -267,7 +194,6 @@ export default function HomePage() {
       color: "orange",
     },
     { key: "includeFinished" as const, label: "Finished", color: "gray" },
-    { key: "includeCancelled" as const, label: "Cancelled", color: "red" },
   ];
 
   return (
@@ -307,13 +233,6 @@ export default function HomePage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-2 py-2">
-        {finishedReservations.length > 0 && (
-          <GamesHistorySection
-            reservations={finishedReservations}
-            onGameTap={(id) => router.push(`/games/${id}`)}
-          />
-        )}
-
         {isLoading && <Loading message="Loading games..." />}
         {error && <ErrorDisplay message={String(error)} onRetry={refetch} />}
 
@@ -328,7 +247,7 @@ export default function HomePage() {
         {activeStream && (activeStream.games ?? []).length > 0 && (
           <div className="mb-4">
             <h2 className="text-lg font-bold text-gray-800 px-2 py-2">
-              {activeStream.stream.scheduleName}
+              {activeStream.stream.title || activeStream.stream.scheduleName}
             </h2>
             {(activeStream.games ?? []).map((game: Game) => {
               const ownReservation = activeReservations.find(
