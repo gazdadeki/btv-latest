@@ -390,8 +390,6 @@ export interface UserStatistics {
   userId: number;
   totalWins: number;
   totalLosses: number;
-  totalEvents: number;
-  totalReservations: number;
   totalCoinsSpent: number;
   totalCoinsEarned: number;
   createdAt: string;

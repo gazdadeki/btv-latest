@@ -1012,6 +1012,27 @@ export class GamesService {
         .execute();
     }
 
+    // When unrestricted mode is disabled, restore gold-only from schedule slot configs
+    if (data.allowMultipleReservations === false && game.scheduleId) {
+      const slotConfigs = await this.slotConfigService.findBySchedule(
+        game.scheduleId,
+      );
+      const goldConfigs = slotConfigs.filter((c) => c.isGoldOnly);
+      for (const config of goldConfigs) {
+        await this.slotRepository
+          .createQueryBuilder()
+          .update(Slot)
+          .set({ isGoldOnly: true })
+          .where('gameId = :gameId', { gameId: id })
+          .andWhere('slotNumber = :slotNumber', {
+            slotNumber: config.slotNumber,
+          })
+          .andWhere('team = :team', { team: config.team })
+          .andWhere('reservedByUserId IS NULL')
+          .execute();
+      }
+    }
+
     await this.websocketService.broadcast(WebsocketEvents.GameUpdated, {
       gameId: id,
     });

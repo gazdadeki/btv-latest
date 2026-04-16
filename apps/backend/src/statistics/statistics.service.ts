@@ -15,8 +15,6 @@ export class StatisticsService {
       userId,
       totalWins: 0,
       totalLosses: 0,
-      totalEvents: 0,
-      totalReservations: 0,
       totalCoinsSpent: 0,
       totalCoinsEarned: 0,
     });
@@ -29,20 +27,10 @@ export class StatisticsService {
 
   async incrementWins(userId: number): Promise<void> {
     await this.statisticsRepository.increment({ userId }, 'totalWins', 1);
-    await this.statisticsRepository.increment({ userId }, 'totalEvents', 1);
   }
 
   async incrementLosses(userId: number): Promise<void> {
     await this.statisticsRepository.increment({ userId }, 'totalLosses', 1);
-    await this.statisticsRepository.increment({ userId }, 'totalEvents', 1);
-  }
-
-  async incrementReservations(userId: number): Promise<void> {
-    await this.statisticsRepository.increment(
-      { userId },
-      'totalReservations',
-      1,
-    );
   }
 
   async addCoinsSpent(userId: number, amount: number): Promise<void> {
