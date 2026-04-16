@@ -280,6 +280,36 @@ export class AuthService {
       userAgent,
     });
 
+    // Send verification code if user is not yet verified
+    if (!user.isVerified) {
+      try {
+        const verificationCode = await this.generateUniqueVerificationCode();
+        const expiryMinutes =
+          this.configService.getVerificationCodeExpiryMinutes();
+        const expiresAt = new Date();
+        expiresAt.setUTCMinutes(expiresAt.getUTCMinutes() + expiryMinutes);
+
+        await this.verificationCodeRepository.save({
+          userId: user.id,
+          code: verificationCode,
+          expiresAt,
+          isUsed: false,
+        });
+
+        await this.emailService.sendVerificationCode(
+          user.email,
+          verificationCode,
+        );
+        this.logger.log(
+          `Verification code sent on login to unverified user ID: ${user.id}`,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to send verification code on login to: ${user.email}, error: ${error.message}`,
+        );
+      }
+    }
+
     const tokens = await this.generateTokens(user);
     this.logger.log(
       `Login successful for user ID: ${user.id}, email: ${user.email} from IP: ${ipAddress || 'unknown'}`,

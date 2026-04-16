@@ -26,8 +26,6 @@ import {
   Trophy,
   ThumbsDown,
   Gamepad2,
-  Calendar,
-  Bookmark,
   Coins,
   ArrowUpRight,
   AlertCircle,
@@ -160,28 +158,28 @@ function ProfileTab() {
           {!isEditing ? (
             <button
               onClick={() => setIsEditing(true)}
-              className="text-indigo-600"
+              className="p-2 -m-2 text-indigo-600"
             >
-              <Edit2 className="w-4 h-4" />
+              <Edit2 className="w-5 h-5" />
             </button>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               <button
                 onClick={() => setIsEditing(false)}
                 disabled={isSaving}
-                className="text-gray-400"
+                className="p-2 -m-1 text-gray-400"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="text-green-600"
+                className="p-2 -m-1 text-green-600"
               >
                 {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <Check className="w-4 h-4" />
+                  <Check className="w-5 h-5" />
                 )}
               </button>
             </div>
@@ -326,18 +324,6 @@ function StatisticsTab() {
       color: "text-blue-500 bg-blue-50",
       label: "Games Played",
       value: totalGamesPlayed(stats),
-    },
-    {
-      icon: Calendar,
-      color: "text-purple-500 bg-purple-50",
-      label: "Events",
-      value: stats.totalEvents,
-    },
-    {
-      icon: Bookmark,
-      color: "text-teal-500 bg-teal-50",
-      label: "Reservations",
-      value: stats.totalReservations,
     },
     {
       icon: Coins,

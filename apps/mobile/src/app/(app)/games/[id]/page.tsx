@@ -147,33 +147,21 @@ function SlotCard({
                 Position {slot.slotNumber}
               </p>
             )}
-            {slot.isReserved && (
-              <>
-                {isOwn ? (
-                  <p
-                    className={cn(
-                      "text-xs font-bold",
-                      isPending ? "text-orange-600" : "text-green-600",
-                    )}
-                  >
-                    {isPending ? "Pending Confirmation" : "Confirmed"}
-                  </p>
-                ) : null}
-                {slot.reservedByUsername && (
-                  <p
-                    className={cn(
-                      "text-sm font-semibold",
-                      isOwn
-                        ? "text-blue-700"
-                        : slot.reservedByRole === "admin"
-                          ? "text-red-600"
-                          : "text-gray-600",
-                    )}
-                  >
-                    {isOwn ? "Your slot" : slot.reservedByUsername}
-                  </p>
+            {slot.isReserved && slot.reservedByUsername && (
+              <p
+                className={cn(
+                  "text-sm font-semibold",
+                  isOwn
+                    ? isConfirmed
+                      ? "text-green-700"
+                      : "text-blue-700"
+                    : slot.reservedByRole === "admin"
+                      ? "text-red-600"
+                      : "text-gray-600",
                 )}
-              </>
+              >
+                {slot.reservedByUsername}
+              </p>
             )}
           </div>
         </div>

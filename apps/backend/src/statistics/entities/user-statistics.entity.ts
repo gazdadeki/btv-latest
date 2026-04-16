@@ -23,12 +23,6 @@ export class UserStatistics {
   @Column({ default: 0 })
   totalLosses: number;
 
-  @Column({ default: 0 })
-  totalEvents: number;
-
-  @Column({ default: 0 })
-  totalReservations: number;
-
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   totalCoinsSpent: number;
 

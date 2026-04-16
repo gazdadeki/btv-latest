@@ -67,7 +67,6 @@ describe('ReservationsService', () => {
     const auditService = { log: jest.fn() };
     const websocketService = { broadcast: jest.fn() };
     const statisticsService = {
-      incrementReservations: jest.fn(),
       addCoinsSpent: jest.fn(),
     };
     const queryRunner = {

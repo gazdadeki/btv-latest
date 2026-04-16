@@ -5,6 +5,7 @@
 // Renders BottomNavBar + WebSocketStatusBar above it
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
@@ -35,8 +36,16 @@ const stripePromise = loadStripe(
 );
 
 function AppShell({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+  const { isAuthenticated, isVerified } = useAuth();
   const [wsStatus, setWsStatus] = useState<WebSocketStatus>("disconnected");
+
+  // Redirect unverified users to verification page
+  useEffect(() => {
+    if (isAuthenticated && !isVerified) {
+      router.replace("/verification");
+    }
+  }, [isAuthenticated, isVerified, router]);
 
   const fcmRegistered = useRef(false);
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);

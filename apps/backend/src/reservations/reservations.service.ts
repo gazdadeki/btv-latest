@@ -143,10 +143,12 @@ export class ReservationsService {
       discountApplied = instantDiscount;
     }
 
-    // Check balance
-    const balance = await this.walletService.getBalance(userId);
-    if (balance < reservationCost) {
-      throw new BadRequestException('Insufficient balance');
+    // Check balance (only if reservation has a cost)
+    if (reservationCost > 0) {
+      const balance = await this.walletService.getBalance(userId);
+      if (balance < reservationCost) {
+        throw new BadRequestException('Insufficient balance');
+      }
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -330,15 +332,17 @@ export class ReservationsService {
         }
       }
 
-      // Charge wallet
-      await this.walletService.withdrawWithManager(
-        queryRunner.manager,
-        user.wallet.id,
-        reservationCost,
-        useInstant
-          ? `Instant reservation for game ${gameId}`
-          : `Reservation for game ${gameId}`,
-      );
+      // Charge wallet (only if reservation has a cost)
+      if (reservationCost > 0) {
+        await this.walletService.withdrawWithManager(
+          queryRunner.manager,
+          user.wallet.id,
+          reservationCost,
+          useInstant
+            ? `Instant reservation for game ${gameId}`
+            : `Reservation for game ${gameId}`,
+        );
+      }
 
       // Auto-confirm if schedule doesn't require confirmation, or if instant reservation
       const autoConfirm = !game.schedule.requiresConfirmation || useInstant;
@@ -369,8 +373,9 @@ export class ReservationsService {
 
       await queryRunner.commitTransaction();
 
-      await this.statisticsService.incrementReservations(userId);
-      await this.statisticsService.addCoinsSpent(userId, reservationCost);
+      if (reservationCost > 0) {
+        await this.statisticsService.addCoinsSpent(userId, reservationCost);
+      }
 
       await this.websocketService.broadcast('reservation:created', {
         reservationId: saved.id,
