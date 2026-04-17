@@ -37,7 +37,9 @@ export class ProfanityService implements OnModuleInit {
         `Profanity filter loaded: ${this.blacklist.length} blacklisted words, ${this.protected.length} protected words`,
       );
     } catch (err) {
-      this.logger.error(`Failed to load blacklist.json: ${(err as Error).message}`);
+      this.logger.error(
+        `Failed to load blacklist.json: ${(err as Error).message}`,
+      );
     }
   }
 
@@ -113,7 +115,9 @@ export class ProfanityService implements OnModuleInit {
       .flatMap((part) =>
         part
           .split(/(?<=[a-z])(?=[A-Z])/)
-          .flatMap((p) => p.split(/(?<=[a-zA-Z])(?=[0-9])|(?<=[0-9])(?=[a-zA-Z])/)),
+          .flatMap((p) =>
+            p.split(/(?<=[a-zA-Z])(?=[0-9])|(?<=[0-9])(?=[a-zA-Z])/),
+          ),
       )
       .map((s) => this.normalize(s))
       .filter((s) => s.length > 0);

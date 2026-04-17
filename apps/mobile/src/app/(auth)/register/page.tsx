@@ -64,7 +64,7 @@ export default function RegisterPage() {
   return (
     <div className="flex-1 overflow-y-auto px-4 py-4">
       <div className="h-8" />
-      <h1 className="text-2xl font-bold text-center text-gray-900">
+      <h1 className="text-2xl font-bold text-center text-[#f0f0f0]">
         Create Account
       </h1>
       <div className="h-12" />
@@ -106,13 +106,13 @@ export default function RegisterPage() {
         ].map(({ key, label, type, icon: Icon, autoComplete }) => (
           <div key={key}>
             <div className="relative">
-              <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6a6a6a]" />
               <input
                 type={type}
                 placeholder={label}
                 {...field(key)}
                 autoComplete={autoComplete}
-                className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="auth-input pl-10 pr-3 py-2.5 text-sm"
               />
             </div>
             {errors[key] && (
@@ -131,12 +131,9 @@ export default function RegisterPage() {
           )}
         </Button>
 
-        <p className="text-center text-sm text-gray-600">
+        <p className="text-center text-sm text-[#8a8a8a]">
           Already have an account?{" "}
-          <Link
-            href="/login"
-            className="text-indigo-600 font-medium hover:text-indigo-800"
-          >
+          <Link href="/login" className="auth-link font-medium">
             Login
           </Link>
         </p>

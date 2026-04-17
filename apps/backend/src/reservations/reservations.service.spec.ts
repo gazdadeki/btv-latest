@@ -320,7 +320,7 @@ describe('ReservationsService', () => {
   });
 
   it('blocks gold users from adjacent game indexes in same batch', async () => {
-    let callCount = 0;
+    const callCount = 0;
     const adjacencyQueryBuilder = {
       innerJoin: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),

@@ -63,7 +63,7 @@ export default function LoginPage() {
   return (
     <div className="flex-1 overflow-y-auto px-4 py-4">
       <div className="h-8" />
-      <h1 className="text-2xl font-bold text-center text-gray-900">
+      <h1 className="text-2xl font-bold text-center text-[#f0f0f0]">
         Welcome Back
       </h1>
       <div className="h-12" />
@@ -71,13 +71,13 @@ export default function LoginPage() {
       <form onSubmit={handleLogin} noValidate className="flex flex-col gap-4">
         <div>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6a6a6a]" />
             <input
               type="text"
               placeholder="Email or Username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="auth-input pl-10 pr-3 py-2.5 text-sm"
               autoComplete="username"
             />
           </div>
@@ -88,13 +88,13 @@ export default function LoginPage() {
 
         <div>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6a6a6a]" />
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="auth-input pl-10 pr-3 py-2.5 text-sm"
               autoComplete="current-password"
             />
           </div>
@@ -104,10 +104,7 @@ export default function LoginPage() {
         </div>
 
         <div className="flex justify-end">
-          <Link
-            href="/forgot-password"
-            className="text-sm text-indigo-600 hover:text-indigo-800"
-          >
+          <Link href="/forgot-password" className="auth-link text-sm">
             Forgot Password?
           </Link>
         </div>
@@ -118,12 +115,9 @@ export default function LoginPage() {
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Login"}
         </Button>
 
-        <p className="text-center text-sm text-gray-600">
+        <p className="text-center text-sm text-[#8a8a8a]">
           Don&apos;t have an account?{" "}
-          <Link
-            href="/register"
-            className="text-indigo-600 font-medium hover:text-indigo-800"
-          >
+          <Link href="/register" className="auth-link font-medium">
             Register
           </Link>
         </p>

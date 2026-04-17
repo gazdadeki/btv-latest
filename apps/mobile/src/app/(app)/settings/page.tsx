@@ -97,6 +97,14 @@ function ProfileTab() {
     }
   }, [user, isEditing]);
 
+  // Redirect if the session clears unexpectedly (e.g. 401 invalidates user
+  // without an explicit logout). `isLoggingOut` handles the explicit case.
+  useEffect(() => {
+    if (!isLoading && !isLoggingOut && !user) {
+      router.replace("/login");
+    }
+  }, [isLoading, isLoggingOut, user, router]);
+
   async function handleSave() {
     setIsSaving(true);
     try {
@@ -127,8 +135,8 @@ function ProfileTab() {
     }
   }
 
-  if (isLoading) return <Loading message="Loading profile..." />;
-  if (!user) return <ErrorDisplay message="User not found" />;
+  if (isLoading || isLoggingOut || !user)
+    return <Loading message="Loading profile..." />;
 
   const readOnly = [
     { label: "Email", value: user.email },

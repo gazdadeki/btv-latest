@@ -124,10 +124,10 @@ export default function VerificationPage() {
   return (
     <div className="flex-1 overflow-y-auto px-4 py-4">
       <div className="h-8" />
-      <h1 className="text-2xl font-bold text-center text-gray-900">
+      <h1 className="text-2xl font-bold text-center text-[#f0f0f0]">
         Verify your email
       </h1>
-      <p className="text-sm text-gray-500 text-center mt-2">
+      <p className="text-sm text-[#8a8a8a] text-center mt-2">
         Enter the 6-digit code sent to your email.
       </p>
       <div className="h-12" />
@@ -146,7 +146,7 @@ export default function VerificationPage() {
             onChange={(e) => handleChange(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
             onPaste={handlePaste}
-            className="w-11 h-14 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors"
+            className="auth-input w-11 h-14 text-center text-xl font-bold"
           />
         ))}
       </div>
@@ -163,7 +163,7 @@ export default function VerificationPage() {
         <button
           onClick={requestCode}
           disabled={cooldownSeconds > 0 || isRequestingCode}
-          className="text-sm text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+          className="auth-link text-sm disabled:text-[#4a4a4a] disabled:cursor-not-allowed"
         >
           {isRequestingCode
             ? "Sending..."
@@ -176,7 +176,7 @@ export default function VerificationPage() {
             await logout();
             router.replace("/login");
           }}
-          className="text-sm text-gray-500 hover:text-gray-700"
+          className="text-sm text-[#8a8a8a] hover:text-[#c0c0c0]"
         >
           Back to Login
         </button>

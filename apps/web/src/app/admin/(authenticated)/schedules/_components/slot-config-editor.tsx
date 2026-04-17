@@ -8,12 +8,14 @@ interface SlotConfigEditorProps {
   slots: SlotConfig[];
   setSlots: (s: SlotConfig[]) => void;
   disableGold?: boolean;
+  forceGold?: boolean;
 }
 
 export function SlotConfigEditor({
   slots,
   setSlots,
   disableGold,
+  forceGold,
 }: SlotConfigEditorProps) {
   const teamA = slots
     .filter((s) => s.team === "A")
@@ -41,8 +43,8 @@ export function SlotConfigEditor({
             <label className="flex items-center gap-1">
               <input
                 type="checkbox"
-                checked={!disableGold && !!s.isGoldOnly}
-                disabled={disableGold}
+                checked={forceGold || (!disableGold && !!s.isGoldOnly)}
+                disabled={disableGold || forceGold}
                 onChange={(e) =>
                   setSlots(
                     slots.map((sl) =>

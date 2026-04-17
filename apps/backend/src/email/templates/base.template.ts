@@ -88,6 +88,8 @@ export function wrapInBaseTemplate(
     /* Button styles */
     .button {
       display: inline-block;
+      box-sizing: border-box;
+      max-width: 100%;
       padding: 16px 32px;
       background: linear-gradient(135deg, ${BTV_COLORS.primary} 0%, ${BTV_COLORS.primaryDark} 100%);
       color: ${BTV_COLORS.white} !important;
@@ -97,6 +99,7 @@ export function wrapInBaseTemplate(
       font-size: 16px;
       text-align: center;
       transition: all 0.2s ease;
+      word-break: break-word;
     }
     .button-secondary {
       background: transparent;
@@ -139,6 +142,11 @@ export function wrapInBaseTemplate(
       }
       .button {
         display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 14px 20px !important;
+      }
+      .button-wrapper {
         width: 100% !important;
       }
     }
@@ -224,10 +232,10 @@ export function wrapInBaseTemplate(
  */
 export function createButton(text: string, href: string): string {
   return `
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 24px 0;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="button-wrapper" style="margin: 24px 0; width: 100%;">
       <tr>
-        <td>
-          <a href="${href}" class="button" style="display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, ${BTV_COLORS.primary} 0%, ${BTV_COLORS.primaryDark} 100%); color: ${BTV_COLORS.white}; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+        <td align="center">
+          <a href="${href}" class="button" style="display: inline-block; box-sizing: border-box; max-width: 100%; padding: 16px 32px; background: linear-gradient(135deg, ${BTV_COLORS.primary} 0%, ${BTV_COLORS.primaryDark} 100%); color: ${BTV_COLORS.white}; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; word-break: break-word;">
             ${text}
           </a>
         </td>
