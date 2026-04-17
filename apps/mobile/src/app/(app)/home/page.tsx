@@ -6,8 +6,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar } from "lucide-react";
+import { Calendar, Lock } from "lucide-react";
 import { RiShieldStarFill, RiVipCrownFill } from "react-icons/ri";
+import { GiCrossedSwords } from "react-icons/gi";
+import { PageHeader } from "@/components/page-header";
 import { api } from "@/lib/api";
 import { wsManager } from "@/lib/websocket";
 import { useAuth } from "@/lib/auth-context";
@@ -40,10 +42,12 @@ function GoldMemberBanner() {
 function GameCard({
   game,
   hasActiveReservation,
+  isLocked,
   onTap,
 }: {
   game: Game;
   hasActiveReservation: boolean;
+  isLocked: boolean;
   onTap: () => void;
 }) {
   const status = game.status;
@@ -59,9 +63,14 @@ function GameCard({
     <button
       onClick={onTap}
       className={cn(
-        "game-card w-full text-left px-4 py-4 mb-2",
+        "w-full text-left px-6 py-5 mb-2 transition-transform active:scale-[0.98]",
         game.isExclusiveToGold && "game-card--gold",
       )}
+      style={{
+        backgroundImage: "url('/frames/game-card-border.png')",
+        backgroundSize: "100% 100%",
+        backgroundRepeat: "no-repeat",
+      }}
     >
       <div className="flex items-center justify-between">
         {/* Left: game title */}
@@ -106,6 +115,11 @@ function GameCard({
               ) : hasActiveReservation ? (
                 <span className="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-green-700 text-white">
                   Reserved
+                </span>
+              ) : isLocked ? (
+                <span className="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-gray-700 text-gray-300 inline-flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
+                  Locked
                 </span>
               ) : (
                 <span className="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-[#2a9d8f] text-white">
@@ -199,6 +213,9 @@ export default function HomePage() {
 
   return (
     <div className="page-dark flex flex-col h-full">
+      {/* Page title */}
+      <PageHeader label="Game Arena" icon={GiCrossedSwords} />
+
       {/* Gold Member banner */}
       {showGoldBanner && <GoldMemberBanner />}
 
@@ -211,11 +228,14 @@ export default function HomePage() {
               key={key}
               onClick={() => toggleFilter(key)}
               className={cn(
-                "flex-shrink-0 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all",
-                isActive
-                  ? "border-[#2a9d8f] text-[#2a9d8f] bg-[#2a9d8f]/10"
-                  : "border-[#3a3a3a] text-[#6a6a6a] bg-transparent",
+                "flex-shrink-0 px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-transform active:scale-[0.97]",
+                isActive ? "text-[#c9a84c]" : "text-[#7a7366]",
               )}
+              style={{
+                backgroundImage: "url('/frames/game-card-border.png')",
+                backgroundSize: "100% 100%",
+                backgroundRepeat: "no-repeat",
+              }}
             >
               {label}
             </button>
@@ -234,8 +254,9 @@ export default function HomePage() {
 
         {activeStream &&
           (() => {
+            const isGoldUser = !!(user && isGold(user));
             const visibleGames = (activeStream.games ?? []).filter(
-              (game: Game) => !game.isExclusiveToGold || (user && isGold(user)),
+              (game: Game) => !game.isExclusiveToGold || isGoldUser,
             );
             if (visibleGames.length === 0) {
               return (
@@ -260,6 +281,7 @@ export default function HomePage() {
                       key={game.id}
                       game={game}
                       hasActiveReservation={!!ownReservation}
+                      isLocked={game.status === "CREATED" && !isGoldUser}
                       onTap={() => router.push(`/games/${game.id}`)}
                     />
                   );

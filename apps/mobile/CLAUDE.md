@@ -48,6 +48,18 @@
 - `RESERVED` (was PENDING), `CONFIRMED`, `CANCELLED`, `EXPIRED` (was COMPLETED)
 - `reservationIsActive()` checks for `RESERVED` or `CONFIRMED`
 
+## Page Layout / Theming
+
+- Top-level pages use `<PageHeader label icon rightAction? />` from `src/components/page-header.tsx` for their title bar. Icons are from `react-icons/gi` (Game Icons set) to match the gaming aesthetic; labels should align with the bottom-nav tab labels.
+- Bottom nav labels: Arena (`/home`), Messages, Settings, Store (`/shop`), Guide (`/tutorials`). Keep page titles in sync if nav labels change.
+- Gaming frame assets live in `public/frames/` (e.g. `game-card-border.png` used for cards and filter chips, `footer-border-bcg.png` used for the bottom nav). Apply via inline `backgroundImage` + `backgroundSize: 100% 100%`.
+- Home route (`/home`) uses the dark page theme (`#0f0e0c`) — conditionally set on `(app)/layout.tsx` via `usePathname()`. Other `(app)` routes use `bg-gray-50`.
+
+## Reserve button availability
+
+- Free users can only reserve once a game transitions to `OPEN`. During `CREATED`, the home list shows a "Locked" badge and the game-details Reserve button is rendered but `disabled` (so the affordance is visible — unlock is imminent).
+- Gold users can reserve from `CREATED` onward (gold-first rule).
+
 ## Slot Card UI (Game Details)
 
 - Circle colors: red=admin, green=own confirmed, blue=own pending, gray=other player, amber=gold-only unreserved, indigo=free unreserved
