@@ -46,6 +46,8 @@ import { Loading } from "@/components/loading";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorDisplay } from "@/components/error-display";
 import { Button } from "@/components/button";
+import { PageHeader } from "@/components/page-header";
+import { GiGearHammer } from "react-icons/gi";
 import { cn, formatDate, formatCurrency, formatNumber } from "@/lib/utils";
 import { winRate, totalGamesPlayed, netCoins } from "@/types";
 import type { PaymentMethod, UserStatistics, Subscription } from "@/types";
@@ -751,9 +753,7 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 shrink-0">
-        <h1 className="text-lg font-bold text-gray-900">Settings</h1>
-      </div>
+      <PageHeader label="Settings" icon={GiGearHammer} />
 
       {/* Tab bar (horizontal scroll) */}
       <div className="bg-white border-b border-gray-100 overflow-x-auto scrollbar-hide shrink-0">

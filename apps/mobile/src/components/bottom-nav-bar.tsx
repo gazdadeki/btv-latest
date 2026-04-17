@@ -36,10 +36,17 @@ export function BottomNavBar() {
 
   return (
     <nav
-      className="nav-bar-bg fixed bottom-0 left-0 right-0 z-40"
+      className="fixed bottom-0 left-0 right-0 z-40"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="relative flex items-stretch justify-around max-w-lg mx-auto px-2 py-2">
+      <div
+        className="relative flex items-stretch justify-around max-w-lg mx-auto px-6 py-4"
+        style={{
+          backgroundImage: "url('/frames/footer-border-bcg.png')",
+          backgroundSize: "100% 100%",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
           const isMessages = href === "/messages";

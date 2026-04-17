@@ -88,6 +88,7 @@ function SlotCard({
   hasActiveReservation,
   goldSlotsAvailable,
   locked,
+  reserveDisabled,
   onReserve,
   onConfirm,
   onLeave,
@@ -99,6 +100,7 @@ function SlotCard({
   hasActiveReservation: boolean;
   goldSlotsAvailable: boolean;
   locked: boolean;
+  reserveDisabled: boolean;
   onReserve: () => void;
   onConfirm: () => void;
   onLeave: () => void;
@@ -194,7 +196,11 @@ function SlotCard({
                     variant="primary"
                     size="sm"
                     onClick={onReserve}
-                    disabled={hasActiveReservation || mustUseGoldFirst}
+                    disabled={
+                      reserveDisabled ||
+                      hasActiveReservation ||
+                      mustUseGoldFirst
+                    }
                   >
                     Reserve
                   </Button>
@@ -273,6 +279,7 @@ function SlotsTab({
   atReservationLimit,
   tooCloseToExisting,
   locked,
+  reserveDisabled,
   onReserve,
   onConfirm,
   onLeave,
@@ -284,6 +291,7 @@ function SlotsTab({
   atReservationLimit: boolean;
   tooCloseToExisting: boolean;
   locked: boolean;
+  reserveDisabled: boolean;
   onReserve: (slotId: number, team: Team) => void;
   onConfirm: (slot: Slot) => void;
   onLeave: (slot: Slot) => void;
@@ -318,6 +326,7 @@ function SlotsTab({
           hasActiveReservation={hasActiveReservation}
           goldSlotsAvailable={goldSlotsAvailable}
           locked={locked}
+          reserveDisabled={reserveDisabled}
           onReserve={() => onReserve(slot.id, slot.team)}
           onConfirm={() => onConfirm(slot)}
           onLeave={() => onLeave(slot)}
@@ -341,12 +350,12 @@ function SlotsTab({
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 flex items-start gap-2">
           <Info className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
           <p className="text-xs text-orange-700">
-            {tooCloseToExisting
-              ? MESSAGES.reservation.tooClose
-              : atReservationLimit
-                ? isGoldUser
-                  ? MESSAGES.reservation.goldAtLimit
-                  : MESSAGES.reservation.freeAtLimit
+            {atReservationLimit
+              ? isGoldUser
+                ? MESSAGES.reservation.goldAtLimit
+                : MESSAGES.reservation.freeAtLimit
+              : tooCloseToExisting
+                ? MESSAGES.reservation.tooClose
                 : MESSAGES.reservation.cannotReserve}
           </p>
         </div>
@@ -499,6 +508,11 @@ export default function GameDetailsPage({
     !!game &&
     (gameIsInProgress(game) || gameIsFinished(game) || gameIsCancelled(game));
 
+  // Gold-first: during CREATED status only gold users can reserve. Free users
+  // see a disabled Reserve button (not hidden) so they know it will unlock.
+  const reserveDisabledForPreOpen =
+    !!game && game.status === "CREATED" && !isUserGold;
+
   if (isLoading) return <Loading message="Loading game details..." />;
   if (error || !game)
     return (
@@ -563,14 +577,15 @@ export default function GameDetailsPage({
             atReservationLimit={atReservationLimit}
             tooCloseToExisting={tooCloseToExisting}
             locked={slotsLocked}
+            reserveDisabled={reserveDisabledForPreOpen}
             onReserve={(slotId, team) => {
               if (hasActiveReservation) {
                 toast.warning(
                   hasSlotInThisGame
                     ? MESSAGES.reservation.toastAlreadyInGame
-                    : tooCloseToExisting
-                      ? MESSAGES.reservation.toastTooClose
-                      : MESSAGES.reservation.toastAtLimit,
+                    : atReservationLimit
+                      ? MESSAGES.reservation.toastAtLimit
+                      : MESSAGES.reservation.toastTooClose,
                 );
                 return;
               }
