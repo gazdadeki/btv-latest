@@ -232,37 +232,41 @@ export default function HomePage() {
           <EmptyState message="No active stream" icon={Calendar} />
         )}
 
-        {activeStream && (activeStream.games ?? []).length === 0 && (
-          <EmptyState message="No games in active stream" icon={Calendar} />
-        )}
-
-        {activeStream && (activeStream.games ?? []).length > 0 && (
-          <div>
-            <h2 className="text-lg font-bold text-[#f0f0f0] px-1 py-2">
-              {activeStream.stream.title || activeStream.stream.scheduleName}
-            </h2>
-            {(activeStream.games ?? [])
-              .filter(
-                (game: Game) =>
-                  !game.isExclusiveToGold || (user && isGold(user)),
-              )
-              .map((game: Game) => {
-                const ownReservation = activeReservations.find(
-                  (r) => r.gameId === game.id,
-                );
-                return (
-                  <GameCard
-                    key={game.id}
-                    game={game}
-                    hasActiveReservation={
-                      !!ownReservation && ownReservation.gameId === game.id
-                    }
-                    onTap={() => router.push(`/games/${game.id}`)}
-                  />
-                );
-              })}
-          </div>
-        )}
+        {activeStream &&
+          (() => {
+            const visibleGames = (activeStream.games ?? []).filter(
+              (game: Game) => !game.isExclusiveToGold || (user && isGold(user)),
+            );
+            if (visibleGames.length === 0) {
+              return (
+                <EmptyState
+                  message="No games in active stream"
+                  icon={Calendar}
+                />
+              );
+            }
+            return (
+              <div>
+                <h2 className="text-lg font-bold text-[#f0f0f0] px-1 py-2">
+                  {activeStream.stream.title ||
+                    activeStream.stream.scheduleName}
+                </h2>
+                {visibleGames.map((game: Game) => {
+                  const ownReservation = activeReservations.find(
+                    (r) => r.gameId === game.id,
+                  );
+                  return (
+                    <GameCard
+                      key={game.id}
+                      game={game}
+                      hasActiveReservation={!!ownReservation}
+                      onTap={() => router.push(`/games/${game.id}`)}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })()}
       </div>
     </div>
   );

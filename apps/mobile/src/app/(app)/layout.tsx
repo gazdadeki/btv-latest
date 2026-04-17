@@ -40,6 +40,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isAuthenticated, isVerified } = useAuth();
   const [wsStatus, setWsStatus] = useState<WebSocketStatus>("disconnected");
+  // Exact-match: dark theme applies to the Arena feed only, not any nested
+  // /home/* routes (none exist today, but this is explicit intent).
   const isDarkRoute = pathname === "/home";
 
   // Redirect unverified users to verification page
