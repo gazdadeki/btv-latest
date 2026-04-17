@@ -124,7 +124,15 @@ export function CreateGameDialog({
             <input
               type="checkbox"
               checked={isExclusiveToGold}
-              onChange={(e) => setIsExclusiveToGold(e.target.checked)}
+              onChange={(e) => {
+                const gold = e.target.checked;
+                setIsExclusiveToGold(gold);
+                if (gold) {
+                  setSlots((prev) =>
+                    prev.map((s) => ({ ...s, isGoldOnly: true })),
+                  );
+                }
+              }}
               className="rounded"
             />
             Exclusive to Gold Subscribers
@@ -160,6 +168,7 @@ export function CreateGameDialog({
             slots={slots}
             setSlots={setSlots}
             disableGold={allowMultipleReservations}
+            forceGold={isExclusiveToGold}
           />
           <div className="flex justify-between pt-2">
             <Button variant="secondary" onClick={() => setStep(1)}>
