@@ -1,11 +1,15 @@
-'use client';
+"use client";
 
-import { AuthProvider } from '@/lib/auth-context';
+import { AuthProvider } from "@/lib/auth-context";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="page-dark min-h-screen flex flex-col">
         <main className="flex-1 flex flex-col max-w-lg mx-auto w-full">
           {children}
         </main>

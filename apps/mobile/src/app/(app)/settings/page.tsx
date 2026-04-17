@@ -127,8 +127,8 @@ function ProfileTab() {
     }
   }
 
-  if (isLoading) return <Loading message="Loading profile..." />;
-  if (!user) return <ErrorDisplay message="User not found" />;
+  if (isLoading || isLoggingOut || !user)
+    return <Loading message="Loading profile..." />;
 
   const readOnly = [
     { label: "Email", value: user.email },

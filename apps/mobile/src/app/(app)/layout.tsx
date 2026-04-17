@@ -5,7 +5,7 @@
 // Renders BottomNavBar + WebSocketStatusBar above it
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
@@ -37,8 +37,10 @@ const stripePromise = loadStripe(
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { isAuthenticated, isVerified } = useAuth();
   const [wsStatus, setWsStatus] = useState<WebSocketStatus>("disconnected");
+  const isDarkRoute = pathname === "/home";
 
   // Redirect unverified users to verification page
   useEffect(() => {
@@ -157,7 +159,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div
+      className={`min-h-screen flex flex-col ${isDarkRoute ? "bg-[#0f0e0c]" : "bg-gray-50"}`}
+    >
       {showNotificationBanner && (
         <div className="bg-blue-600 text-white px-4 py-3 flex items-center gap-3">
           <Bell className="size-5 shrink-0" />
@@ -180,7 +184,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       )}
       <main
         className="flex-1 max-w-lg mx-auto w-full overflow-y-auto"
-        style={{ paddingBottom: "calc(56px + env(safe-area-inset-bottom))" }}
+        style={{ paddingBottom: "calc(76px + env(safe-area-inset-bottom))" }}
       >
         {children}
       </main>
