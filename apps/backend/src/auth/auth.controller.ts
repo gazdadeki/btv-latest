@@ -183,7 +183,9 @@ export class AuthController {
 
   @Post('admin/login')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @ApiOperation({ summary: 'Admin login — restricted to users with ADMIN role' })
+  @ApiOperation({
+    summary: 'Admin login — restricted to users with ADMIN role',
+  })
   @ApiResponse({
     status: 200,
     description: 'Admin login successful',
@@ -281,8 +283,12 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       };
 
-      const accessCookie = isPlayerSession ? 'player_access_token' : 'admin_access_token';
-      const refreshCookie = isPlayerSession ? 'player_refresh_token' : 'admin_refresh_token';
+      const accessCookie = isPlayerSession
+        ? 'player_access_token'
+        : 'admin_access_token';
+      const refreshCookie = isPlayerSession
+        ? 'player_refresh_token'
+        : 'admin_refresh_token';
 
       res.cookie(accessCookie, result.accessToken, {
         ...cookieOptions,
