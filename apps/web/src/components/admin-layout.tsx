@@ -10,6 +10,7 @@ import { AuthUtils } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { FEATURES } from "@/lib/features";
 import { StreamControl } from "@/components/stream-control";
+import { TruncatedText } from "@/components/ui/truncated-text";
 
 const allNavItems = [
   {
@@ -116,8 +117,11 @@ function Header() {
   return (
     <header className="fixed top-0 left-64 right-0 h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 z-30">
       <StreamControl />
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-600">{user?.email}</span>
+      <div className="flex items-center gap-4 min-w-0">
+        <TruncatedText
+          text={user?.email}
+          className="text-sm text-gray-600 max-w-[240px] block"
+        />
         <button
           onClick={handleLogout}
           className="text-sm text-red-600 hover:text-red-800 cursor-pointer"

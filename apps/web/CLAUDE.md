@@ -20,6 +20,13 @@
 - WebSocket connection indicator at bottom of sidebar
 - Team colors: Sentinel = `red-600`, Scourge = `green-600`
 
+## Text Overflow
+
+- `TooltipProvider` (Radix) is mounted globally in `src/app/layout.tsx`; no need to wrap individual pages
+- Use `<TruncatedText text={...} className="max-w-[Npx] block" />` from `@/components/ui/truncated-text` for any variable-length text (emails, usernames, names, descriptions, URLs) — it auto-detects overflow via ResizeObserver and only mounts a Radix tooltip when actually truncated
+- Tooltip primitives live at `@/components/ui/tooltip`
+- For flex layouts, give the truncating child `min-w-0` (or `flex-1 min-w-0`) so `truncate` can actually clip
+
 ## Stream Controls
 
 - Persistent stream control in header bar (all pages): Start Stream / End Stream buttons

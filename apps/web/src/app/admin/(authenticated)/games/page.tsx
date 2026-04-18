@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { formatDate, toastError } from "@/lib/utils";
 import { webSocketManager } from "@/lib/websocket";
 import { DataTable } from "@/components/data-table";
+import { TruncatedText } from "@/components/ui/truncated-text";
 import { PageHeader } from "@/components/page-header";
 import { PageLoading } from "@/components/loading";
 import { Dialog } from "@/components/dialog";
@@ -272,7 +273,12 @@ export default function GamesPage() {
     columnHelper.display({
       id: "stream",
       header: "Stream",
-      cell: (i) => i.row.original.stream?.title || "—",
+      cell: (i) => (
+        <TruncatedText
+          text={i.row.original.stream?.title || "—"}
+          className="max-w-[260px] block"
+        />
+      ),
     }),
     columnHelper.display({
       id: "started",

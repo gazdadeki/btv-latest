@@ -1,10 +1,11 @@
-import type { Metadata } from 'next';
-import { Toaster } from 'sonner';
-import './globals.css';
+import type { Metadata } from "next";
+import { Toaster } from "sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'BaltazarTV',
-  description: 'BaltazarTV Platform',
+  title: "BaltazarTV",
+  description: "BaltazarTV Platform",
 };
 
 export default function RootLayout({
@@ -25,7 +26,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased bg-gray-50">
-        {children}
+        <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
         <Toaster richColors position="top-right" />
       </body>
     </html>

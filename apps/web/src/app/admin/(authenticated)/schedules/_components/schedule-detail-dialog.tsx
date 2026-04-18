@@ -13,6 +13,7 @@ import { Dialog } from "@/components/dialog";
 import { Button } from "@/components/button";
 import { Tabs } from "@/components/tabs";
 import { StatusBadge } from "@/components/status-badge";
+import { TruncatedText } from "@/components/ui/truncated-text";
 import {
   FormRow,
   FormInput,
@@ -227,11 +228,18 @@ export function ScheduleDetailDialog({
             </tr>
             <tr>
               <td className="py-2 font-medium">Name</td>
-              <td>{schedule.name}</td>
+              <td>
+                <TruncatedText text={schedule.name} className="block" />
+              </td>
             </tr>
             <tr>
               <td className="py-2 font-medium">Description</td>
-              <td>{schedule.description || "N/A"}</td>
+              <td>
+                <TruncatedText
+                  text={schedule.description || "N/A"}
+                  className="block"
+                />
+              </td>
             </tr>
             <tr>
               <td className="py-2 font-medium">Active</td>
@@ -556,10 +564,15 @@ export function ScheduleDetailDialog({
                     <td className="px-3 py-2">{s.isGoldOnly ? "Yes" : "No"}</td>
                     <td className="px-3 py-2">{s.coinsCost ?? "Default"}</td>
                     <td className="px-3 py-2">
-                      {(s as any).preAssignedUser?.username ||
-                        (s.preAssignedUserId
-                          ? `User #${s.preAssignedUserId}`
-                          : "None")}
+                      <TruncatedText
+                        text={
+                          (s as any).preAssignedUser?.username ||
+                          (s.preAssignedUserId
+                            ? `User #${s.preAssignedUserId}`
+                            : "None")
+                        }
+                        className="max-w-[180px] block"
+                      />
                     </td>
                   </tr>
                 ))}
