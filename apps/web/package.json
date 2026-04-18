@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@radix-ui/react-tooltip": "^1.2.8",
     "@tanstack/react-table": "^8",
     "chart.js": "^4",
     "class-variance-authority": "^0.7",

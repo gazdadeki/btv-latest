@@ -215,7 +215,8 @@ export const api = {
   shufflePlayers: (id: number) =>
     apiRequest(`/admin/games/${id}/shuffle`, { method: "POST" }),
   // Streams
-  getStreams: () => apiRequest("/admin/streams"),
+  getStreams: (params?: Record<string, string | undefined>) =>
+    apiRequest(`/admin/streams${buildQuery(params)}`),
   getActiveStream: () => apiRequest("/admin/streams/active"),
   startStream: (id: number, data: { title?: string; url: string }) =>
     apiRequest(`/admin/streams/${id}/start`, {

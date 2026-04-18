@@ -2,15 +2,17 @@
 
 // Wallet transaction history page, accessible from settings Wallet tab
 
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, TrendingUp, TrendingDown } from "lucide-react";
 import { api } from "@/lib/api";
 import { Loading } from "@/components/loading";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorDisplay } from "@/components/error-display";
 import { cn, formatDateTime, formatNumber } from "@/lib/utils";
-import { transactionIsPositive } from "@/types";
+import { transactionIsPositive, type Transaction } from "@/types";
+
+const PAGE_SIZE = 25;
 
 const TYPE_LABELS: Record<string, string> = {
   DEPOSIT: "Deposit",
@@ -24,13 +26,37 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function WalletTransactionsPage() {
   const router = useRouter();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
+  const [error, setError] = useState<unknown>(null);
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["walletTransactions"],
-    queryFn: () => api.getWalletTransactions(1, 100),
-  });
+  const load = useCallback(async (targetPage: number) => {
+    setIsFetching(true);
+    setError(null);
+    try {
+      const res = await api.getWalletTransactions(targetPage, PAGE_SIZE);
+      setTransactions((prev) =>
+        targetPage === 1 ? res.transactions : [...prev, ...res.transactions],
+      );
+      setTotal(res.total);
+      setPage(targetPage);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setIsFetching(false);
+      setIsInitialLoading(false);
+    }
+  }, []);
 
-  const transactions = data?.transactions ?? [];
+  useEffect(() => {
+    load(1);
+  }, [load]);
+
+  const isLoading = isInitialLoading;
+  const canLoadMore = transactions.length < total;
 
   return (
     <div className="flex flex-col h-full">
@@ -49,7 +75,9 @@ export default function WalletTransactionsPage() {
 
       <div className="flex-1 overflow-y-auto px-3 py-3">
         {isLoading && <Loading message="Loading transactions..." />}
-        {error && <ErrorDisplay message={String(error)} onRetry={refetch} />}
+        {error && (
+          <ErrorDisplay message={String(error)} onRetry={() => load(1)} />
+        )}
         {!isLoading && !error && transactions.length === 0 && (
           <EmptyState message="No transactions yet" />
         )}
@@ -97,6 +125,16 @@ export default function WalletTransactionsPage() {
             </div>
           );
         })}
+        {!isLoading && canLoadMore && (
+          <button
+            type="button"
+            onClick={() => load(page + 1)}
+            disabled={isFetching}
+            className="w-full btn-dark-secondary mt-2 py-3 text-sm font-bold uppercase tracking-wider disabled:opacity-60"
+          >
+            {isFetching ? "Loading..." : "Load more"}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
+import type { Paginated } from '@btv/types';
 import { Game, GameStatus } from './entities/game.entity';
 import { Slot, Team } from './entities/slot.entity';
 import {
@@ -283,13 +284,17 @@ export class GamesService {
     return (result?.maxIndex ?? 0) + 1;
   }
 
-  async findAll(filters?: {
-    status?: GameStatus;
-    scheduleId?: number;
-    streamId?: number;
-    startDate?: Date;
-    endDate?: Date;
-  }): Promise<Game[]> {
+  async findAll(
+    filters: {
+      status?: GameStatus;
+      scheduleId?: number;
+      streamId?: number;
+      startDate?: Date;
+      endDate?: Date;
+    },
+    page = 1,
+    limit = 25,
+  ): Promise<Paginated<Game>> {
     const query = this.gameRepository.createQueryBuilder('game');
     if (filters?.status) {
       query.andWhere('game.status = :status', { status: filters.status });
@@ -315,13 +320,27 @@ export class GamesService {
       });
     }
 
-    return query
+    query
       .leftJoinAndSelect('game.schedule', 'schedule')
       .leftJoinAndSelect('game.stream', 'stream')
-      .leftJoinAndSelect('game.slots', 'slots')
-      .orderBy('game.gameIndex', 'ASC')
-      .addOrderBy('game.id', 'ASC')
-      .getMany();
+      .leftJoinAndSelect('game.slots', 'slots');
+
+    // When filtering by a single stream, order by in-stream game index
+    // (Game 1, 2, 3 ...). Otherwise show newest streams' games first,
+    // but still preserve in-stream ordering within each group.
+    if (filters?.streamId) {
+      query.orderBy('game.gameIndex', 'ASC').addOrderBy('game.id', 'ASC');
+    } else {
+      query
+        .orderBy('game.scheduledStartTime', 'DESC')
+        .addOrderBy('game.gameIndex', 'ASC')
+        .addOrderBy('game.id', 'ASC');
+    }
+
+    query.skip((page - 1) * limit).take(limit);
+
+    const [data, total] = await query.getManyAndCount();
+    return { data, total, page, limit };
   }
 
   async findOne(id: number): Promise<Game> {

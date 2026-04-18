@@ -10,7 +10,12 @@ import { Mail, User, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/button";
-import { validateEmail, validateUsername, validatePassword } from "@/lib/utils";
+import {
+  validateEmail,
+  validateUsername,
+  validatePassword,
+  USERNAME_MAX_LENGTH,
+} from "@/lib/utils";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -81,6 +86,7 @@ export default function RegisterPage() {
             type: "email",
             icon: Mail,
             autoComplete: "email",
+            maxLength: undefined as number | undefined,
           },
           {
             key: "username" as const,
@@ -88,6 +94,7 @@ export default function RegisterPage() {
             type: "text",
             icon: User,
             autoComplete: "username",
+            maxLength: USERNAME_MAX_LENGTH as number | undefined,
           },
           {
             key: "password" as const,
@@ -95,6 +102,7 @@ export default function RegisterPage() {
             type: "password",
             icon: Lock,
             autoComplete: "new-password",
+            maxLength: undefined as number | undefined,
           },
           {
             key: "confirmPassword" as const,
@@ -102,8 +110,9 @@ export default function RegisterPage() {
             type: "password",
             icon: Lock,
             autoComplete: "new-password",
+            maxLength: undefined as number | undefined,
           },
-        ].map(({ key, label, type, icon: Icon, autoComplete }) => (
+        ].map(({ key, label, type, icon: Icon, autoComplete, maxLength }) => (
           <div key={key}>
             <div className="relative">
               <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6a6a6a]" />
@@ -112,6 +121,7 @@ export default function RegisterPage() {
                 placeholder={label}
                 {...field(key)}
                 autoComplete={autoComplete}
+                maxLength={maxLength}
                 className="auth-input pl-10 pr-3 py-2.5 text-sm"
               />
             </div>

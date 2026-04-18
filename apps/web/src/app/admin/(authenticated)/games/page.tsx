@@ -7,12 +7,12 @@ import { api } from "@/lib/api";
 import { formatDate, toastError } from "@/lib/utils";
 import { webSocketManager } from "@/lib/websocket";
 import { DataTable } from "@/components/data-table";
-import { TruncatedText } from "@/components/ui/truncated-text";
 import { PageHeader } from "@/components/page-header";
 import { PageLoading } from "@/components/loading";
 import { Dialog } from "@/components/dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/button";
+import { ScrollableSelect } from "@/components/scrollable-select";
 import { StatusBadge } from "@/components/status-badge";
 import { useConfirmAction } from "@/hooks/use-confirm-action";
 import { GAME_STATUS_COLORS } from "@/constants";
@@ -31,6 +31,10 @@ const columnHelper = createColumnHelper<Game>();
 
 export default function GamesPage() {
   const [games, setGames] = useState<Game[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [isFetching, setIsFetching] = useState(false);
   const [streams, setStreams] = useState<StreamOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeStreamId, setActiveStreamId] = useState<string>("");
@@ -45,35 +49,55 @@ export default function GamesPage() {
   const { confirmAction, confirm, reset } = useConfirmAction();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setPage(1);
+  }, [filterStatus, filterStream, filterStartDate, filterEndDate]);
+
   const load = useCallback(async () => {
     if (filterStream === null) return; // wait until stream filter is initialized
+    setIsFetching(true);
     try {
-      const params: Record<string, string | undefined> = {};
+      const params: Record<string, string | undefined> = {
+        page: String(page),
+        limit: String(pageSize),
+      };
       if (filterStatus) params.status = filterStatus;
       if (filterStream) params.streamId = filterStream;
       if (filterStartDate) params.startDate = filterStartDate;
       if (filterEndDate) params.endDate = filterEndDate;
-      const res = await api.getGames(params);
-      const list = Array.isArray(res)
-        ? res
-        : (res as { data?: Game[] }).data || [];
-      setGames(list as Game[]);
+      const res = (await api.getGames(params)) as {
+        data: Game[];
+        total: number;
+      };
+      setGames(res.data || []);
+      setTotal(res.total || 0);
     } catch (err) {
       toastError(err, "Failed to load games");
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
-  }, [filterStatus, filterStream, filterStartDate, filterEndDate]);
+  }, [
+    filterStatus,
+    filterStream,
+    filterStartDate,
+    filterEndDate,
+    page,
+    pageSize,
+  ]);
 
   // Load streams list and set the active stream as default filter
   useEffect(() => {
     (async () => {
       try {
-        const [streamsList, active] = await Promise.all([
-          api.getStreams() as Promise<StreamOption[]>,
+        const [streamsRes, active] = await Promise.all([
+          api.getStreams({ limit: "20" }) as Promise<{
+            data: StreamOption[];
+          }>,
           api.getActiveStream() as Promise<Stream | null>,
         ]);
-        setStreams(Array.isArray(streamsList) ? streamsList : []);
+        setStreams(streamsRes?.data ?? []);
         const id = active?.id ? String(active.id) : "";
         setActiveStreamId(id);
         setFilterStream(id);
@@ -89,8 +113,10 @@ export default function GamesPage() {
 
   const loadStreams = useCallback(async () => {
     try {
-      const res = await api.getStreams();
-      setStreams(Array.isArray(res) ? (res as StreamOption[]) : []);
+      const res = (await api.getStreams({ limit: "20" })) as {
+        data?: StreamOption[];
+      };
+      setStreams(res?.data ?? []);
     } catch {
       /* ignore */
     }
@@ -274,10 +300,7 @@ export default function GamesPage() {
       id: "stream",
       header: "Stream",
       cell: (i) => (
-        <TruncatedText
-          text={i.row.original.stream?.title || "—"}
-          className="max-w-[260px] block"
-        />
+        <span className="block">{i.row.original.stream?.title || "—"}</span>
       ),
     }),
     columnHelper.display({
@@ -396,18 +419,20 @@ export default function GamesPage() {
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Stream</label>
-            <select
+            <ScrollableSelect
               value={filterStream ?? ""}
-              onChange={(e) => setFilterStream(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            >
-              <option value="">All Streams</option>
-              {streams.map((s) => (
-                <option key={s.id} value={String(s.id)}>
-                  {s.title || `Stream #${s.id}`}
-                </option>
-              ))}
-            </select>
+              onChange={setFilterStream}
+              options={[
+                { value: "", label: "All Streams" },
+                ...streams.map((s) => ({
+                  value: String(s.id),
+                  label: s.title || `Stream #${s.id}`,
+                })),
+              ]}
+              placeholder="All Streams"
+              className="w-56"
+              maxVisibleItems={8}
+            />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Status</label>
@@ -461,7 +486,18 @@ export default function GamesPage() {
         <DataTable
           columns={columns}
           data={games}
-          searchPlaceholder="Search games..."
+          hideSearch
+          server={{
+            page,
+            pageSize,
+            total,
+            onPageChange: setPage,
+            onPageSizeChange: (size) => {
+              setPageSize(size);
+              setPage(1);
+            },
+            isLoading: isFetching,
+          }}
         />
       </div>
 

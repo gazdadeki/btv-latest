@@ -26,12 +26,6 @@ paths:
 - Sonner for toast notifications
 - Lucide React for icons
 
-## Text Overflow
-
-- `TooltipProvider` mounted globally in `src/app/layout.tsx`
-- Use `<TruncatedText>` from `@/components/ui/truncated-text` for variable-length text (emails, usernames, titles, descriptions) — auto-detects overflow and only mounts a Radix tooltip when truncated
-- Pair with `min-w-0` (or `flex-1 min-w-0`) on flex children so `truncate` can clip
-
 ## Date Display
 
 - Always convert UTC ISO strings to local timezone for display

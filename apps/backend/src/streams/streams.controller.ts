@@ -4,6 +4,7 @@ import {
   Put,
   Param,
   Body,
+  Query,
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
@@ -11,6 +12,7 @@ import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
 import { StreamsService } from './streams.service';
@@ -19,6 +21,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { SearchPaginationDto } from '../common/dto/pagination.dto';
 
 @ApiTags('Streams')
 @ApiBearerAuth()
@@ -29,10 +32,17 @@ export class StreamsController {
   constructor(private readonly streamsService: StreamsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List recent streams (newest first, max 20)' })
-  @ApiResponse({ status: 200, description: 'List of streams' })
-  async findAll() {
-    return this.streamsService.findAll();
+  @ApiOperation({ summary: 'List streams (newest first, paginated)' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'Paginated list of streams' })
+  async findAll(@Query() pagination: SearchPaginationDto) {
+    return this.streamsService.findAll(
+      pagination.page ?? 1,
+      pagination.limit ?? 20,
+      pagination.search,
+    );
   }
 
   @Get('active')

@@ -24,6 +24,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateUserDto } from './dto/create-user.dto';
+import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { StripeService } from '../stripe/stripe.service';
 
 @ApiTags('Users')
@@ -59,10 +60,13 @@ export class UsersController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all users' })
-  @ApiResponse({ status: 200, description: 'List of users' })
+  @ApiOperation({ summary: 'List all users (paginated)' })
+  @ApiResponse({ status: 200, description: 'Paginated list of users' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'role', required: false, enum: UserRole })
   @ApiQuery({ name: 'isVerified', required: false, type: Boolean })
   @ApiQuery({ name: 'isBanned', required: false, type: Boolean })
@@ -71,21 +75,27 @@ export class UsersController {
     required: false,
     enum: SubscriptionTier,
   })
-  @ApiQuery({ name: 'search', required: false, type: String })
-  async findAll(
-    @Query('role') role?: UserRole,
-    @Query('isVerified') isVerified?: string,
-    @Query('isBanned') isBanned?: string,
-    @Query('subscriptionTier') subscriptionTier?: SubscriptionTier,
-    @Query('search') search?: string,
-  ) {
-    const filters: any = {};
-    if (role) filters.role = role;
-    if (isVerified !== undefined) filters.isVerified = isVerified === 'true';
-    if (isBanned !== undefined) filters.isBanned = isBanned === 'true';
-    if (subscriptionTier) filters.subscriptionTier = subscriptionTier;
-    if (search) filters.search = search;
-    return this.usersService.findAll(filters);
+  async findAll(@Query() query: ListUsersQueryDto) {
+    const filters: {
+      role?: UserRole;
+      isVerified?: boolean;
+      isBanned?: boolean;
+      subscriptionTier?: SubscriptionTier;
+      search?: string;
+    } = {};
+    if (query.role) filters.role = query.role;
+    if (query.isVerified !== undefined)
+      filters.isVerified = query.isVerified === 'true';
+    if (query.isBanned !== undefined)
+      filters.isBanned = query.isBanned === 'true';
+    if (query.subscriptionTier)
+      filters.subscriptionTier = query.subscriptionTier;
+    if (query.search) filters.search = query.search;
+    return this.usersService.findAllPaginated(
+      filters,
+      query.page ?? 1,
+      query.limit ?? 25,
+    );
   }
 
   @Post()
