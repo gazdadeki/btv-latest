@@ -50,10 +50,19 @@
 
 ## Page Layout / Theming
 
+- Dark gaming theme applies to every authenticated `(app)` route. Body bg is `#0f0e0c` set in `(app)/layout.tsx`.
 - Top-level pages use `<PageHeader label icon rightAction? />` from `src/components/page-header.tsx` for their title bar. Icons are from `react-icons/gi` (Game Icons set) to match the gaming aesthetic; labels should align with the bottom-nav tab labels.
 - Bottom nav labels: Arena (`/home`), Messages, Settings, Store (`/shop`), Guide (`/tutorials`). Keep page titles in sync if nav labels change.
 - Gaming frame assets live in `public/frames/` (e.g. `game-card-border.png` used for cards and filter chips, `footer-border-bcg.png` used for the bottom nav). Apply via inline `backgroundImage` + `backgroundSize: 100% 100%`.
-- Home route (`/home`) uses the dark page theme (`#0f0e0c`) — conditionally set on `(app)/layout.tsx` via `usePathname()`. Other `(app)` routes use `bg-gray-50`.
+- Shared dark utilities in `globals.css`:
+  - `.panel-dark` — main card surface (gradient bg, subtle inset highlight)
+  - `.panel-sunken` — nested/form panel, no outer shadow
+  - `.row-divider` — horizontal separator matching the dark palette
+  - `.btn-dark-secondary` — muted secondary button for dark pages
+  - `.auth-input` — dark form input (shared with auth pages)
+  - `.auth-link` — teal inline link
+  - `.arena-header` — top-of-page banner (also used on secondary pages like wallet/subscription history as a back-button header)
+- Color conventions on dark surfaces: primary text `#f0f0f0`, body/secondary `#c0b8a8`-`#e0d8c8`, muted `#8a8a8a`, disabled/icons `#6a6a6a`, dividers `#2a2620`. Gold `#c9a84c` for brand/active accents, teal `#2a9d8f` for CTAs (Reserve, Send, links).
 
 ## Reserve button availability
 
@@ -62,11 +71,31 @@
 
 ## Slot Card UI (Game Details)
 
-- Circle colors: red=admin, green=own confirmed, blue=own pending, gray=other player, amber=gold-only unreserved, indigo=free unreserved
-- Admin usernames displayed in red text
-- Unreserved slots show "Position N" label; reserved slots show username only
-- No "Occupied" label — reserved slots by others are implicitly disabled (no action buttons)
-- Toasts: `closeButton`, `swipeToDismiss`, 3s auto-dismiss
+- Each slot row uses the `game-card-border.png` frame (same as home cards); fixed height `h-14` so rows don't collapse when they have no action button.
+- Circle colors (bg of the slot-number avatar):
+  - `#9c3e3b` brick red — admin reserved
+  - `#3d8f5f` forest emerald — own confirmed
+  - `blue-500` — own pending
+  - `gray-400` — reserved by other player
+  - `#c9a84c` gold — gold-only unreserved (matches the "Gold Only" label)
+  - `#2a9d8f` teal — free unreserved (matches the Reserve button)
+- Username text: own `#f0f0f0`, admin `#c45a57` (lighter crimson), other players `#a89f8e`.
+- Own-slot sub-label: tiny teal `Pending` under the username when reservation is not yet confirmed; nothing when confirmed (green circle already signals it).
+- Actions per state:
+  - Unreserved free → teal `Reserve` button (Button `primary`, `min-w-[104px]`)
+  - Unreserved gold-only (viewer is gold) → gold `Reserve` button (Button `gold`, same size)
+  - Unreserved gold-only (viewer is free) → inline "Gold Only" label + star, no button
+  - Own pending → gold `Confirm` button + round X icon (brick red `#9c3e3b`) for Leave
+  - Own confirmed → round X icon only (confirmed = "locked in", Leave demoted)
+  - Reserved by someone else → no action buttons
+  - Locked (game in progress/finished/cancelled) → "Locked" muted text for unreserved slots
+- Reserve/Confirm button sizing: `size="sm"` + `min-w-[104px]` + `text-xs font-bold uppercase tracking-wider` so every row's CTA occupies the same visual slot.
+- Team A / B section headers use shared `#2a2620` divider; team color lives on the text (`text-red-500` / `text-green-500`), not on the border.
+- Toasts: `closeButton`, `swipeToDismiss`, 3s auto-dismiss.
+
+## Messages (constants)
+
+- `MESSAGES.reservation.alreadyInGame` — banner shown when user already has a slot in the current game (renamed from `cannotReserve`, which was always a fallback for this case).
 
 ## Development
 

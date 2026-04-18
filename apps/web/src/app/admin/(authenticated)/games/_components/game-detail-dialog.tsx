@@ -530,21 +530,6 @@ export function GameDetailDialog({
                         </td>
                         <td className="px-3 py-2">
                           <div className="flex gap-1">
-                            {!slot.isReserved && game.status === "CREATED" && (
-                              <Button
-                                variant="success"
-                                size="xs"
-                                onClick={() =>
-                                  setSlotAssign({
-                                    gameId: game.id,
-                                    slotId: slot.id,
-                                  })
-                                }
-                                title="Assign User"
-                              >
-                                <i className="fas fa-user-plus" />
-                              </Button>
-                            )}
                             {slot.isReserved && isModifiable && (
                               <Button
                                 variant="danger"

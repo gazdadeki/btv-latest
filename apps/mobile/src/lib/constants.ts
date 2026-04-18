@@ -11,6 +11,15 @@
  *   - CONFIG.*    — app configuration values (timeouts, intervals, etc.)
  */
 
+// ─── Feature flags ────────────────────────────────────────────────────────────
+// Flip to `true` to re-enable. Underlying code/routes remain intact; these
+// only gate UI entry points (nav tabs, buttons, widgets).
+
+export const FEATURES = {
+  /** Player ↔ admin messaging. Disabled for MVP. */
+  MESSAGES: false,
+} as const;
+
 // ─── Business rule limits ─────────────────────────────────────────────────────
 
 export const LIMITS = {
@@ -33,8 +42,8 @@ export const MESSAGES = {
     goldAtLimit: "You've reached your limit of 2 reservations for this stream.",
     /** Banner: free user already has a reservation */
     freeAtLimit: "You already have an active reservation for this stream.",
-    /** Banner: generic fallback */
-    cannotReserve: "You cannot reserve a slot in this game.",
+    /** Banner: user already has a slot reserved in this game */
+    alreadyInGame: "You already reserved a slot for this game.",
     /** Toast: gold adjacency violation */
     toastTooClose: "This game is too close to your other reservation",
     /** Toast: reservation limit reached */

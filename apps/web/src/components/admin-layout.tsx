@@ -8,9 +8,10 @@ import { webSocketManager } from "@/lib/websocket";
 import { api } from "@/lib/api";
 import { AuthUtils } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { FEATURES } from "@/lib/features";
 import { StreamControl } from "@/components/stream-control";
 
-const navItems = [
+const allNavItems = [
   {
     href: "/admin",
     label: "Dashboard",
@@ -35,6 +36,10 @@ const navItems = [
   { href: "/admin/messages", label: "Messages", icon: "fas fa-envelope" },
   { href: "/admin/audit", label: "Audit Log", icon: "fas fa-history" },
 ];
+
+const navItems = allNavItems.filter(
+  (item) => FEATURES.MESSAGES || item.href !== "/admin/messages",
+);
 
 function Sidebar() {
   const pathname = usePathname();

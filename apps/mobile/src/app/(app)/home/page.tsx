@@ -16,7 +16,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Loading } from "@/components/loading";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorDisplay } from "@/components/error-display";
-import { cn } from "@/lib/utils";
+import { cn, formatTime } from "@/lib/utils";
 import type { Game, GameStatusFilter } from "@/types";
 import { isGold, reservationIsActive, availableSlotsCount } from "@/types";
 
@@ -163,8 +163,29 @@ export default function HomePage() {
       r.game.streamId === streamId,
   );
 
-  // Refresh games list on real-time game lifecycle events
+  // Refresh games list on real-time game lifecycle events.
+  // Debounced so bursts (e.g. stream end cancels all games + reservations)
+  // collapse into a single refetch instead of one per event.
   useEffect(() => {
+    const DEBOUNCE_MS = 300;
+    let streamTimer: ReturnType<typeof setTimeout> | null = null;
+    let reservationsTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const invalidateStream = () => {
+      if (streamTimer) clearTimeout(streamTimer);
+      streamTimer = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["activeStream"] });
+      }, DEBOUNCE_MS);
+    };
+
+    const invalidateStreamAndReservations = () => {
+      invalidateStream();
+      if (reservationsTimer) clearTimeout(reservationsTimer);
+      reservationsTimer = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["myReservations"] });
+      }, DEBOUNCE_MS);
+    };
+
     const gameEvents = [
       "game:created",
       "game:status_changed",
@@ -173,11 +194,7 @@ export default function HomePage() {
       "stream:started",
       "stream:ended",
     ];
-    const offs = gameEvents.map((evt) =>
-      wsManager.on(evt, () => {
-        queryClient.invalidateQueries({ queryKey: ["activeStream"] });
-      }),
-    );
+    const offs = gameEvents.map((evt) => wsManager.on(evt, invalidateStream));
 
     const reservationEvents = [
       "slot:availability_changed",
@@ -186,15 +203,14 @@ export default function HomePage() {
       "reservation:status_changed",
     ];
     const resOffs = reservationEvents.map((evt) =>
-      wsManager.on(evt, () => {
-        queryClient.invalidateQueries({ queryKey: ["activeStream"] });
-        queryClient.invalidateQueries({ queryKey: ["myReservations"] });
-      }),
+      wsManager.on(evt, invalidateStreamAndReservations),
     );
 
     return () => {
       offs.forEach((off) => off());
       resOffs.forEach((off) => off());
+      if (streamTimer) clearTimeout(streamTimer);
+      if (reservationsTimer) clearTimeout(reservationsTimer);
     };
   }, [queryClient]);
 
@@ -214,7 +230,7 @@ export default function HomePage() {
   return (
     <div className="page-dark flex flex-col h-full">
       {/* Page title */}
-      <PageHeader label="Game Arena" icon={GiCrossedSwords} />
+      <PageHeader label="Arena" icon={GiCrossedSwords} />
 
       {/* Gold Member banner */}
       {showGoldBanner && <GoldMemberBanner />}
@@ -266,12 +282,39 @@ export default function HomePage() {
                 />
               );
             }
+            const earliestStart = (activeStream.games ?? [])
+              .map((g: Game) => g.scheduledStartTime)
+              .filter(Boolean)
+              .sort()[0];
+            const isLive = activeStream.stream.status === "LIVE";
             return (
               <div>
-                <h2 className="text-lg font-bold text-[#f0f0f0] px-1 py-2">
-                  {activeStream.stream.title ||
-                    activeStream.stream.scheduleName}
-                </h2>
+                <div className="px-1 pt-2 pb-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#8a8a8a] leading-none mb-1">
+                      Current Stream
+                    </p>
+                    <h2 className="text-base font-bold text-[#c9a84c] truncate leading-tight">
+                      {activeStream.stream.title ||
+                        activeStream.stream.scheduleName}
+                    </h2>
+                  </div>
+                  {earliestStart && (
+                    <div className="text-right shrink-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#8a8a8a] leading-none mb-1">
+                        {isLive ? "Status" : "Estimated Start Time"}
+                      </p>
+                      <p
+                        className={cn(
+                          "text-xs font-bold leading-tight",
+                          isLive ? "text-[#d06662]" : "text-[#c9a84c]",
+                        )}
+                      >
+                        {isLive ? "● Live Now" : formatTime(earliestStart)}
+                      </p>
+                    </div>
+                  )}
+                </div>
                 {visibleGames.map((game: Game) => {
                   const ownReservation = activeReservations.find(
                     (r) => r.gameId === game.id,

@@ -69,20 +69,23 @@ function NewConversationDialog({
     >
       <div className="absolute inset-0 bg-black/40" />
       <div
-        className="relative bg-white rounded-xl w-full max-w-sm max-h-[80vh] flex flex-col"
+        className="panel-dark relative w-full max-w-sm max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <h2 className="text-base font-bold text-gray-900">
+        <div className="flex items-center justify-between p-4 border-b border-[#2a2620]">
+          <h2 className="text-sm font-bold text-[#c9a84c] uppercase tracking-wider">
             New Conversation
           </h2>
-          <button onClick={onClose} className="text-gray-400">
+          <button
+            onClick={onClose}
+            className="text-[#6a6a6a] hover:text-[#c0c0c0]"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-3 border-b border-gray-100">
+        <div className="p-3 border-b border-[#2a2620]">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6a6a6a]" />
             <input
               type="text"
               placeholder="Search admins by username or email"
@@ -91,7 +94,7 @@ function NewConversationDialog({
                 setQuery(e.target.value);
                 setSelectedAdmin(null);
               }}
-              className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="auth-input pl-9 pr-3 py-2 text-sm"
               autoFocus
             />
           </div>
@@ -99,7 +102,7 @@ function NewConversationDialog({
         <div className="flex-1 overflow-y-auto">
           {isLoading && <Loading message="Searching..." />}
           {!isLoading && filtered.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">
+            <p className="text-sm text-[#8a8a8a] text-center py-4">
               No admins found
             </p>
           )}
@@ -110,35 +113,33 @@ function NewConversationDialog({
                 setSelectedAdmin((a) => (a?.id === admin.id ? null : admin))
               }
               className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-50",
-                selectedAdmin?.id === admin.id && "bg-indigo-50",
+                "w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1816] border-b border-[#2a2620] last:border-0",
+                selectedAdmin?.id === admin.id && "bg-[#2a9d8f]/10",
               )}
             >
-              <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                <span className="text-sm font-bold text-indigo-600">
+              <div className="w-9 h-9 rounded-full bg-[#2a9d8f]/20 border border-[#2a9d8f]/40 flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold text-[#2a9d8f]">
                   {adminDisplayName(admin).charAt(0).toUpperCase()}
                 </span>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-800">
+                <p className="text-sm font-medium text-[#f0f0f0]">
                   {adminDisplayName(admin)}
                 </p>
                 {admin.username && (
-                  <p className="text-xs text-gray-500">{admin.email}</p>
+                  <p className="text-xs text-[#8a8a8a]">{admin.email}</p>
                 )}
               </div>
             </button>
           ))}
         </div>
-        <div className="p-4 border-t border-gray-100 flex gap-2">
-          <Button
-            variant="secondary"
-            size="md"
-            className="flex-1"
+        <div className="p-4 border-t border-[#2a2620] flex gap-2">
+          <button
             onClick={onClose}
+            className="btn-dark-secondary flex-1 px-4 py-2.5 text-sm min-h-[44px]"
           >
             Cancel
-          </Button>
+          </button>
           <Button
             size="md"
             className="flex-1"
@@ -179,16 +180,14 @@ function ConversationItem({
   return (
     <button
       onClick={onTap}
-      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 text-left active:bg-gray-100"
+      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#1a1816] border-b border-[#2a2620] text-left active:bg-[#141210]"
     >
       <div className="relative shrink-0">
-        <div className="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center">
-          <span className="text-base font-bold text-indigo-600">
-            {initials}
-          </span>
+        <div className="w-11 h-11 rounded-full bg-[#2a9d8f]/15 border border-[#2a9d8f]/40 flex items-center justify-center">
+          <span className="text-base font-bold text-[#2a9d8f]">{initials}</span>
         </div>
         {conv.unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 shadow-lg shadow-red-500/30">
             {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
           </span>
         )}
@@ -197,21 +196,25 @@ function ConversationItem({
         <div className="flex items-center justify-between">
           <p
             className={cn(
-              "text-sm font-medium text-gray-900 truncate",
-              conv.unreadCount > 0 && "font-bold",
+              "text-sm truncate",
+              conv.unreadCount > 0
+                ? "font-bold text-[#f0f0f0]"
+                : "font-medium text-[#c0b8a8]",
             )}
           >
             {displayName}
           </p>
-          <p className="text-xs text-gray-400 shrink-0 ml-2">
+          <p className="text-xs text-[#6a6a6a] shrink-0 ml-2">
             {conv.lastMessageAt ? formatTimeAgo(conv.lastMessageAt) : ""}
           </p>
         </div>
         {conv.lastMessage && (
           <p
             className={cn(
-              "text-xs text-gray-500 truncate mt-0.5",
-              conv.unreadCount > 0 && "text-gray-800 font-medium",
+              "text-xs truncate mt-0.5",
+              conv.unreadCount > 0
+                ? "text-[#e0d8c8] font-medium"
+                : "text-[#8a8a8a]",
             )}
           >
             {conv.lastMessage.content}
@@ -290,7 +293,14 @@ export default function MessagesPage() {
       {/* FAB */}
       <button
         onClick={() => setShowNewDialog(true)}
-        className="fixed bottom-24 right-4 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all z-30"
+        className="fixed bottom-24 right-4 w-14 h-14 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all z-30 text-[#1a1200]"
+        style={{
+          background:
+            "linear-gradient(160deg, #c9a84c 0%, #b8962e 40%, #d4b04a 60%, #c09a38 100%)",
+          border: "2px solid #a68628",
+          boxShadow:
+            "0 4px 12px rgba(0, 0, 0, 0.5), 0 0 12px rgba(201, 168, 76, 0.35), inset 0 1px 1px rgba(255, 230, 150, 0.35), inset 0 -1px 1px rgba(100, 80, 20, 0.3)",
+        }}
       >
         <Plus className="w-6 h-6" />
       </button>
