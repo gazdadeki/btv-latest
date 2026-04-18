@@ -40,7 +40,7 @@ import { TutorialsModule } from './tutorials/tutorials.module';
       ignoreEnvFile: false,
       envFilePath: '.env',
     }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 30 }]),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
     ScheduleModule.forRoot(),
     DatabaseModule,
     AppConfigModule,

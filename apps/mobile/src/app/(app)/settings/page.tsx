@@ -160,15 +160,15 @@ function ProfileTab() {
 
   return (
     <div className="px-4 py-4 overflow-y-auto space-y-4">
-      <div className="bg-white border border-gray-200 rounded-xl p-4">
+      <div className="panel-dark p-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold text-gray-900">
+          <h2 className="text-xs font-bold text-[#c9a84c] uppercase tracking-wider">
             Profile Information
           </h2>
           {!isEditing ? (
             <button
               onClick={() => setIsEditing(true)}
-              className="p-2 -m-2 text-indigo-600"
+              className="p-2 -m-2 text-[#c9a84c] hover:text-[#d4b04a]"
             >
               <Edit2 className="w-5 h-5" />
             </button>
@@ -177,14 +177,14 @@ function ProfileTab() {
               <button
                 onClick={() => setIsEditing(false)}
                 disabled={isSaving}
-                className="p-2 -m-1 text-gray-400"
+                className="p-2 -m-1 text-[#8a8a8a] hover:text-[#c0c0c0]"
               >
                 <X className="w-5 h-5" />
               </button>
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="p-2 -m-1 text-green-600"
+                className="p-2 -m-1 text-[#2a9d8f] hover:text-[#3bb5a5]"
               >
                 {isSaving ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -199,12 +199,12 @@ function ProfileTab() {
         {readOnly.map(({ label, value }) => (
           <div
             key={label}
-            className="flex py-2 border-b border-gray-100 last:border-0"
+            className="flex py-2 border-b border-[#2a2620] last:border-0"
           >
-            <span className="w-28 text-xs font-bold text-gray-400 uppercase shrink-0">
+            <span className="w-28 text-[10px] font-bold text-[#8a8a8a] uppercase tracking-wider shrink-0">
               {label}
             </span>
-            <span className="text-sm text-gray-800">{value}</span>
+            <span className="text-sm text-[#e0d8c8]">{value}</span>
           </div>
         ))}
 
@@ -214,7 +214,7 @@ function ProfileTab() {
               key={key}
               className={col === "full" ? "w-full" : "flex-1 min-w-[120px]"}
             >
-              <label className="block text-xs text-gray-500 mb-1">
+              <label className="block text-[10px] font-bold text-[#8a8a8a] uppercase tracking-wider mb-1">
                 {label}
               </label>
               <input
@@ -224,7 +224,7 @@ function ProfileTab() {
                   setForm((p) => ({ ...p, [key]: e.target.value }))
                 }
                 disabled={!isEditing}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-500"
+                className="auth-input px-3 py-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
           ))}
@@ -267,12 +267,16 @@ function WalletTab() {
 
   return (
     <div className="px-4 py-4 space-y-4">
-      <div className="bg-white border border-gray-200 rounded-xl p-6 text-center shadow-sm">
-        <p className="text-sm text-gray-500 font-medium mb-2">Your Balance</p>
-        <p className="text-5xl font-bold text-amber-500">
+      <div className="panel-dark p-6 text-center">
+        <p className="text-[10px] font-bold text-[#8a8a8a] uppercase tracking-wider mb-2">
+          Your Balance
+        </p>
+        <p className="text-5xl font-black text-[#c9a84c]">
           {formatNumber(balance ?? 0)}
         </p>
-        <p className="text-lg text-gray-400 mt-1">Coins</p>
+        <p className="text-sm text-[#8a8a8a] mt-1 uppercase tracking-wider">
+          Coins
+        </p>
       </div>
       <Button size="full" onClick={() => router.push("/settings/wallet")}>
         <ArrowUpRight className="w-4 h-4" />
@@ -319,54 +323,63 @@ function StatisticsTab() {
   const statCards = [
     {
       icon: Trophy,
-      color: "text-amber-500 bg-amber-50",
+      color: "text-[#c9a84c] bg-[#c9a84c]/15",
       label: "Wins",
       value: stats.totalWins,
     },
     {
       icon: ThumbsDown,
-      color: "text-red-500 bg-red-50",
+      color: "text-red-400 bg-red-500/15",
       label: "Losses",
       value: stats.totalLosses,
     },
     {
       icon: Gamepad2,
-      color: "text-blue-500 bg-blue-50",
+      color: "text-[#2a9d8f] bg-[#2a9d8f]/15",
       label: "Games Played",
       value: totalGamesPlayed(stats),
     },
     {
       icon: Coins,
-      color: "text-green-500 bg-green-50",
+      color: "text-green-400 bg-green-500/15",
       label: "Coins Earned",
       value: stats.totalCoinsEarned,
     },
     {
       icon: Coins,
-      color: "text-orange-500 bg-orange-50",
+      color: "text-orange-400 bg-orange-500/15",
       label: "Coins Spent",
       value: stats.totalCoinsSpent,
     },
   ];
 
+  const wrColorDark =
+    wr >= 60 ? "text-green-400" : wr >= 40 ? "text-orange-400" : "text-red-400";
+
   return (
     <div className="px-4 py-4 space-y-3 overflow-y-auto">
       {/* Header stats */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
-        <p className="text-sm font-bold text-gray-700 mb-3">Your Stats</p>
+      <div className="panel-dark p-5 text-center">
+        <p className="text-[10px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">
+          Your Stats
+        </p>
         <div className="flex justify-center gap-8">
           <div>
-            <p className="text-3xl font-bold text-indigo-600">
+            <p className="text-3xl font-black text-[#f0f0f0]">
               {totalGamesPlayed(stats)}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">Total Games</p>
+            <p className="text-xs text-[#8a8a8a] mt-0.5 uppercase tracking-wider">
+              Total Games
+            </p>
           </div>
-          <div className="w-px bg-gray-200" />
+          <div className="w-px bg-[#2a2620]" />
           <div>
-            <p className={cn("text-3xl font-bold", wrColor)}>
+            <p className={cn("text-3xl font-black", wrColorDark)}>
               {wr.toFixed(1)}%
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">Win Rate</p>
+            <p className="text-xs text-[#8a8a8a] mt-0.5 uppercase tracking-wider">
+              Win Rate
+            </p>
           </div>
         </div>
       </div>
@@ -374,16 +387,15 @@ function StatisticsTab() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-2">
         {statCards.map(({ icon: Icon, color, label, value }) => (
-          <div
-            key={label}
-            className="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-2 shadow-sm"
-          >
+          <div key={label} className="panel-dark p-3 flex items-center gap-2">
             <div className={cn("p-2 rounded-lg shrink-0", color)}>
               <Icon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-gray-500 truncate">{label}</p>
-              <p className="text-base font-bold text-gray-900">
+              <p className="text-[10px] text-[#8a8a8a] uppercase tracking-wider truncate">
+                {label}
+              </p>
+              <p className="text-base font-bold text-[#f0f0f0]">
                 {formatNumber(Number(value))}
               </p>
             </div>
@@ -394,21 +406,25 @@ function StatisticsTab() {
       {/* Net coins */}
       <div
         className={cn(
-          "bg-white border rounded-xl p-3 flex items-center gap-2 shadow-sm",
-          nc >= 0 ? "border-green-200" : "border-red-200",
+          "panel-dark p-3 flex items-center gap-2",
+          nc >= 0
+            ? "border-green-500/40 shadow-[0_0_12px_rgba(34,197,94,0.08)]"
+            : "border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.08)]",
         )}
       >
         {nc >= 0 ? (
-          <TrendingUp className="w-5 h-5 text-green-500" />
+          <TrendingUp className="w-5 h-5 text-green-400" />
         ) : (
-          <TrendingDown className="w-5 h-5 text-red-500" />
+          <TrendingDown className="w-5 h-5 text-red-400" />
         )}
         <div>
-          <p className="text-xs text-gray-500">Net Balance</p>
+          <p className="text-[10px] text-[#8a8a8a] uppercase tracking-wider">
+            Net Balance
+          </p>
           <p
             className={cn(
               "text-base font-bold",
-              nc >= 0 ? "text-green-600" : "text-red-500",
+              nc >= 0 ? "text-green-400" : "text-red-400",
             )}
           >
             {nc >= 0 ? "+" : ""}
@@ -419,19 +435,19 @@ function StatisticsTab() {
 
       {/* Games History */}
       {finishedGameIds.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100">
+        <div className="panel-dark">
+          <div className="px-4 py-3 border-b border-[#2a2620]">
             <div className="flex items-center gap-2">
-              <History className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-bold text-gray-900">
+              <History className="w-4 h-4 text-[#c9a84c]" />
+              <span className="text-xs font-bold text-[#c9a84c] uppercase tracking-wider">
                 Games History
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-[#8a8a8a]">
                 ({finishedGameIds.length})
               </span>
             </div>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div>
             {finishedGameIds.map((gameId) => {
               const r = finishedGameReservations.find(
                 (res) => res.gameId === gameId,
@@ -440,17 +456,17 @@ function StatisticsTab() {
                 <button
                   key={gameId}
                   onClick={() => router.push(`/games/${gameId}`)}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 text-left"
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#1a1816] text-left border-b border-[#2a2620] last:border-0"
                 >
                   <div>
-                    <p className="text-sm font-medium text-gray-800">
+                    <p className="text-sm font-medium text-[#e0d8c8]">
                       Game #{gameId}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[#8a8a8a]">
                       {formatDate(r.createdAt)}
                     </p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <ChevronRight className="w-4 h-4 text-[#6a6a6a]" />
                 </button>
               );
             })}
@@ -479,45 +495,47 @@ function SubscriptionTab() {
   if (!sub) return <EmptyState message="No active subscription" icon={Star} />;
 
   const statusColors: Record<string, string> = {
-    ACTIVE: "bg-green-100 text-green-700",
-    CANCELLED: "bg-orange-100 text-orange-700",
-    EXPIRED: "bg-red-100 text-red-700",
-    PENDING: "bg-blue-100 text-blue-700",
+    ACTIVE: "bg-green-500/20 text-green-400 border border-green-500/40",
+    CANCELLED: "bg-orange-500/20 text-orange-400 border border-orange-500/40",
+    EXPIRED: "bg-red-500/20 text-red-400 border border-red-500/40",
+    PENDING: "bg-blue-500/20 text-blue-400 border border-blue-500/40",
   };
 
   return (
     <div className="px-4 py-4 space-y-4">
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+      <div className="panel-dark p-5">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-2xl font-bold text-amber-500">{sub.tier}</p>
+          <p className="text-2xl font-black text-[#c9a84c]">{sub.tier}</p>
           <span
             className={cn(
-              "text-xs font-bold px-2 py-1 rounded-full",
-              statusColors[sub.status] ?? "bg-gray-100 text-gray-600",
+              "text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider",
+              statusColors[sub.status] ??
+                "bg-[#2a2620] text-[#8a8a8a] border border-[#3a3530]",
             )}
           >
             {sub.status}
           </span>
         </div>
         {sub.billingPeriod && (
-          <p className="text-sm text-gray-600 mb-2">
-            Billing Period: <strong>{sub.billingPeriod}</strong>
+          <p className="text-sm text-[#c0b8a8] mb-2">
+            Billing Period:{" "}
+            <strong className="text-[#e0d8c8]">{sub.billingPeriod}</strong>
           </p>
         )}
         {sub.currentPeriodStart && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[#8a8a8a]">
             Period Start: {formatDate(sub.currentPeriodStart)}
           </p>
         )}
         {sub.currentPeriodEnd && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[#8a8a8a]">
             Period End: {formatDate(sub.currentPeriodEnd)}
           </p>
         )}
         {sub.cancelAtPeriodEnd && (
-          <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
-            <p className="text-xs text-orange-700">
+          <div className="mt-3 bg-orange-500/10 border border-orange-500/40 rounded-lg p-3 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-orange-300">
               Subscription will cancel at period end
             </p>
           </div>
@@ -576,14 +594,17 @@ function AddCardForm({
     <div className="fixed inset-0 z-50 flex items-end" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40" />
       <div
-        className="relative bg-white w-full max-w-lg mx-auto rounded-t-2xl p-5 pb-8"
+        className="panel-dark relative w-full max-w-lg mx-auto rounded-b-none rounded-t-2xl p-5 pb-8"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold text-gray-900">
+          <h2 className="text-sm font-bold text-[#c9a84c] uppercase tracking-wider">
             Add Payment Method
           </h2>
-          <button onClick={onClose} className="text-gray-400">
+          <button
+            onClick={onClose}
+            className="text-[#6a6a6a] hover:text-[#c0c0c0]"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -662,25 +683,22 @@ function PaymentMethodsTab() {
         <EmptyState message="No payment methods saved" icon={CreditCard} />
       )}
       {methods.map((m) => (
-        <div
-          key={m.id}
-          className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3 shadow-sm"
-        >
-          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-            <CreditCard className="w-5 h-5 text-gray-400" />
+        <div key={m.id} className="panel-dark p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#2a2620] border border-[#3a3530] flex items-center justify-center shrink-0">
+            <CreditCard className="w-5 h-5 text-[#c9a84c]" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-bold text-gray-800 tracking-widest">
+              <p className="text-sm font-bold text-[#e0d8c8] tracking-widest">
                 **** **** **** {m.last4}
               </p>
               {m.isDefault && (
-                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">
+                <span className="text-[10px] bg-green-500/20 text-green-400 border border-green-500/40 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
                   Default
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[#8a8a8a]">
               {m.brand.toUpperCase()} · Exp{" "}
               {String(m.expMonth).padStart(2, "0")}/
               {String(m.expYear).slice(-2)}
@@ -690,7 +708,7 @@ function PaymentMethodsTab() {
             {!m.isDefault && (
               <button
                 onClick={() => setDefaultMutation.mutate(m.id)}
-                className="p-1.5 text-amber-400 hover:text-amber-600"
+                className="p-1.5 text-[#c9a84c] hover:text-[#d4b04a]"
                 title="Set as default"
               >
                 <Star className="w-4 h-4" />
@@ -730,7 +748,7 @@ function PaymentMethodsTab() {
 function NotificationsTab() {
   return (
     <div className="flex-1 flex items-center justify-center px-4">
-      <p className="text-sm text-gray-500 text-center">
+      <p className="text-sm text-[#8a8a8a] text-center">
         Notification preferences coming soon
       </p>
     </div>
@@ -756,17 +774,17 @@ export default function SettingsPage() {
       <PageHeader label="Settings" icon={GiGearHammer} />
 
       {/* Tab bar (horizontal scroll) */}
-      <div className="bg-white border-b border-gray-100 overflow-x-auto scrollbar-hide shrink-0">
+      <div className="border-b border-[#2a2620] overflow-x-auto scrollbar-hide shrink-0">
         <div className="flex min-w-max">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap",
+                "flex flex-col items-center gap-0.5 px-4 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap",
                 activeTab === key
-                  ? "border-indigo-600 text-indigo-600"
-                  : "border-transparent text-gray-400",
+                  ? "border-[#c9a84c] text-[#c9a84c]"
+                  : "border-transparent text-[#7a7366] hover:text-[#a89f8e]",
               )}
             >
               <Icon className="w-4 h-4" />

@@ -16,14 +16,19 @@ import { GiCrossedSwords } from "react-icons/gi";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
+import { FEATURES } from "@/lib/constants";
 
-const NAV_ITEMS = [
+const ALL_NAV_ITEMS = [
   { href: "/home", label: "Arena", icon: GiCrossedSwords },
   { href: "/messages", label: "Messages", icon: RiMessage3Fill },
   { href: "/settings", label: "Settings", icon: RiSettings3Fill },
   { href: "/shop", label: "Store", icon: RiShoppingCart2Fill },
   { href: "/tutorials", label: "Guide", icon: RiBookOpenFill },
 ] as const;
+
+const NAV_ITEMS = ALL_NAV_ITEMS.filter(
+  (item) => FEATURES.MESSAGES || item.href !== "/messages",
+);
 
 export function BottomNavBar() {
   const pathname = usePathname();
@@ -32,15 +37,16 @@ export function BottomNavBar() {
     queryKey: ["unreadCount"],
     queryFn: api.getUnreadCount,
     refetchInterval: 30_000,
+    enabled: FEATURES.MESSAGES,
   });
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40"
+      className="block"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div
-        className="relative flex items-stretch justify-around max-w-lg mx-auto px-6 py-4"
+        className="relative flex items-center justify-around max-w-lg mx-auto px-6 pt-4 pb-3"
         style={{
           backgroundImage: "url('/frames/footer-border-bcg.png')",
           backgroundSize: "100% 100%",
@@ -56,7 +62,7 @@ export function BottomNavBar() {
             <Link
               key={href}
               href={href}
-              className="flex flex-col items-center justify-center gap-1 min-w-[56px]"
+              className="flex flex-col items-center justify-center gap-1.5 min-w-[56px]"
             >
               <div className="relative">
                 <div

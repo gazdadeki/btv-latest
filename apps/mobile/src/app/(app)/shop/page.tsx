@@ -55,16 +55,16 @@ function PaymentMethodSelector({
     >
       <div className="absolute inset-0 bg-black/40" />
       <div
-        className="relative bg-white rounded-xl w-full max-w-sm max-h-[80vh] flex flex-col"
+        className="panel-dark relative w-full max-w-sm max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <h2 className="text-base font-bold text-gray-900">
+        <div className="flex items-center justify-between p-4 border-b border-[#2a2620]">
+          <h2 className="text-sm font-bold text-[#c9a84c] uppercase tracking-wider">
             Select Payment Method
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-[#6a6a6a] hover:text-[#c0c0c0]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -76,7 +76,7 @@ function PaymentMethodSelector({
           {!isLoading && !error && (
             <>
               {methods.length === 0 && (
-                <div className="px-4 py-3 text-sm text-gray-500">
+                <div className="px-4 py-3 text-sm text-[#8a8a8a]">
                   No saved payment methods
                 </div>
               )}
@@ -84,19 +84,19 @@ function PaymentMethodSelector({
                 <button
                   key={m.id}
                   onClick={() => onSelect(m.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100"
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#1a1816] border-b border-[#2a2620] last:border-0"
                 >
-                  <CreditCard className="w-5 h-5 text-gray-400 shrink-0" />
+                  <CreditCard className="w-5 h-5 text-[#6a6a6a] shrink-0" />
                   <div className="flex-1 text-left">
-                    <p className="text-sm font-medium text-gray-800">
+                    <p className="text-sm font-medium text-[#f0f0f0]">
                       **** **** **** {m.last4}
                       {m.isDefault && (
-                        <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">
+                        <span className="ml-2 text-[10px] bg-green-700/30 text-green-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
                           Default
                         </span>
                       )}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[#8a8a8a]">
                       {m.brand.toUpperCase()} · Exp{" "}
                       {String(m.expMonth).padStart(2, "0")}/
                       {String(m.expYear).slice(-2)}
@@ -108,15 +108,14 @@ function PaymentMethodSelector({
           )}
         </div>
 
-        <div className="p-4 border-t border-gray-100">
-          <Button
-            variant="secondary"
-            size="full"
+        <div className="p-4 border-t border-[#2a2620]">
+          <button
             onClick={() => onSelect("add_new")}
+            className="btn-dark-secondary w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium min-h-[48px]"
           >
             <CreditCard className="w-4 h-4" />
             Add New Payment Method
-          </Button>
+          </button>
         </div>
       </div>
     </div>
@@ -160,12 +159,17 @@ function PaymentSheet({
     <div className="fixed inset-0 z-50 flex items-end" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40" />
       <div
-        className="relative bg-white w-full max-w-lg mx-auto rounded-t-2xl p-5 pb-8"
+        className="relative panel-dark w-full max-w-lg mx-auto rounded-b-none rounded-t-2xl p-5 pb-8"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold text-gray-900">{label}</h2>
-          <button onClick={onClose} className="text-gray-400">
+          <h2 className="text-sm font-bold text-[#c9a84c] uppercase tracking-wider">
+            {label}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-[#6a6a6a] hover:text-[#c0c0c0]"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -241,13 +245,13 @@ function SubscriptionCard({ product }: { product: Product }) {
 
   return (
     <>
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-3 shadow-sm">
+      <div className="panel-dark p-4 mb-3">
         <div className="flex items-start gap-2 mb-3">
-          <Star className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <Star className="w-5 h-5 text-[#c9a84c] fill-[#c9a84c] shrink-0 mt-0.5" />
           <div>
-            <p className="text-base font-bold text-gray-900">{product.name}</p>
+            <p className="text-base font-bold text-[#f0f0f0]">{product.name}</p>
             {product.description && (
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-[#8a8a8a] mt-0.5">
                 {product.description}
               </p>
             )}
@@ -255,11 +259,11 @@ function SubscriptionCard({ product }: { product: Product }) {
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-2xl font-bold text-[#c9a84c]">
               {formatCurrency((product.productData.price ?? 0) / 100)}
             </p>
             {product.productData.billingPeriod && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[#8a8a8a]">
                 per {product.productData.billingPeriod.toLowerCase()}
               </p>
             )}
@@ -359,13 +363,13 @@ function CoinPackCard({ product }: { product: Product }) {
 
   return (
     <>
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-3 shadow-sm">
+      <div className="panel-dark p-4 mb-3">
         <div className="flex items-start gap-2 mb-3">
-          <Coins className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+          <Coins className="w-5 h-5 text-[#2a9d8f] shrink-0 mt-0.5" />
           <div>
-            <p className="text-base font-bold text-gray-900">{product.name}</p>
+            <p className="text-base font-bold text-[#f0f0f0]">{product.name}</p>
             {product.description && (
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-[#8a8a8a] mt-0.5">
                 {product.description}
               </p>
             )}
@@ -373,10 +377,10 @@ function CoinPackCard({ product }: { product: Product }) {
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold text-[#f0f0f0]">
               {product.productData.coins ?? 0} Coins
             </p>
-            <p className="text-lg font-bold text-green-600">
+            <p className="text-lg font-bold text-[#c9a84c]">
               {formatCurrency((product.productData.price ?? 0) / 100)}
             </p>
           </div>
@@ -449,16 +453,16 @@ export default function ShopPage() {
       <PageHeader label="Store" icon={GiShop} />
 
       {/* Tabs */}
-      <div className="bg-white border-b border-gray-100 flex">
+      <div className="flex border-b border-[#2a2620] shrink-0">
         {tabs.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium border-b-2 transition-colors",
+              "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors",
               activeTab === key
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-gray-400",
+                ? "border-[#c9a84c] text-[#c9a84c]"
+                : "border-transparent text-[#7a7366] hover:text-[#a89f8e]",
             )}
           >
             <Icon className="w-4 h-4" />

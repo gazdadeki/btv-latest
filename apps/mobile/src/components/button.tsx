@@ -15,6 +15,7 @@ const buttonVariants = cva(
           "bg-green-600 text-white rounded-md hover:bg-green-700 focus-visible:ring-green-500",
         warning:
           "bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus-visible:ring-yellow-500",
+        gold: "bg-gradient-to-b from-[#d4b04a] to-[#a8892e] text-[#1a1816] rounded-md border border-[#8a6e1e] shadow-[inset_0_1px_0_rgba(255,230,150,0.35),0_1px_2px_rgba(0,0,0,0.4)] hover:from-[#dcb857] hover:to-[#b39233] focus-visible:ring-[#c9a84c]",
         secondary:
           "border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50 focus-visible:ring-gray-400",
         ghost:

@@ -5,7 +5,7 @@
 // Renders BottomNavBar + WebSocketStatusBar above it
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
@@ -37,12 +37,25 @@ const stripePromise = loadStripe(
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
   const { isAuthenticated, isVerified } = useAuth();
   const [wsStatus, setWsStatus] = useState<WebSocketStatus>("disconnected");
-  // Exact-match: dark theme applies to the Arena feed only, not any nested
-  // /home/* routes (none exist today, but this is explicit intent).
-  const isDarkRoute = pathname === "/home";
+
+  // Track the fixed bottom bar's actual height so <main>'s paddingBottom
+  // stays in sync when the nav frame resizes or the WebSocket status bar
+  // appears/disappears — otherwise the last item can clip behind it.
+  const bottomBarRef = useRef<HTMLDivElement>(null);
+  const [bottomBarHeight, setBottomBarHeight] = useState(76);
+  useEffect(() => {
+    const el = bottomBarRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setBottomBarHeight(entry.contentRect.height);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Redirect unverified users to verification page
   useEffect(() => {
@@ -77,7 +90,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         toast(payload.title, {
           description: payload.body,
           duration: 10000,
-          icon: <Bell className="size-5 text-blue-500" />,
+          icon: <Bell className="size-5 text-[#c9a84c]" />,
           action: safeUrl
             ? {
                 label: "Watch Live",
@@ -86,11 +99,12 @@ function AppShell({ children }: { children: React.ReactNode }) {
               }
             : undefined,
           classNames: {
-            toast: "!bg-white !border-blue-200 !shadow-lg",
-            title: "!text-gray-900 !font-semibold",
-            description: "!text-gray-600",
+            toast:
+              "!bg-[#1c1a18] !border !border-[#2a2620] !shadow-lg !shadow-black/40",
+            title: "!text-[#f0f0f0] !font-semibold",
+            description: "!text-[#a89f8e]",
             actionButton:
-              "!bg-blue-600 !text-white !rounded-md !px-4 !py-1.5 !font-medium",
+              "!bg-[#2a9d8f] !text-white !rounded-md !px-4 !py-1.5 !font-medium hover:!bg-[#26897d]",
           },
         });
       }
@@ -161,9 +175,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div
-      className={`min-h-screen flex flex-col ${isDarkRoute ? "bg-[#0f0e0c]" : "bg-gray-50"}`}
-    >
+    <div className="min-h-screen flex flex-col bg-[#0f0e0c]">
       {showNotificationBanner && (
         <div className="bg-blue-600 text-white px-4 py-3 flex items-center gap-3">
           <Bell className="size-5 shrink-0" />
@@ -186,11 +198,13 @@ function AppShell({ children }: { children: React.ReactNode }) {
       )}
       <main
         className="flex-1 max-w-lg mx-auto w-full overflow-y-auto"
-        style={{ paddingBottom: "calc(76px + env(safe-area-inset-bottom))" }}
+        style={{
+          paddingBottom: `calc(${bottomBarHeight}px + env(safe-area-inset-bottom))`,
+        }}
       >
         {children}
       </main>
-      <div className="fixed bottom-0 left-0 right-0 z-40">
+      <div ref={bottomBarRef} className="fixed bottom-0 left-0 right-0 z-40">
         <WebSocketStatusBar status={wsStatus} />
         <BottomNavBar />
       </div>

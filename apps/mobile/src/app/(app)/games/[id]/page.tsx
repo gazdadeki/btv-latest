@@ -7,7 +7,8 @@
 import { useState, useEffect, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Star, Info, Layers } from "lucide-react";
+import { ChevronLeft, Star, Info, Layers, X } from "lucide-react";
+import { GiBroadsword } from "react-icons/gi";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { wsManager } from "@/lib/websocket";
@@ -55,17 +56,20 @@ function ConfirmDialog({
       className="fixed inset-0 z-50 flex items-center justify-center px-4"
       onClick={onCancel}
     >
-      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-black/60" />
       <div
-        className="relative bg-white rounded-xl w-full max-w-sm p-5"
+        className="panel-dark relative w-full max-w-sm p-5"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-base font-bold text-gray-900 mb-2">{title}</h3>
-        <p className="text-sm text-gray-600 mb-5">{message}</p>
+        <h3 className="text-base font-bold text-[#f0f0f0] mb-2">{title}</h3>
+        <p className="text-sm text-[#c0b8a8] mb-5">{message}</p>
         <div className="flex gap-2 justify-end">
-          <Button variant="secondary" size="sm" onClick={onCancel}>
+          <button
+            onClick={onCancel}
+            className="btn-dark-secondary px-3 py-1.5 text-sm font-medium"
+          >
             Cancel
-          </Button>
+          </button>
           <Button
             variant={confirmVariant ?? "primary"}
             size="sm"
@@ -113,100 +117,110 @@ function SlotCard({
   const mustUseGoldFirst =
     isGoldUser && !restrictionsLifted && !slot.isGoldOnly && goldSlotsAvailable;
 
-  const cardBg = isOwn
-    ? isConfirmed
-      ? "bg-green-50 border-green-200"
-      : "bg-blue-50 border-blue-200"
-    : slot.isReserved
-      ? "bg-gray-100 border-gray-200"
-      : "bg-white border-gray-200";
-
   return (
-    <div className={cn("border rounded-lg p-3 mb-2", cardBg)}>
-      <div className="flex items-start justify-between gap-2">
+    <div
+      className="mb-2"
+      style={{
+        backgroundImage: "url('/frames/game-card-border.png')",
+        backgroundSize: "100% 100%",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <div className="flex items-center justify-between gap-2 px-5 h-14">
         <div className="flex items-center gap-2">
           <div
             className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0",
               isOwn
                 ? isConfirmed
-                  ? "bg-green-500"
+                  ? "bg-[#3d8f5f]"
                   : "bg-blue-500"
                 : slot.isReserved
                   ? slot.reservedByRole === "admin"
-                    ? "bg-red-500"
+                    ? "bg-[#9c3e3b]"
                     : "bg-gray-400"
                   : showGoldOnly
-                    ? "bg-amber-500"
-                    : "bg-indigo-600",
+                    ? "bg-[#c9a84c]"
+                    : "bg-[#2a9d8f]",
             )}
           >
             {slot.slotNumber}
           </div>
           <div>
             {!slot.isReserved && (
-              <p className="text-sm font-medium text-gray-400">
+              <p className="text-sm font-medium text-[#8a8a8a]">
                 Position {slot.slotNumber}
               </p>
             )}
             {slot.isReserved && slot.reservedByUsername && (
-              <p
-                className={cn(
-                  "text-sm font-semibold",
-                  isOwn
-                    ? isConfirmed
-                      ? "text-green-700"
-                      : "text-blue-700"
-                    : slot.reservedByRole === "admin"
-                      ? "text-red-600"
-                      : "text-gray-600",
+              <>
+                <p
+                  className={cn(
+                    "text-sm font-semibold leading-tight",
+                    isOwn
+                      ? "text-[#f0f0f0]"
+                      : slot.reservedByRole === "admin"
+                        ? "text-[#c45a57]"
+                        : "text-[#a89f8e]",
+                  )}
+                >
+                  {slot.reservedByUsername}
+                </p>
+                {isOwn && isPending && (
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#2a9d8f] leading-none mt-0.5">
+                    Pending
+                  </p>
                 )}
-              >
-                {slot.reservedByUsername}
-              </p>
+              </>
             )}
           </div>
         </div>
 
-        <div className="flex gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {locked ? (
             !slot.isReserved ? (
-              <span className="text-xs text-gray-400 py-1.5">Locked</span>
+              <span className="text-xs text-[#6a6a6a]">Locked</span>
             ) : null
-          ) : (
+          ) : isOwn ? (
             <>
-              {isOwn && isPending && (
-                <Button variant="success" size="sm" onClick={onConfirm}>
+              {isPending && (
+                <Button
+                  variant="gold"
+                  size="sm"
+                  onClick={onConfirm}
+                  className="min-w-[104px] text-xs font-bold uppercase tracking-wider"
+                >
                   Confirm
                 </Button>
               )}
-              {isOwn && (
-                <Button variant="danger" size="sm" onClick={onLeave}>
-                  Leave
-                </Button>
-              )}
-              {!slot.isReserved &&
-                (showGoldOnly && !isGoldUser ? (
-                  <span className="text-xs text-amber-600 py-1.5 flex items-center gap-1">
-                    <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                    Gold Only
-                  </span>
-                ) : (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={onReserve}
-                    disabled={
-                      reserveDisabled ||
-                      hasActiveReservation ||
-                      mustUseGoldFirst
-                    }
-                  >
-                    Reserve
-                  </Button>
-                ))}
+              <button
+                onClick={onLeave}
+                aria-label="Leave slot"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#9c3e3b] text-white hover:bg-[#b8524e] transition-colors shrink-0"
+              >
+                <X className="w-4 h-4" strokeWidth={2.5} />
+              </button>
             </>
-          )}
+          ) : !slot.isReserved ? (
+            showGoldOnly && !isGoldUser ? (
+              <span className="text-xs text-[#c9a84c] flex items-center gap-1">
+                <Star className="w-3 h-3 text-[#c9a84c] fill-[#c9a84c]" />
+                Gold Only
+              </span>
+            ) : (
+              <Button
+                variant={showGoldOnly ? "gold" : "primary"}
+                size="sm"
+                onClick={onReserve}
+                disabled={
+                  reserveDisabled || hasActiveReservation || mustUseGoldFirst
+                }
+                className="min-w-[104px] text-xs font-bold uppercase tracking-wider"
+              >
+                Reserve
+              </Button>
+            )
+          ) : null}
         </div>
       </div>
     </div>
@@ -230,38 +244,46 @@ function DetailsTab({ game }: { game: Game }) {
   ];
   return (
     <div className="p-4 overflow-y-auto">
-      {rows.map(([label, value]) => (
-        <div
-          key={label}
-          className="flex py-3 border-b border-gray-100 last:border-0"
-        >
-          <span className="w-28 text-xs font-bold text-gray-400 uppercase shrink-0">
-            {label}
-          </span>
-          <span className="text-sm text-gray-800">{value}</span>
-        </div>
-      ))}
-      {gameIsFinished(game) && game.winningTeam && (
-        <div className="flex py-3 border-b border-gray-100">
-          <span className="w-28 text-xs font-bold text-gray-400 uppercase shrink-0">
-            Winner
-          </span>
-          <span
+      <div className="panel-dark px-4">
+        {rows.map(([label, value], idx) => (
+          <div
+            key={label}
             className={cn(
-              "text-xs font-bold px-2 py-0.5 rounded border",
-              game.winningTeam === "A"
-                ? "text-red-600 bg-red-50 border-red-200"
-                : "text-green-600 bg-green-50 border-green-200",
+              "flex py-3",
+              idx < rows.length - 1 ||
+                (gameIsFinished(game) && game.winningTeam)
+                ? "row-divider"
+                : "",
             )}
           >
-            {TEAM_DISPLAY[game.winningTeam]}
-          </span>
-        </div>
-      )}
+            <span className="w-28 text-xs font-bold text-[#8a8a8a] uppercase shrink-0">
+              {label}
+            </span>
+            <span className="text-sm text-[#e0d8c8]">{value}</span>
+          </div>
+        ))}
+        {gameIsFinished(game) && game.winningTeam && (
+          <div className="flex items-center py-3">
+            <span className="w-28 text-xs font-bold text-[#8a8a8a] uppercase shrink-0">
+              Winner
+            </span>
+            <span
+              className={cn(
+                "text-xs font-bold px-2 py-0.5 rounded border",
+                game.winningTeam === "A"
+                  ? "text-red-300 bg-red-900/40 border-red-800"
+                  : "text-green-300 bg-green-900/40 border-green-800",
+              )}
+            >
+              {TEAM_DISPLAY[game.winningTeam]}
+            </span>
+          </div>
+        )}
+      </div>
       {game.isExclusiveToGold && (
-        <div className="mt-4 bg-amber-50 border border-amber-300 rounded-lg p-3 flex items-center gap-2">
-          <Star className="w-4 h-4 text-amber-500 shrink-0" />
-          <span className="text-sm font-bold text-amber-700">
+        <div className="panel-dark mt-4 p-3 flex items-center gap-2 border-[#c9a84c]/40">
+          <Star className="w-4 h-4 text-[#c9a84c] fill-[#c9a84c] shrink-0" />
+          <span className="text-sm font-bold text-[#c9a84c]">
             Gold Subscription Exclusive
           </span>
         </div>
@@ -338,31 +360,31 @@ function SlotsTab({
   return (
     <div className="p-4 overflow-y-auto">
       {locked && gameIsInProgress(game) && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 flex items-start gap-2">
-          <Info className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-gray-600">
+        <div className="panel-sunken p-3 mb-4 flex items-start gap-2">
+          <Info className="w-4 h-4 text-[#8a8a8a] shrink-0 mt-0.5" />
+          <p className="text-xs text-[#8a8a8a]">
             This game is in progress. Slots are locked and reservations are no
             longer available.
           </p>
         </div>
       )}
       {!locked && hasActiveReservation && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 flex items-start gap-2">
-          <Info className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-orange-700">
+        <div className="panel-sunken p-3 mb-4 flex items-start gap-2 border-l-2 border-l-[#c9a84c]">
+          <Info className="w-4 h-4 text-[#c9a84c] shrink-0 mt-0.5" />
+          <p className="text-xs text-[#e0d8c8]">
             {atReservationLimit
               ? isGoldUser
                 ? MESSAGES.reservation.goldAtLimit
                 : MESSAGES.reservation.freeAtLimit
               : tooCloseToExisting
                 ? MESSAGES.reservation.tooClose
-                : MESSAGES.reservation.cannotReserve}
+                : MESSAGES.reservation.alreadyInGame}
           </p>
         </div>
       )}
 
-      {renderTeam(teamA, TEAM_DISPLAY.A, "border-red-600 text-red-600")}
-      {renderTeam(teamB, TEAM_DISPLAY.B, "border-green-600 text-green-600")}
+      {renderTeam(teamA, TEAM_DISPLAY.A, "border-[#2a2620] text-red-500")}
+      {renderTeam(teamB, TEAM_DISPLAY.B, "border-[#2a2620] text-green-500")}
     </div>
   );
 }
@@ -525,24 +547,36 @@ export default function GameDetailsPage({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-2 pt-3 pb-0">
-        <div className="flex items-center gap-2 px-2 pb-2">
+      <div className="arena-header px-2 pt-3 pb-0 shrink-0">
+        <div className="grid grid-cols-[3rem_1fr_3rem] items-center pb-2">
           <button
             onClick={() => router.back()}
-            className="p-1.5 text-gray-500 hover:text-gray-700"
+            className="p-1.5 text-[#c9a84c] hover:text-[#d4b04a] justify-self-start"
             aria-label="Go back"
           >
             <ChevronLeft className="w-5 h-5" aria-hidden="true" />
           </button>
-          <h1 className="text-base font-bold text-gray-900 flex-1">
-            Game {game.gameIndex ?? game.id}
-          </h1>
-          {game.isExclusiveToGold && (
-            <Star className="w-4 h-4 text-amber-500" />
-          )}
+          <div className="flex items-center justify-center gap-2 min-w-0">
+            <GiBroadsword
+              className="w-5 h-5 text-[#c9a84c] shrink-0"
+              aria-hidden="true"
+            />
+            <h1 className="font-title text-base font-bold uppercase tracking-wider text-[#f0f0f0] truncate">
+              Game {game.gameIndex ?? game.id}
+            </h1>
+            <GiBroadsword
+              className="w-5 h-5 text-[#c9a84c] shrink-0 -scale-x-100"
+              aria-hidden="true"
+            />
+          </div>
+          <div className="justify-self-end pr-1">
+            {game.isExclusiveToGold && (
+              <Star className="w-4 h-4 text-[#c9a84c] fill-[#c9a84c]" />
+            )}
+          </div>
         </div>
         {/* Tabs */}
-        <div className="flex border-b border-gray-100">
+        <div className="flex border-b border-[#2a2620]">
           {[
             { key: "slots", label: "Slots", icon: Layers },
             { key: "details", label: "Details", icon: Info },
@@ -551,10 +585,10 @@ export default function GameDetailsPage({
               key={key}
               onClick={() => setActiveTab(key as typeof activeTab)}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium border-b-2 transition-colors",
+                "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors",
                 activeTab === key
-                  ? "border-indigo-600 text-indigo-600"
-                  : "border-transparent text-gray-400",
+                  ? "border-[#c9a84c] text-[#c9a84c]"
+                  : "border-transparent text-[#7a7366] hover:text-[#a89f8e]",
               )}
             >
               <Icon className="w-4 h-4" />
