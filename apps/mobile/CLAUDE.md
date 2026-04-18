@@ -64,6 +64,11 @@
   - `.arena-header` — top-of-page banner (also used on secondary pages like wallet/subscription history as a back-button header)
 - Color conventions on dark surfaces: primary text `#f0f0f0`, body/secondary `#c0b8a8`-`#e0d8c8`, muted `#8a8a8a`, disabled/icons `#6a6a6a`, dividers `#2a2620`. Gold `#c9a84c` for brand/active accents, teal `#2a9d8f` for CTAs (Reserve, Send, links).
 
+## Text Overflow
+
+- Use `<TruncatedText text={...} className="..." />` from `@/components/truncated-text` for any variable-length text (usernames, stream/game labels, profile values). Uses native `title` attribute (long-press on touch devices) — intentionally no Radix dep since hover tooltips don't work on touch.
+- Pair with `flex-1 min-w-0` on flex children so `truncate` can actually clip. Parent flex containers with action buttons should give the action side `shrink-0` and the text side `flex-1 min-w-0`.
+
 ## Reserve button availability
 
 - Free users can only reserve once a game transitions to `OPEN`. During `CREATED`, the home list shows a "Locked" badge and the game-details Reserve button is rendered but `disabled` (so the affordance is visible — unlock is imminent).

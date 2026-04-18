@@ -47,6 +47,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorDisplay } from "@/components/error-display";
 import { Button } from "@/components/button";
 import { PageHeader } from "@/components/page-header";
+import { TruncatedText } from "@/components/truncated-text";
 import { GiGearHammer } from "react-icons/gi";
 import { cn, formatDate, formatCurrency, formatNumber } from "@/lib/utils";
 import { winRate, totalGamesPlayed, netCoins } from "@/types";
@@ -204,7 +205,10 @@ function ProfileTab() {
             <span className="w-28 text-[10px] font-bold text-[#8a8a8a] uppercase tracking-wider shrink-0">
               {label}
             </span>
-            <span className="text-sm text-[#e0d8c8]">{value}</span>
+            <TruncatedText
+              text={value}
+              className="text-sm text-[#e0d8c8] flex-1"
+            />
           </div>
         ))}
 

@@ -16,6 +16,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Loading } from "@/components/loading";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorDisplay } from "@/components/error-display";
+import { TruncatedText } from "@/components/truncated-text";
 import { cn, formatTime } from "@/lib/utils";
 import type { Game, GameStatusFilter } from "@/types";
 import { isGold, reservationIsActive, availableSlotsCount } from "@/types";
@@ -72,19 +73,20 @@ function GameCard({
         backgroundRepeat: "no-repeat",
       }}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         {/* Left: game title */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           {game.isExclusiveToGold && (
             <RiVipCrownFill className="w-4 h-4 text-[#c9a84c] shrink-0" />
           )}
-          <span className="text-sm font-bold text-[#f0f0f0]">
-            Game {game.gameIndex ?? game.id}
-          </span>
+          <TruncatedText
+            text={`Game ${game.gameIndex ?? game.id}`}
+            className="text-sm font-bold text-[#f0f0f0] flex-1"
+          />
         </div>
 
         {/* Right: status-dependent content */}
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-end gap-1 shrink-0">
           {isInProgress && (
             <span className="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-red-700 text-white">
               In Progress
@@ -294,10 +296,14 @@ export default function HomePage() {
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#8a8a8a] leading-none mb-1">
                       Current Stream
                     </p>
-                    <h2 className="text-base font-bold text-[#c9a84c] truncate leading-tight">
-                      {activeStream.stream.title ||
-                        activeStream.stream.scheduleName}
-                    </h2>
+                    <TruncatedText
+                      as="p"
+                      text={
+                        activeStream.stream.title ||
+                        activeStream.stream.scheduleName
+                      }
+                      className="text-base font-bold text-[#c9a84c] leading-tight"
+                    />
                   </div>
                   {earliestStart && (
                     <div className="text-right shrink-0">

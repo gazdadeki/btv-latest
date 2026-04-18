@@ -21,7 +21,10 @@ export function PageHeader({
       }}
     >
       <div aria-hidden />
-      <h1 className="font-title text-center uppercase text-[#d4b24e] leading-none truncate min-w-0 text-[clamp(1rem,5cqi,1.75rem)]">
+      <h1
+        className="font-title text-center uppercase text-[#d4b24e] leading-none truncate min-w-0 text-[clamp(1rem,5cqi,1.75rem)]"
+        title={label}
+      >
         {label}
       </h1>
       <div className="flex justify-end pr-2">{rightAction}</div>
