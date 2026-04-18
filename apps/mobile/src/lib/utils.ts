@@ -98,13 +98,18 @@ export function validateEmail(value: string): string | null {
   return null;
 }
 
+export const USERNAME_MIN_LENGTH = 3;
+export const USERNAME_MAX_LENGTH = 14;
+
 export function validateUsername(value: string): string | null {
   if (!value || value.trim() === "") return "Username is required";
-  if (value.length < 3) return "Username must be at least 3 characters";
-  if (value.length > 30) return "Username must be less than 30 characters";
-  const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+  if (value.length < USERNAME_MIN_LENGTH)
+    return `Username must be at least ${USERNAME_MIN_LENGTH} characters`;
+  if (value.length > USERNAME_MAX_LENGTH)
+    return `Username must be at most ${USERNAME_MAX_LENGTH} characters`;
+  const usernameRegex = /^[A-Za-z0-9._\-()[\]]+$/;
   if (!usernameRegex.test(value)) {
-    return "Username can only contain letters, numbers, underscores, and hyphens";
+    return "Username can only contain letters, numbers, and . - _ [ ] ( )";
   }
   return null;
 }

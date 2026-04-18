@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 export function FormRow({
   label,
@@ -23,21 +23,24 @@ interface FormInputProps {
   setForm: (v: Record<string, unknown>) => void;
   type?: string;
   placeholder?: string;
+  maxLength?: number;
 }
 
 export function FormInput({
   form,
   field,
   setForm,
-  type = 'text',
-  placeholder = '',
+  type = "text",
+  placeholder = "",
+  maxLength,
 }: FormInputProps) {
   return (
     <input
       type={type}
-      value={String(form[field] ?? '')}
+      value={String(form[field] ?? "")}
       onChange={(e) => setForm({ ...form, [field]: e.target.value })}
       placeholder={placeholder}
+      maxLength={maxLength}
       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
     />
   );
@@ -50,15 +53,10 @@ interface FormSelectProps {
   options: readonly string[];
 }
 
-export function FormSelect({
-  form,
-  field,
-  setForm,
-  options,
-}: FormSelectProps) {
+export function FormSelect({ form, field, setForm, options }: FormSelectProps) {
   return (
     <select
-      value={String(form[field] || '')}
+      value={String(form[field] || "")}
       onChange={(e) => setForm({ ...form, [field]: e.target.value })}
       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
     >

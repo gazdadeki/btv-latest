@@ -6,8 +6,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, SelectQueryBuilder } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import type { Paginated } from '@btv/types';
 import { User, UserRole, SubscriptionTier } from './entities/user.entity';
 import { CacheService } from '../cache/cache.service';
 import { WalletService } from '../wallet/wallet.service';
@@ -132,21 +133,19 @@ export class UsersService {
     return this.findOne(user.id);
   }
 
-  async findAll(filters?: {
+  private buildFindAllQuery(filters?: {
     role?: UserRole;
     isVerified?: boolean;
     isBanned?: boolean;
     subscriptionTier?: SubscriptionTier;
     includeVoided?: boolean;
     search?: string;
-  }): Promise<User[]> {
+  }): SelectQueryBuilder<User> {
     const query = this.usersRepository.createQueryBuilder('user');
 
-    // By default, exclude voided users unless explicitly requested
     if (!filters?.includeVoided) {
       query.andWhere('user.isVoided = :isVoided', { isVoided: false });
     }
-
     if (filters?.role) {
       query.andWhere('user.role = :role', { role: filters.role });
     }
@@ -174,7 +173,38 @@ export class UsersService {
         },
       );
     }
-    return query.getMany();
+    return query;
+  }
+
+  async findAll(filters?: {
+    role?: UserRole;
+    isVerified?: boolean;
+    isBanned?: boolean;
+    subscriptionTier?: SubscriptionTier;
+    includeVoided?: boolean;
+    search?: string;
+  }): Promise<User[]> {
+    return this.buildFindAllQuery(filters).getMany();
+  }
+
+  async findAllPaginated(
+    filters: {
+      role?: UserRole;
+      isVerified?: boolean;
+      isBanned?: boolean;
+      subscriptionTier?: SubscriptionTier;
+      includeVoided?: boolean;
+      search?: string;
+    },
+    page: number,
+    limit: number,
+  ): Promise<Paginated<User>> {
+    const query = this.buildFindAllQuery(filters)
+      .orderBy('user.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+    const [data, total] = await query.getManyAndCount();
+    return { data, total, page, limit };
   }
 
   async findByIds(userIds: number[]): Promise<User[]> {

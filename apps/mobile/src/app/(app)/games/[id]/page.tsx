@@ -17,7 +17,6 @@ import { MESSAGES, LIMITS } from "@/lib/constants";
 import { Loading } from "@/components/loading";
 import { ErrorDisplay } from "@/components/error-display";
 import { Button } from "@/components/button";
-import { TruncatedText } from "@/components/truncated-text";
 import { cn, formatDateTime } from "@/lib/utils";
 import {
   type Game,
@@ -127,8 +126,8 @@ function SlotCard({
         backgroundRepeat: "no-repeat",
       }}
     >
-      <div className="flex items-center justify-between gap-2 px-5 h-14">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex items-center justify-between gap-2 px-5 h-14 overflow-hidden">
+        <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
           <div
             className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0",
@@ -147,7 +146,7 @@ function SlotCard({
           >
             {slot.slotNumber}
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 overflow-hidden">
             {!slot.isReserved && (
               <p className="text-sm font-medium text-[#8a8a8a]">
                 Position {slot.slotNumber}
@@ -155,9 +154,7 @@ function SlotCard({
             )}
             {slot.isReserved && slot.reservedByUsername && (
               <>
-                <TruncatedText
-                  as="p"
-                  text={slot.reservedByUsername}
+                <p
                   className={cn(
                     "text-sm font-semibold leading-tight",
                     isOwn
@@ -166,7 +163,9 @@ function SlotCard({
                         ? "text-[#c45a57]"
                         : "text-[#a89f8e]",
                   )}
-                />
+                >
+                  {slot.reservedByUsername}
+                </p>
                 {isOwn && isPending && (
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#2a9d8f] leading-none mt-0.5">
                     Pending
@@ -260,10 +259,7 @@ function DetailsTab({ game }: { game: Game }) {
             <span className="w-28 text-xs font-bold text-[#8a8a8a] uppercase shrink-0">
               {label}
             </span>
-            <TruncatedText
-              text={value}
-              className="text-sm text-[#e0d8c8] flex-1"
-            />
+            <span className="text-sm text-[#e0d8c8] flex-1">{value}</span>
           </div>
         ))}
         {gameIsFinished(game) && game.winningTeam && (

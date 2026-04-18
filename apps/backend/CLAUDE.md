@@ -34,6 +34,12 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - All datetimes stored as UTC (`timezone: 'Z'`)
 - Migrations in `src/database/migrations/`
 
+## Pagination
+
+- List endpoints expected to grow use backend pagination. Base DTOs in `src/common/dto/pagination.dto.ts`: `PaginationDto` (page, limit; max limit 100) and `SearchPaginationDto extends PaginationDto` (adds optional `search`). Global `ValidationPipe` has `forbidNonWhitelisted: true`, so controllers must accept **one** merged DTO per endpoint that extends the pagination base and declares every query param (see `ListUsersQueryDto`, `ListGamesQueryDto`). Passing `@Query() pagination: PaginationDto` plus separate `@Query('x')` params will 400 on unknown fields.
+- Response shape is the shared `Paginated<T>` from `@btv/types`: `{ data: T[]; total: number; page: number; limit: number }`. Service builds a `QueryBuilder` + `skip/take/getManyAndCount()`.
+- Currently paginated: `GET /admin/users` (with server-side LIKE search on email/username/id), `GET /admin/games`, `GET /admin/streams` (with LIKE search on title), plus pre-existing audit, wallet, stripe payments. Messages module retains its legacy `{ messages, total, ... }` shape.
+
 ## Streams
 
 - A **Stream** groups games from a single session, decoupling them from calendar dates (solves timezone issues)

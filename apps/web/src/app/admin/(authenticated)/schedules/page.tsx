@@ -7,7 +7,6 @@ import { api } from "@/lib/api";
 import { formatDateOnly, toastError } from "@/lib/utils";
 import { webSocketManager } from "@/lib/websocket";
 import { DataTable } from "@/components/data-table";
-import { TruncatedText } from "@/components/ui/truncated-text";
 import { PageHeader } from "@/components/page-header";
 import { PageLoading } from "@/components/loading";
 import { Dialog } from "@/components/dialog";
@@ -140,9 +139,7 @@ export default function SchedulesPage() {
   const columns = [
     columnHelper.accessor("name", {
       header: "Name",
-      cell: (i) => (
-        <TruncatedText text={i.getValue()} className="max-w-[280px] block" />
-      ),
+      cell: (i) => <span className="block">{i.getValue()}</span>,
     }),
     columnHelper.accessor("recurrenceType", {
       header: "Type",

@@ -6,13 +6,13 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { api } from "@/lib/api";
 import { formatDateOnly, toastError } from "@/lib/utils";
 import { DataTable } from "@/components/data-table";
-import { TruncatedText } from "@/components/ui/truncated-text";
 import { PageHeader } from "@/components/page-header";
 import { PageLoading } from "@/components/loading";
 import { Dialog } from "@/components/dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/button";
 import { useConfirmAction } from "@/hooks/use-confirm-action";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { USER_ROLES } from "@/constants";
 import type { AdminUser } from "@/types";
 import { UserDetailDialog } from "./_components/user-detail-dialog";
@@ -24,9 +24,15 @@ const columnHelper = createColumnHelper<AdminUser>();
 
 export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [filterRole, setFilterRole] = useState("");
   const [filterVerified, setFilterVerified] = useState("");
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [showCreate, setShowCreate] = useState(false);
   const [editUser, setEditUser] = useState<AdminUser | null>(null);
   const [banTarget, setBanTarget] = useState<number | null>(null);
@@ -37,22 +43,34 @@ export default function UsersPage() {
   const [verifyCode, setVerifyCode] = useState<string | null>(null);
   const { confirmAction, confirm, reset } = useConfirmAction();
 
+  // Reset to page 1 when filter or search changes
+  useEffect(() => {
+    setPage(1);
+  }, [filterRole, filterVerified, debouncedSearch]);
+
   const load = useCallback(async () => {
+    setIsFetching(true);
     try {
-      const params: Record<string, string | undefined> = {};
+      const params: Record<string, string | undefined> = {
+        page: String(page),
+        limit: String(pageSize),
+      };
       if (filterRole) params.role = filterRole;
       if (filterVerified) params.isVerified = filterVerified;
-      const res = await api.getUsers(params);
-      const list = Array.isArray(res)
-        ? res
-        : (res as { data?: AdminUser[] }).data || [];
-      setUsers(list as AdminUser[]);
+      if (debouncedSearch) params.search = debouncedSearch;
+      const res = (await api.getUsers(params)) as {
+        data: AdminUser[];
+        total: number;
+      };
+      setUsers(res.data || []);
+      setTotal(res.total || 0);
     } catch (err) {
       toastError(err, "Failed to load users");
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
-  }, [filterRole, filterVerified]);
+  }, [filterRole, filterVerified, debouncedSearch, page, pageSize]);
 
   useEffect(() => {
     load();
@@ -122,21 +140,13 @@ export default function UsersPage() {
   };
 
   const columns = [
-    columnHelper.accessor("id", { header: "ID" }),
     columnHelper.accessor("email", {
       header: "Email",
-      cell: (i) => (
-        <TruncatedText text={i.getValue()} className="max-w-[260px] block" />
-      ),
+      cell: (i) => <span className="block">{i.getValue()}</span>,
     }),
     columnHelper.accessor("username", {
       header: "Username",
-      cell: (i) => (
-        <TruncatedText
-          text={i.getValue() || "-"}
-          className="max-w-[180px] block"
-        />
-      ),
+      cell: (i) => <span className="block">{i.getValue() || "-"}</span>,
     }),
     columnHelper.accessor("role", {
       header: "Role",
@@ -304,6 +314,19 @@ export default function UsersPage() {
           columns={columns}
           data={users}
           searchPlaceholder="Search users..."
+          server={{
+            page,
+            pageSize,
+            total,
+            onPageChange: setPage,
+            onPageSizeChange: (size) => {
+              setPageSize(size);
+              setPage(1);
+            },
+            search,
+            onSearchChange: setSearch,
+            isLoading: isFetching,
+          }}
         />
       </div>
 

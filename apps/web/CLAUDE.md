@@ -19,13 +19,13 @@
 - Socket.IO client for real-time updates (direct to backend)
 - WebSocket connection indicator at bottom of sidebar
 - Team colors: Sentinel = `red-600`, Scourge = `green-600`
+- `<ScrollableSelect>` in `src/components/scrollable-select.tsx` — button-triggered dropdown with `maxVisibleItems` before scroll. Use when the option list may grow (e.g. stream filter); keep native `<select>` for small fixed lists.
 
-## Text Overflow
+## Data Tables
 
-- `TooltipProvider` (Radix) is mounted globally in `src/app/layout.tsx`; no need to wrap individual pages
-- Use `<TruncatedText text={...} className="max-w-[Npx] block" />` from `@/components/ui/truncated-text` for any variable-length text (emails, usernames, names, descriptions, URLs) — it auto-detects overflow via ResizeObserver and only mounts a Radix tooltip when actually truncated
-- Tooltip primitives live at `@/components/ui/tooltip`
-- For flex layouts, give the truncating child `min-w-0` (or `flex-1 min-w-0`) so `truncate` can actually clip
+- Shared `<DataTable>` in `src/components/data-table.tsx`. Default mode is client-side (TanStack pagination + global filter).
+- For endpoints backed by server-side pagination, pass a `server` prop: `{ page, pageSize, total, onPageChange, onPageSizeChange?, search?, onSearchChange?, isLoading? }`. The table then uses `manualPagination` + `manualFiltering` and the parent owns state. See `users/page.tsx` (with debounced server search) and `games/page.tsx` (with `hideSearch`) for the two patterns.
+- Debounce search input via `useDebouncedValue` hook (`src/hooks/use-debounced-value.ts`); reset `page` to 1 whenever filters or the debounced search value change.
 
 ## Stream Controls
 

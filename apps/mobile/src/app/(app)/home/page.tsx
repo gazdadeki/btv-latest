@@ -16,7 +16,6 @@ import { useAuth } from "@/lib/auth-context";
 import { Loading } from "@/components/loading";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorDisplay } from "@/components/error-display";
-import { TruncatedText } from "@/components/truncated-text";
 import { cn, formatTime } from "@/lib/utils";
 import type { Game, GameStatusFilter } from "@/types";
 import { isGold, reservationIsActive, availableSlotsCount } from "@/types";
@@ -79,10 +78,7 @@ function GameCard({
           {game.isExclusiveToGold && (
             <RiVipCrownFill className="w-4 h-4 text-[#c9a84c] shrink-0" />
           )}
-          <TruncatedText
-            text={`Game ${game.gameIndex ?? game.id}`}
-            className="text-sm font-bold text-[#f0f0f0] flex-1"
-          />
+          <span className="text-sm font-bold text-[#f0f0f0] flex-1">{`Game ${game.gameIndex ?? game.id}`}</span>
         </div>
 
         {/* Right: status-dependent content */}
@@ -296,14 +292,10 @@ export default function HomePage() {
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#8a8a8a] leading-none mb-1">
                       Current Stream
                     </p>
-                    <TruncatedText
-                      as="p"
-                      text={
-                        activeStream.stream.title ||
-                        activeStream.stream.scheduleName
-                      }
-                      className="text-base font-bold text-[#c9a84c] leading-tight"
-                    />
+                    <p className="text-base font-bold text-[#c9a84c] leading-tight">
+                      {activeStream.stream.title ||
+                        activeStream.stream.scheduleName}
+                    </p>
                   </div>
                   {earliestStart && (
                     <div className="text-right shrink-0">

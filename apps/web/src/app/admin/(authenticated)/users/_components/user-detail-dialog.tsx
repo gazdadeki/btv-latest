@@ -7,7 +7,6 @@ import { formatDate, toastError } from "@/lib/utils";
 import { Dialog } from "@/components/dialog";
 import { Button } from "@/components/button";
 import { Tabs } from "@/components/tabs";
-import { TruncatedText } from "@/components/ui/truncated-text";
 import type { AdminUser, WalletTx, PaymentMethod } from "@/types";
 
 interface UserDetailDialogProps {
@@ -113,16 +112,13 @@ export function UserDetailDialog({
               <tr>
                 <td className="py-2 font-medium">Email</td>
                 <td>
-                  <TruncatedText text={user.email} className="block" />
+                  <span className="block">{user.email}</span>
                 </td>
               </tr>
               <tr>
                 <td className="py-2 font-medium">Username</td>
                 <td>
-                  <TruncatedText
-                    text={user.username || "-"}
-                    className="block"
-                  />
+                  <span className="block">{user.username || "-"}</span>
                 </td>
               </tr>
               <tr>
@@ -152,10 +148,9 @@ export function UserDetailDialog({
               <tr>
                 <td className="py-2 font-medium">Stripe</td>
                 <td>
-                  <TruncatedText
-                    text={user.stripeCustomerId || "Not linked"}
-                    className="block"
-                  />
+                  <span className="block">
+                    {user.stripeCustomerId || "Not linked"}
+                  </span>
                 </td>
               </tr>
               <tr>
@@ -172,48 +167,36 @@ export function UserDetailDialog({
                   <tr>
                     <td className="py-1 font-medium w-1/3">Name</td>
                     <td>
-                      <TruncatedText
-                        text={user.fullName || "-"}
-                        className="block"
-                      />
+                      <span className="block">{user.fullName || "-"}</span>
                     </td>
                   </tr>
                   <tr>
                     <td className="py-1 font-medium">Address</td>
                     <td>
-                      <TruncatedText
-                        text={
-                          [user.addressLine1, user.addressLine2]
-                            .filter(Boolean)
-                            .join(", ") || "-"
-                        }
-                        className="block"
-                      />
+                      <span className="block">
+                        {[user.addressLine1, user.addressLine2]
+                          .filter(Boolean)
+                          .join(", ") || "-"}
+                      </span>
                     </td>
                   </tr>
                   <tr>
                     <td className="py-1 font-medium">City/State</td>
                     <td>
-                      <TruncatedText
-                        text={
-                          [user.city, user.state].filter(Boolean).join(", ") ||
-                          "-"
-                        }
-                        className="block"
-                      />
+                      <span className="block">
+                        {[user.city, user.state].filter(Boolean).join(", ") ||
+                          "-"}
+                      </span>
                     </td>
                   </tr>
                   <tr>
                     <td className="py-1 font-medium">Country/Zip</td>
                     <td>
-                      <TruncatedText
-                        text={
-                          [user.country, user.zipcode]
-                            .filter(Boolean)
-                            .join(" ") || "-"
-                        }
-                        className="block"
-                      />
+                      <span className="block">
+                        {[user.country, user.zipcode]
+                          .filter(Boolean)
+                          .join(" ") || "-"}
+                      </span>
                     </td>
                   </tr>
                 </tbody>
@@ -300,10 +283,7 @@ export function UserDetailDialog({
                       {tx.amount}
                     </td>
                     <td className="px-3 py-2">
-                      <TruncatedText
-                        text={tx.description}
-                        className="max-w-[200px] block"
-                      />
+                      <span className="block">{tx.description}</span>
                     </td>
                     <td className="px-3 py-2">{formatDate(tx.createdAt)}</td>
                   </tr>

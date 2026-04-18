@@ -15,14 +15,13 @@ export class RegisterDto {
   @ApiProperty({
     example: 'johndoe',
     description:
-      'Username (3-30 characters, alphanumeric, underscores, and hyphens only)',
+      'Username (3-14 characters; letters, numbers, and . - _ [ ] ( ) only)',
   })
   @IsString()
   @MinLength(3)
-  @MaxLength(30)
-  @Matches(/^[a-zA-Z0-9_-]+$/, {
-    message:
-      'Username must contain only alphanumeric characters, underscores, and hyphens',
+  @MaxLength(14)
+  @Matches(/^[A-Za-z0-9._\-()[\]]+$/, {
+    message: 'Username can only contain letters, numbers, and . - _ [ ] ( )',
   })
   username: string;
 

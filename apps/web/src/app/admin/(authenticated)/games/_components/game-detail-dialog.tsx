@@ -11,7 +11,6 @@ import { Tabs } from "@/components/tabs";
 import { StatusBadge } from "@/components/status-badge";
 import { UserSearchDialog } from "@/components/user-search-dialog";
 import { UserSearchInput } from "@/components/user-search-input";
-import { TruncatedText } from "@/components/ui/truncated-text";
 import { useConfirmAction } from "@/hooks/use-confirm-action";
 import {
   GAME_STATUS_COLORS,
@@ -287,10 +286,9 @@ export function GameDetailDialog({
                 <tr>
                   <td className="py-2 font-medium">Schedule</td>
                   <td>
-                    <TruncatedText
-                      text={game.schedule?.name || `#${game.scheduleId}`}
-                      className="block"
-                    />
+                    <span className="block">
+                      {game.schedule?.name || `#${game.scheduleId}`}
+                    </span>
                   </td>
                 </tr>
                 <tr>
@@ -498,16 +496,13 @@ export function GameDetailDialog({
                         </td>
                         <td className="px-3 py-2">
                           <span className="flex items-center gap-1 min-w-0">
-                            <TruncatedText
-                              text={
-                                slot.reservedByUser?.username ||
+                            <span className="block">
+                              {slot.reservedByUser?.username ||
                                 slot.reservedByUser?.email ||
                                 (slot.reservedByUserId
                                   ? `User #${slot.reservedByUserId}`
-                                  : "None")
-                              }
-                              className="max-w-[220px] block"
-                            />
+                                  : "None")}
+                            </span>
                             {slot.reservedByUser?.subscriptionTier ===
                               "GOLD" && (
                               <i
@@ -613,14 +608,11 @@ export function GameDetailDialog({
                     <tr key={r.id}>
                       <td className="px-3 py-2">{r.id}</td>
                       <td className="px-3 py-2">
-                        <TruncatedText
-                          text={
-                            r.user?.username ||
+                        <span className="block">
+                          {r.user?.username ||
                             r.user?.email ||
-                            `User #${r.userId}`
-                          }
-                          className="max-w-[220px] block"
-                        />
+                            `User #${r.userId}`}
+                        </span>
                       </td>
                       <td className="px-3 py-2">
                         {r.slot?.slotNumber || r.slotId}

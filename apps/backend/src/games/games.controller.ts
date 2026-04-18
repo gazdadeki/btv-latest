@@ -24,6 +24,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { GameStatus } from './entities/game.entity';
 import { UpdateGameDto } from './dto/update-game.dto';
 import { PreAssignSlotDto } from './dto/pre-assign-slot.dto';
+import { ListGamesQueryDto } from './dto/list-games-query.dto';
 
 @ApiTags('Games')
 @ApiBearerAuth()
@@ -34,29 +35,35 @@ export class GamesController {
   constructor(private readonly gamesService: GamesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List all games' })
+  @ApiOperation({ summary: 'List all games (paginated)' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'status', required: false, enum: GameStatus })
   @ApiQuery({ name: 'scheduleId', required: false, type: Number })
   @ApiQuery({ name: 'streamId', required: false, type: Number })
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })
-  @ApiResponse({ status: 200, description: 'List of games' })
+  @ApiResponse({ status: 200, description: 'Paginated list of games' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Admin role required' })
-  async findAll(
-    @Query('status') status?: GameStatus,
-    @Query('scheduleId') scheduleId?: string,
-    @Query('streamId') streamId?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    const filters: any = {};
-    if (status) filters.status = status;
-    if (scheduleId) filters.scheduleId = parseInt(scheduleId, 10);
-    if (streamId) filters.streamId = parseInt(streamId, 10);
-    if (startDate) filters.startDate = new Date(startDate);
-    if (endDate) filters.endDate = new Date(endDate);
-    return this.gamesService.findAll(filters);
+  async findAll(@Query() query: ListGamesQueryDto) {
+    const filters: {
+      status?: GameStatus;
+      scheduleId?: number;
+      streamId?: number;
+      startDate?: Date;
+      endDate?: Date;
+    } = {};
+    if (query.status) filters.status = query.status;
+    if (query.scheduleId) filters.scheduleId = query.scheduleId;
+    if (query.streamId) filters.streamId = query.streamId;
+    if (query.startDate) filters.startDate = new Date(query.startDate);
+    if (query.endDate) filters.endDate = new Date(query.endDate);
+    return this.gamesService.findAll(
+      filters,
+      query.page ?? 1,
+      query.limit ?? 25,
+    );
   }
 
   @Get(':id')

@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Not, Repository } from 'typeorm';
+import type { Paginated } from '@btv/types';
 import { Stream, StreamStatus } from './entities/stream.entity';
 import { FirebaseService } from '../firebase/firebase.service';
 import { NotificationType } from '../firebase/entities/notification-history.entity';
@@ -30,11 +31,21 @@ export class StreamsService {
     private websocketService: WebsocketService,
   ) {}
 
-  async findAll(): Promise<Stream[]> {
-    return this.streamRepository.find({
-      order: { createdAt: 'DESC' },
-      take: 20,
-    });
+  async findAll(
+    page = 1,
+    limit = 20,
+    search?: string,
+  ): Promise<Paginated<Stream>> {
+    const query = this.streamRepository
+      .createQueryBuilder('stream')
+      .orderBy('stream.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+    if (search) {
+      query.andWhere('stream.title LIKE :search', { search: `%${search}%` });
+    }
+    const [data, total] = await query.getManyAndCount();
+    return { data, total, page, limit };
   }
 
   async findActiveStream(): Promise<Stream | null> {

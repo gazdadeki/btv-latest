@@ -41,8 +41,3 @@ paths:
 - Use utils from `src/lib/utils.ts`: `formatDateTime()`, `formatDate()`, `formatTime()`, `formatTimeAgo()`
 - These auto-convert UTC ISO strings to browser local timezone — no manual conversion needed
 - When sending dates to backend: always UTC ISO 8601
-
-## Text Overflow
-
-- Use `<TruncatedText>` from `@/components/truncated-text` for variable-length text (usernames, titles, profile values). Uses native `title` attr (long-press) — no Radix dep on mobile since hover tooltips don't work on touch.
-- Pair with `flex-1 min-w-0` on flex text children and `shrink-0` on action siblings so `truncate` can clip.

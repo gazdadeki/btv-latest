@@ -20,6 +20,10 @@
 - Shares types via `@btv/types`
 - `GET /players/schedules/today` response is flattened in `api.ts` from `{ schedule, games }` to flat `ScheduleSection`
 
+## Paginated Lists ("Load more")
+
+- For long, append-only player lists (wallet history, future activity feeds), use the accumulation pattern from `settings/wallet/page.tsx`: local `useState` for `page` + `total` + accumulated array; on "Load more" click, fetch next page and append; hide the button once `list.length === total`. Prefer this over `useInfiniteQuery` for simple cases.
+
 ## Game Statuses
 
 - `GameStatus` includes: `CREATED`, `OPEN`, `IN_PROGRESS`, `FINISHED`, `CANCELLED`
@@ -63,11 +67,6 @@
   - `.auth-link` — teal inline link
   - `.arena-header` — top-of-page banner (also used on secondary pages like wallet/subscription history as a back-button header)
 - Color conventions on dark surfaces: primary text `#f0f0f0`, body/secondary `#c0b8a8`-`#e0d8c8`, muted `#8a8a8a`, disabled/icons `#6a6a6a`, dividers `#2a2620`. Gold `#c9a84c` for brand/active accents, teal `#2a9d8f` for CTAs (Reserve, Send, links).
-
-## Text Overflow
-
-- Use `<TruncatedText text={...} className="..." />` from `@/components/truncated-text` for any variable-length text (usernames, stream/game labels, profile values). Uses native `title` attribute (long-press on touch devices) — intentionally no Radix dep since hover tooltips don't work on touch.
-- Pair with `flex-1 min-w-0` on flex children so `truncate` can actually clip. Parent flex containers with action buttons should give the action side `shrink-0` and the text side `flex-1 min-w-0`.
 
 ## Reserve button availability
 
