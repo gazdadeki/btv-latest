@@ -15,6 +15,7 @@ import { Button } from "@/components/button";
 import { ScrollableSelect } from "@/components/scrollable-select";
 import { StatusBadge } from "@/components/status-badge";
 import { useConfirmAction } from "@/hooks/use-confirm-action";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { GAME_STATUS_COLORS } from "@/constants";
 import type { Game, Stream } from "@/types";
 import { CreateGameDialog } from "./_components/create-game-dialog";
@@ -36,6 +37,10 @@ export default function GamesPage() {
   const [pageSize, setPageSize] = useState(25);
   const [isFetching, setIsFetching] = useState(false);
   const [streams, setStreams] = useState<StreamOption[]>([]);
+  const [streamSearch, setStreamSearch] = useState("");
+  const debouncedStreamSearch = useDebouncedValue(streamSearch, 300);
+  const [streamsLoading, setStreamsLoading] = useState(false);
+  const streamLabelCache = useRef<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [activeStreamId, setActiveStreamId] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -87,6 +92,12 @@ export default function GamesPage() {
     pageSize,
   ]);
 
+  const cacheStreamLabels = useCallback((list: StreamOption[]) => {
+    for (const s of list) {
+      if (s.title) streamLabelCache.current.set(String(s.id), s.title);
+    }
+  }, []);
+
   // Load streams list and set the active stream as default filter
   useEffect(() => {
     (async () => {
@@ -97,30 +108,53 @@ export default function GamesPage() {
           }>,
           api.getActiveStream() as Promise<Stream | null>,
         ]);
-        setStreams(streamsRes?.data ?? []);
+        const list = streamsRes?.data ?? [];
+        setStreams(list);
+        cacheStreamLabels(list);
         const id = active?.id ? String(active.id) : "";
+        if (id && active?.title) streamLabelCache.current.set(id, active.title);
         setActiveStreamId(id);
         setFilterStream(id);
       } catch {
         setFilterStream("");
       }
     })();
-  }, []);
+  }, [cacheStreamLabels]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const loadStreams = useCallback(async () => {
-    try {
-      const res = (await api.getStreams({ limit: "20" })) as {
-        data?: StreamOption[];
-      };
-      setStreams(res?.data ?? []);
-    } catch {
-      /* ignore */
+  const loadStreams = useCallback(
+    async (search?: string) => {
+      setStreamsLoading(true);
+      try {
+        const params: Record<string, string | undefined> = { limit: "20" };
+        if (search) params.search = search;
+        const res = (await api.getStreams(params)) as {
+          data?: StreamOption[];
+        };
+        const list = res?.data ?? [];
+        setStreams(list);
+        cacheStreamLabels(list);
+      } catch {
+        /* ignore */
+      } finally {
+        setStreamsLoading(false);
+      }
+    },
+    [cacheStreamLabels],
+  );
+
+  // Refetch streams whenever the debounced search changes (after initial mount)
+  const didMountStreamSearch = useRef(false);
+  useEffect(() => {
+    if (!didMountStreamSearch.current) {
+      didMountStreamSearch.current = true;
+      return;
     }
-  }, []);
+    loadStreams(debouncedStreamSearch);
+  }, [debouncedStreamSearch, loadStreams]);
 
   const loadGameDetail = async (id: number) => {
     try {
@@ -421,17 +455,40 @@ export default function GamesPage() {
             <label className="block text-xs text-gray-500 mb-1">Stream</label>
             <ScrollableSelect
               value={filterStream ?? ""}
-              onChange={setFilterStream}
-              options={[
-                { value: "", label: "All Streams" },
-                ...streams.map((s) => ({
-                  value: String(s.id),
-                  label: s.title || `Stream #${s.id}`,
-                })),
-              ]}
+              onChange={(v) => {
+                setFilterStream(v);
+                setStreamSearch("");
+              }}
+              options={(() => {
+                const opts = [
+                  { value: "", label: "All Streams" },
+                  ...streams.map((s) => ({
+                    value: String(s.id),
+                    label: s.title || `Stream #${s.id}`,
+                  })),
+                ];
+                // Preserve the selected stream's label even if the current search
+                // results don't include it.
+                if (
+                  filterStream &&
+                  !opts.some((o) => o.value === filterStream)
+                ) {
+                  const cached = streamLabelCache.current.get(filterStream);
+                  opts.splice(1, 0, {
+                    value: filterStream,
+                    label: cached || `Stream #${filterStream}`,
+                  });
+                }
+                return opts;
+              })()}
               placeholder="All Streams"
               className="w-56"
               maxVisibleItems={8}
+              searchable
+              searchValue={streamSearch}
+              onSearchChange={setStreamSearch}
+              searchPlaceholder="Search streams…"
+              isLoading={streamsLoading}
             />
           </div>
           <div>

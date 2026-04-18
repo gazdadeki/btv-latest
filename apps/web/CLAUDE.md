@@ -19,7 +19,7 @@
 - Socket.IO client for real-time updates (direct to backend)
 - WebSocket connection indicator at bottom of sidebar
 - Team colors: Sentinel = `red-600`, Scourge = `green-600`
-- `<ScrollableSelect>` in `src/components/scrollable-select.tsx` — button-triggered dropdown with `maxVisibleItems` before scroll. Use when the option list may grow (e.g. stream filter); keep native `<select>` for small fixed lists.
+- `<ScrollableSelect>` in `src/components/scrollable-select.tsx` — button-triggered dropdown with `maxVisibleItems` before scroll. Optional `searchable` mode renders a sticky search input and delegates filtering to the parent via `onSearchChange` (use with a debounced value + server-side `?search=` for large lists like the stream filter). Keep native `<select>` for small fixed lists.
 
 ## Data Tables
 
