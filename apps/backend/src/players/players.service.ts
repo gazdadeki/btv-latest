@@ -285,6 +285,7 @@ export class PlayersService {
       id: number;
       status: string;
       title: string;
+      url: string | null;
       scheduleId: number;
       scheduleName: string;
       teamAName: string;
@@ -321,6 +322,7 @@ export class PlayersService {
           id: stream.id,
           status: stream.status,
           title: stream.title,
+          url: stream.url ?? null,
           scheduleId: stream.scheduleId,
           scheduleName: stream.schedule?.name || '',
           teamAName: stream.schedule?.teamAName || '',
@@ -351,6 +353,7 @@ export class PlayersService {
         id: stream.id,
         status: stream.status,
         title: stream.title ?? '',
+        url: stream.url ?? null,
         scheduleId: stream.scheduleId,
         scheduleName: stream.schedule?.name || '',
         teamAName: stream.schedule?.teamAName || '',

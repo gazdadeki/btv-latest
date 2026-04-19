@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 import type { Paginated } from '@btv/types';
 import { Game, GameStatus } from './entities/game.entity';
@@ -432,15 +432,6 @@ export class GamesService {
       await queryRunner.release();
     }
 
-    // Determine game position for the schedule day
-    const gameDate = new Date(updated.scheduledStartTime);
-    gameDate.setUTCHours(0, 0, 0, 0);
-    const position = await this.getGamePositionInScheduleDay(
-      id,
-      updated.scheduleId,
-      gameDate,
-    );
-
     // Get game URL (use game URL if set, otherwise fall back to schedule URL)
     const gameUrl = updated.url || updated.stream?.url || 'https://youtube.com';
 
@@ -451,17 +442,9 @@ export class GamesService {
       teamAName: updated.teamAName,
       teamBName: updated.teamBName,
       scheduledStartTime: updated.scheduledStartTime.toISOString(),
-      position,
     };
 
-    const positionEvent =
-      position === 'first'
-        ? WebsocketEvents.GameFirstStarted
-        : position === 'last'
-          ? WebsocketEvents.GameLastStarted
-          : WebsocketEvents.GameStarted;
-
-    this.websocketService.broadcast(positionEvent, wsEventData);
+    this.websocketService.broadcast(WebsocketEvents.GameStarted, wsEventData);
     this.websocketService.broadcast(WebsocketEvents.GameStatusChanged, {
       gameId: updated.id,
       status: GameStatus.IN_PROGRESS,
@@ -522,123 +505,11 @@ export class GamesService {
     }
   }
 
-  private async isFirstGameForScheduleDay(
-    gameId: number,
-    scheduleId: number,
-    date: Date,
-  ): Promise<boolean> {
-    const nextDay = new Date(date);
-    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-
-    const earlierGames = await this.gameRepository.find({
-      where: {
-        scheduleId,
-        status: GameStatus.IN_PROGRESS,
-      },
-    });
-
-    // Check if any earlier Game for the same day has been started
-    for (const earlierGame of earlierGames) {
-      if (earlierGame.id === gameId) continue;
-      const earlierDate = new Date(earlierGame.scheduledStartTime);
-      earlierDate.setUTCHours(0, 0, 0, 0);
-      if (
-        earlierDate.getTime() === date.getTime() &&
-        earlierGame.actualStartTime
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Checks if a game is the last game for the schedule day.
-   * @param gameId - The game ID to check
-   * @param scheduleId - The schedule ID
-   * @param date - The date to check (normalized to start of day)
-   * @returns True if this is the last game for the schedule day
-   */
-  private async isLastGameForScheduleDay(
-    gameId: number,
-    scheduleId: number,
-    date: Date,
-  ): Promise<boolean> {
-    const nextDay = new Date(date);
-    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-
-    // Find all upcoming games for the same schedule/day that come after this game
-    const laterGames = await this.gameRepository.find({
-      where: {
-        scheduleId,
-        status: In([GameStatus.CREATED, GameStatus.OPEN]),
-      },
-      order: {
-        scheduledStartTime: 'ASC',
-      },
-    });
-
-    // Check if any later game exists for the same day
-    for (const laterGame of laterGames) {
-      if (laterGame.id === gameId) continue;
-      const laterDate = new Date(laterGame.scheduledStartTime);
-      laterDate.setUTCHours(0, 0, 0, 0);
-      if (
-        laterDate.getTime() === date.getTime() &&
-        laterGame.scheduledStartTime > new Date()
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Determines the position of a game within the schedule day (first, other, or last).
-   * @param gameId - The game ID to check
-   * @param scheduleId - The schedule ID
-   * @param date - The date to check (normalized to start of day)
-   * @returns 'first', 'last', or 'other'
-   */
-  private async getGamePositionInScheduleDay(
-    gameId: number,
-    scheduleId: number,
-    date: Date,
-  ): Promise<'first' | 'last' | 'other'> {
-    const isFirst = await this.isFirstGameForScheduleDay(
-      gameId,
-      scheduleId,
-      date,
-    );
-    const isLast = await this.isLastGameForScheduleDay(
-      gameId,
-      scheduleId,
-      date,
-    );
-
-    if (isFirst && isLast) {
-      // Only one game for the day - consider it both first and last, but we'll treat it as 'first' for start and 'last' for finish
-      return 'first'; // For start events, treat as first
-    }
-
-    if (isFirst) {
-      return 'first';
-    }
-
-    if (isLast) {
-      return 'last';
-    }
-
-    return 'other';
-  }
-
   async finish(
     id: number,
     adminId: number,
     data: { winningTeam: 'A' | 'B'; mvpUserId?: number },
-  ): Promise<{ game: Game; nextGame?: Game; isLastGame: boolean }> {
+  ): Promise<{ game: Game }> {
     const game = await this.findOne(id);
     if (game.status !== GameStatus.IN_PROGRESS) {
       throw new BadRequestException('Game is not in progress');
@@ -661,64 +532,10 @@ export class GamesService {
     // Update statistics for all participants
     await this.updateStatisticsForGame(updated);
 
-    // Check if there's a next game for the same schedule/day
-    const gameDate = new Date(game.scheduledStartTime);
-    gameDate.setUTCHours(0, 0, 0, 0);
-    const nextDay = new Date(gameDate);
-    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-
-    const nextGame = await this.gameRepository.findOne({
-      where: {
-        scheduleId: game.scheduleId,
-        status: In([GameStatus.CREATED, GameStatus.OPEN]),
-      },
-      order: {
-        scheduledStartTime: 'ASC',
-      },
-    });
-
-    let isLastGame = true;
-    if (nextGame) {
-      const nextGameDate = new Date(nextGame.scheduledStartTime);
-      nextGameDate.setUTCHours(0, 0, 0, 0);
-      if (nextGameDate.getTime() === gameDate.getTime()) {
-        isLastGame = false;
-      }
-    }
-
-    // Determine game position for finish events
-    // Check if this is the first game finished for the day
-    const finishedGamesForDay = await this.gameRepository.find({
-      where: {
-        scheduleId: game.scheduleId,
-        status: GameStatus.FINISHED,
-      },
-    });
-
-    const isFirstFinished =
-      finishedGamesForDay.filter((g) => {
-        const gDate = new Date(g.scheduledStartTime);
-        gDate.setUTCHours(0, 0, 0, 0);
-        return gDate.getTime() === gameDate.getTime() && g.id !== id;
-      }).length === 0;
-
-    // Determine position: first finished, last game, or other
-    let finishPosition: 'first' | 'last' | 'other';
-    if (isFirstFinished && isLastGame) {
-      // Only one game for the day - treat as both first and last, but for finish we'll use 'last'
-      finishPosition = 'last';
-    } else if (isFirstFinished) {
-      finishPosition = 'first';
-    } else if (isLastGame) {
-      finishPosition = 'last';
-    } else {
-      finishPosition = 'other';
-    }
-
     // Get game URL (use game URL if set, otherwise fall back to schedule URL)
     const gameUrl = updated.url || updated.stream?.url || 'https://youtube.com';
 
-    const wsFinishData = {
+    this.websocketService.broadcast(WebsocketEvents.GameFinished, {
       gameId: updated.id,
       scheduleId: updated.scheduleId,
       url: gameUrl,
@@ -726,17 +543,7 @@ export class GamesService {
       teamAName: updated.teamAName,
       teamBName: updated.teamBName,
       actualEndTime: updated.actualEndTime?.toISOString() || null,
-      position: finishPosition,
-    };
-
-    const finishEvent =
-      finishPosition === 'first'
-        ? WebsocketEvents.GameFirstFinished
-        : finishPosition === 'last'
-          ? WebsocketEvents.GameLastFinished
-          : WebsocketEvents.GameFinished;
-
-    this.websocketService.broadcast(finishEvent, wsFinishData);
+    });
     this.websocketService.broadcast(WebsocketEvents.GameStatusChanged, {
       gameId: updated.id,
       status: GameStatus.FINISHED,
@@ -751,11 +558,7 @@ export class GamesService {
       details: { winningTeam: data.winningTeam, mvpUserId: data.mvpUserId },
     });
 
-    return {
-      game: updated,
-      nextGame: !isLastGame ? nextGame : undefined,
-      isLastGame,
-    };
+    return { game: updated };
   }
 
   /**
@@ -1170,61 +973,6 @@ export class GamesService {
       game,
       adminId,
     );
-  }
-
-  async autoStartNextGame(
-    gameId: number,
-    delayMinutes: number,
-    adminId: number,
-  ): Promise<{ success: boolean; nextGameId?: number }> {
-    const game = await this.findOne(gameId);
-
-    const gameDate = new Date(game.scheduledStartTime);
-    gameDate.setUTCHours(0, 0, 0, 0);
-    const nextDay = new Date(gameDate);
-    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-
-    const nextGame = await this.gameRepository.findOne({
-      where: {
-        scheduleId: game.scheduleId,
-        status: In([GameStatus.CREATED, GameStatus.OPEN]),
-      },
-      order: {
-        scheduledStartTime: 'ASC',
-      },
-    });
-
-    if (!nextGame) {
-      throw new BadRequestException('No next game found');
-    }
-
-    const nextGameDate = new Date(nextGame.scheduledStartTime);
-    nextGameDate.setUTCHours(0, 0, 0, 0);
-    if (nextGameDate.getTime() !== gameDate.getTime()) {
-      throw new BadRequestException('Next game is not for the same day');
-    }
-
-    // Schedule auto-start
-    setTimeout(
-      async () => {
-        try {
-          await this.start(nextGame.id, adminId);
-        } catch (error) {
-          console.error('Failed to auto-start next game:', error);
-        }
-      },
-      delayMinutes * 60 * 1000,
-    );
-
-    await this.auditService.log({
-      userId: adminId,
-      action: 'GAME_AUTO_START_SCHEDULED',
-      entityType: 'Game',
-      entityId: nextGame.id.toString(),
-      details: { currentGameId: gameId, delayMinutes },
-    });
-
-    return { success: true, nextGameId: nextGame.id };
   }
 
   /**

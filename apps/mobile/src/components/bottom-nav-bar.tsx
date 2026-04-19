@@ -1,6 +1,6 @@
 "use client";
 
-// 5 tabs: Arena, Messages, Settings, Store, Guide — in that exact order
+// 5 tabs: Games, Messages, Store, Guide, Profile — in that exact order
 // Shows unread count badge on Messages tab
 // Gaming-style dark nav with gold circular icons
 
@@ -8,22 +8,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   RiMessage3Fill,
-  RiSettings3Fill,
   RiShoppingCart2Fill,
   RiBookOpenFill,
 } from "react-icons/ri";
-import { GiCrossedSwords } from "react-icons/gi";
+import { GiCrossedSwords, GiVisoredHelm } from "react-icons/gi";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { FEATURES } from "@/lib/constants";
 
 const ALL_NAV_ITEMS = [
-  { href: "/home", label: "Arena", icon: GiCrossedSwords },
+  { href: "/home", label: "Games", icon: GiCrossedSwords },
   { href: "/messages", label: "Messages", icon: RiMessage3Fill },
-  { href: "/settings", label: "Settings", icon: RiSettings3Fill },
   { href: "/shop", label: "Store", icon: RiShoppingCart2Fill },
   { href: "/tutorials", label: "Guide", icon: RiBookOpenFill },
+  { href: "/settings", label: "Profile", icon: GiVisoredHelm },
 ] as const;
 
 const NAV_ITEMS = ALL_NAV_ITEMS.filter(

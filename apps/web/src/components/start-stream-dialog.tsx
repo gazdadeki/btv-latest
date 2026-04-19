@@ -66,7 +66,7 @@ export function StartStreamDialog({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Let's GO - dd.mm.yyyy"
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-            maxLength={255}
+            maxLength={40}
             autoFocus
           />
         </div>

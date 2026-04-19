@@ -22,6 +22,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ConfigService } from '../config/config.service';
 import { AuditService } from '../audit/audit.service';
 import {
@@ -913,18 +914,7 @@ export class AuthService {
    * @returns Updated user entity
    * @throws NotFoundException if user is not found
    */
-  async updateProfile(
-    userId: number,
-    data: {
-      fullName?: string;
-      addressLine1?: string;
-      addressLine2?: string;
-      city?: string;
-      state?: string;
-      country?: string;
-      zipcode?: string;
-    },
-  ): Promise<User> {
+  async updateProfile(userId: number, data: UpdateProfileDto): Promise<User> {
     this.logger.log(`Updating profile for user ID: ${userId}`);
 
     const user = await this.usersService.findOne(userId);

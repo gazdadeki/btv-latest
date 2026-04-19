@@ -5,7 +5,6 @@ import * as admin from 'firebase-admin';
 import * as path from 'path';
 import * as fs from 'fs';
 import { DeviceToken, Platform } from './entities/device-token.entity';
-import { NotificationPreference } from './entities/notification-preference.entity';
 import {
   NotificationHistory,
   NotificationType,
@@ -24,7 +23,7 @@ export interface NotificationData {
 
 /**
  * Service for managing Firebase Cloud Messaging and push notifications.
- * Handles device token registration, notification preferences, and sending notifications.
+ * Handles device token registration and broadcasting notifications.
  */
 @Injectable()
 export class FirebaseService implements OnModuleInit {
@@ -34,8 +33,6 @@ export class FirebaseService implements OnModuleInit {
   constructor(
     @InjectRepository(DeviceToken)
     private deviceTokenRepository: Repository<DeviceToken>,
-    @InjectRepository(NotificationPreference)
-    private notificationPreferenceRepository: Repository<NotificationPreference>,
     @InjectRepository(NotificationHistory)
     private notificationHistoryRepository: Repository<NotificationHistory>,
   ) {}
@@ -134,120 +131,7 @@ export class FirebaseService implements OnModuleInit {
   }
 
   /**
-   * Get notification preferences for a user.
-   * Creates default preferences if they don't exist.
-   * @param userId - User ID
-   * @returns Notification preferences
-   */
-  async getNotificationPreferences(
-    userId: number,
-  ): Promise<NotificationPreference> {
-    let preferences = await this.notificationPreferenceRepository.findOne({
-      where: { userId },
-    });
-
-    if (!preferences) {
-      preferences = this.notificationPreferenceRepository.create({
-        userId,
-        eventReminders: true,
-        confirmationDeadlines: true,
-        subscriptionUpdates: true,
-        reservationUpdates: true,
-        adminAlerts: false,
-      });
-      preferences =
-        await this.notificationPreferenceRepository.save(preferences);
-    }
-
-    return preferences;
-  }
-
-  /**
-   * Update notification preferences for a user.
-   * @param userId - User ID
-   * @param data - Partial preference updates
-   * @returns Updated preferences
-   */
-  async updateNotificationPreferences(
-    userId: number,
-    data: Partial<NotificationPreference>,
-  ): Promise<NotificationPreference> {
-    const preferences = await this.getNotificationPreferences(userId);
-    Object.assign(preferences, data);
-    return this.notificationPreferenceRepository.save(preferences);
-  }
-
-  /**
-   * Send a notification to a specific user.
-   * Respects user notification preferences.
-   * @param userId - User ID to send notification to
-   * @param notification - Notification data
-   */
-  async sendNotification(
-    userId: number,
-    notification: NotificationData,
-  ): Promise<void> {
-    if (!this.firebaseApp) {
-      this.logger.debug('Firebase not initialized, skipping notification');
-      return;
-    }
-
-    const preferences = await this.getNotificationPreferences(userId);
-    if (!this.shouldSendNotification(preferences, notification.type)) {
-      return;
-    }
-
-    const tokens = await this.deviceTokenRepository.find({
-      where: { userId, isActive: true },
-    });
-
-    if (tokens.length === 0) {
-      return;
-    }
-
-    const deviceTokens = tokens.map((t) => t.token);
-
-    try {
-      const message: admin.messaging.MulticastMessage = {
-        notification: {
-          title: notification.title,
-          body: notification.body,
-        },
-        data: notification.data ? this.stringifyData(notification.data) : {},
-        tokens: deviceTokens,
-      };
-
-      const response = await admin.messaging().sendEachForMulticast(message);
-
-      // Save notification history
-      for (let i = 0; i < tokens.length; i++) {
-        const token = tokens[i];
-        const result = response.responses[i];
-        const history = this.notificationHistoryRepository.create({
-          userId,
-          deviceTokenId: token.id,
-          type: notification.type,
-          title: notification.title,
-          body: notification.body,
-          data: notification.data,
-          status: result.success
-            ? NotificationStatus.SENT
-            : NotificationStatus.FAILED,
-          fcmMessageId: result.messageId || null,
-          error: result.error?.message || null,
-          sentAt: result.success ? new Date() : null,
-        });
-        await this.notificationHistoryRepository.save(history);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.stack : String(error);
-      this.logger.error('Error sending notification', message);
-    }
-  }
-
-  /**
    * Send a broadcast notification to ALL registered device tokens.
-   * Bypasses user preference checks - used for important announcements.
    * Sends to all active device tokens regardless of user.
    *
    * @param notification - Notification data to broadcast
@@ -350,24 +234,6 @@ export class FirebaseService implements OnModuleInit {
       `Broadcast notification completed: ${sentCount} sent, ${failedCount} failed`,
     );
     return { sentCount, failedCount };
-  }
-
-  /**
-   * Check if a notification should be sent based on user preferences.
-   * @param preferences - User notification preferences
-   * @param type - Notification type
-   * @returns True if notification should be sent
-   */
-  private shouldSendNotification(
-    preferences: NotificationPreference,
-    type: NotificationType,
-  ): boolean {
-    switch (type) {
-      case NotificationType.STREAM_START:
-        return preferences.eventReminders;
-      default:
-        return true;
-    }
   }
 
   /**

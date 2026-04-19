@@ -20,7 +20,6 @@ import { Reservation } from '../reservations/entities/reservation.entity';
 import { UserStatistics } from '../statistics/entities/user-statistics.entity';
 import { AuditLog } from '../audit/entities/audit-log.entity';
 import { DeviceToken } from '../firebase/entities/device-token.entity';
-import { NotificationPreference } from '../firebase/entities/notification-preference.entity';
 import { NotificationHistory } from '../firebase/entities/notification-history.entity';
 import { Conversation } from '../messages/entities/conversation.entity';
 import { ConversationParticipant } from '../messages/entities/conversation-participant.entity';
@@ -157,7 +156,6 @@ function getDatabaseConfig() {
         UserStatistics,
         AuditLog,
         DeviceToken,
-        NotificationPreference,
         NotificationHistory,
         Conversation,
         ConversationParticipant,

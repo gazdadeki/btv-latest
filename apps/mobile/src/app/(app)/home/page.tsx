@@ -228,7 +228,7 @@ export default function HomePage() {
   return (
     <div className="page-dark flex flex-col h-full">
       {/* Page title */}
-      <PageHeader label="Arena" icon={GiCrossedSwords} />
+      <PageHeader label="Games" icon={GiCrossedSwords} />
 
       {/* Gold Member banner */}
       {showGoldBanner && <GoldMemberBanner />}
@@ -285,6 +285,7 @@ export default function HomePage() {
               .filter(Boolean)
               .sort()[0];
             const isLive = activeStream.stream.status === "LIVE";
+            const liveUrl = activeStream.stream.url;
             return (
               <div>
                 <div className="px-1 pt-2 pb-3 flex items-start justify-between gap-3">
@@ -297,20 +298,26 @@ export default function HomePage() {
                         activeStream.stream.scheduleName}
                     </p>
                   </div>
-                  {earliestStart && (
-                    <div className="text-right shrink-0">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#8a8a8a] leading-none mb-1">
-                        {isLive ? "Status" : "Estimated Start Time"}
-                      </p>
-                      <p
-                        className={cn(
-                          "text-xs font-bold leading-tight",
-                          isLive ? "text-[#d06662]" : "text-[#c9a84c]",
-                        )}
-                      >
-                        {isLive ? "● Live Now" : formatTime(earliestStart)}
-                      </p>
-                    </div>
+                  {isLive && liveUrl ? (
+                    <a
+                      href={liveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-[#9c3e3b] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#b8524e] active:scale-[0.97] transition-all"
+                    >
+                      Join Live ↗
+                    </a>
+                  ) : (
+                    earliestStart && (
+                      <div className="text-right shrink-0">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#8a8a8a] leading-none mb-1">
+                          Estimated Start Time
+                        </p>
+                        <p className="text-xs font-bold leading-tight text-[#c9a84c]">
+                          {formatTime(earliestStart)}
+                        </p>
+                      </div>
+                    )
                   )}
                 </div>
                 {visibleGames.map((game: Game) => {

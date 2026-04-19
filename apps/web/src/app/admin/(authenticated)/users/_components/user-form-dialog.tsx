@@ -26,6 +26,16 @@ const EMPTY_FORM: Record<string, unknown> = {
   zipcode: "",
 };
 
+const PROFILE_FIELDS: ReadonlyArray<{ field: string; label: string }> = [
+  { field: "fullName", label: "Full Name" },
+  { field: "addressLine1", label: "Address Line 1" },
+  { field: "addressLine2", label: "Address Line 2" },
+  { field: "city", label: "City" },
+  { field: "state", label: "State" },
+  { field: "country", label: "Country" },
+  { field: "zipcode", label: "Zipcode" },
+];
+
 interface UserFormDialogProps {
   open: boolean;
   user: AdminUser | null;
@@ -197,27 +207,16 @@ export function UserFormDialog({
             Address{isEdit ? "" : " (optional)"}
           </h4>
           <div className="grid grid-cols-2 gap-3">
-            <FormRow label="Full Name">
-              <FormInput form={form} field="fullName" setForm={setForm} />
-            </FormRow>
-            <FormRow label="Address Line 1">
-              <FormInput form={form} field="addressLine1" setForm={setForm} />
-            </FormRow>
-            <FormRow label="Address Line 2">
-              <FormInput form={form} field="addressLine2" setForm={setForm} />
-            </FormRow>
-            <FormRow label="City">
-              <FormInput form={form} field="city" setForm={setForm} />
-            </FormRow>
-            <FormRow label="State">
-              <FormInput form={form} field="state" setForm={setForm} />
-            </FormRow>
-            <FormRow label="Country">
-              <FormInput form={form} field="country" setForm={setForm} />
-            </FormRow>
-            <FormRow label="Zipcode">
-              <FormInput form={form} field="zipcode" setForm={setForm} />
-            </FormRow>
+            {PROFILE_FIELDS.map(({ field, label }) => (
+              <FormRow key={field} label={label}>
+                <FormInput
+                  form={form}
+                  field={field}
+                  setForm={setForm}
+                  maxLength={30}
+                />
+              </FormRow>
+            ))}
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">
