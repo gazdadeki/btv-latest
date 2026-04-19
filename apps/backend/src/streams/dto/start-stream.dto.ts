@@ -5,7 +5,7 @@ export class StartStreamDto {
   @ApiPropertyOptional({ description: 'Stream title' })
   @IsString()
   @IsOptional()
-  @MaxLength(255)
+  @MaxLength(40)
   title?: string;
 
   @ApiProperty({ description: 'Stream URL', maxLength: 500 })

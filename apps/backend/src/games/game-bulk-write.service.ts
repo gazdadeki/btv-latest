@@ -89,6 +89,25 @@ export class GameBulkWriteService {
           }
         }
 
+        // One-stream-per-schedule-per-day: if a stream already exists for this
+        // schedule today (including ENDED), don't spawn another. Admins can
+        // still force a fresh stream via the calendar "Generate" button.
+        if (!forceRegenerate) {
+          const hasStreamToday =
+            await this.streamsService.hasStreamForScheduleOnDate(
+              manager,
+              schedule.id,
+              normalizedDate,
+            );
+          if (hasStreamToday) {
+            return {
+              createdGames: [],
+              generationBatchId: null,
+              streamId: null,
+            };
+          }
+        }
+
         // Create a new stream (auto-ends stale streams)
         const savedStream = await this.streamsService.createStreamInTransaction(
           manager,

@@ -22,6 +22,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
@@ -491,19 +492,7 @@ export class AuthController {
     status: 200,
     description: 'Profile updated successfully',
   })
-  async updateProfile(
-    @Request() req: any,
-    @Body()
-    body: {
-      fullName?: string;
-      addressLine1?: string;
-      addressLine2?: string;
-      city?: string;
-      state?: string;
-      country?: string;
-      zipcode?: string;
-    },
-  ) {
+  async updateProfile(@Request() req: any, @Body() body: UpdateProfileDto) {
     const ipAddress = this.extractIpAddress(req);
     const userId = req.user.id;
 

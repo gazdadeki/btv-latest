@@ -9,7 +9,6 @@ import { webSocketManager } from "@/lib/websocket";
 import { DataTable } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
 import { PageLoading } from "@/components/loading";
-import { Dialog } from "@/components/dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/button";
 import { ScrollableSelect } from "@/components/scrollable-select";
@@ -50,7 +49,6 @@ export default function GamesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [detailGame, setDetailGame] = useState<Game | null>(null);
   const [finishGame, setFinishGame] = useState<Game | null>(null);
-  const [nextGameData, setNextGameData] = useState<{ id: number } | null>(null);
   const { confirmAction, confirm, reset } = useConfirmAction();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -174,12 +172,8 @@ export default function GamesPage() {
       "game:created",
       "game:updated",
       "game:status_changed",
-      "game:first_started",
       "game:started",
-      "game:last_started",
-      "game:first_finished",
       "game:finished",
-      "game:last_finished",
     ];
     const slotEvents = [
       "slot:availability_changed",
@@ -301,18 +295,6 @@ export default function GamesPage() {
     try {
       const game = (await api.getGame(id)) as Game;
       setFinishGame(game);
-    } catch (err) {
-      toastError(err);
-    }
-  };
-
-  const handleStartNext = async () => {
-    if (!nextGameData) return;
-    try {
-      await api.startGame(nextGameData.id);
-      toast.success("Next game started");
-      setNextGameData(null);
-      load();
     } catch (err) {
       toastError(err);
     }
@@ -575,29 +557,8 @@ export default function GamesPage() {
       <FinishGameDialog
         game={finishGame}
         onClose={() => setFinishGame(null)}
-        onFinished={(nextGame) => {
-          if (nextGame) setNextGameData(nextGame);
-          load();
-        }}
+        onFinished={load}
       />
-
-      <Dialog
-        open={nextGameData !== null}
-        onClose={() => setNextGameData(null)}
-        title="Next Game"
-      >
-        <p className="text-sm text-gray-600 mb-4">
-          Next game found! How would you like to proceed?
-        </p>
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => setNextGameData(null)}>
-            Start Manually
-          </Button>
-          <Button variant="success" onClick={handleStartNext}>
-            Start Now
-          </Button>
-        </div>
-      </Dialog>
 
       <ConfirmDialog
         open={confirmAction !== null}

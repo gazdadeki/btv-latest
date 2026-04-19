@@ -77,7 +77,7 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @MaxLength(30)
   fullName?: string;
 
   @ApiPropertyOptional({
@@ -86,7 +86,7 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @MaxLength(30)
   addressLine1?: string;
 
   @ApiPropertyOptional({
@@ -95,7 +95,7 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @MaxLength(30)
   addressLine2?: string;
 
   @ApiPropertyOptional({
@@ -104,7 +104,7 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(30)
   city?: string;
 
   @ApiPropertyOptional({
@@ -113,7 +113,7 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(30)
   state?: string;
 
   @ApiPropertyOptional({
@@ -122,7 +122,7 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(30)
   country?: string;
 
   @ApiPropertyOptional({
@@ -131,6 +131,6 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @MaxLength(30)
   zipcode?: string;
 }

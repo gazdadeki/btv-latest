@@ -6,11 +6,7 @@ export const WebsocketEvents = {
   GameUpdated: 'game:updated',
   GameStatusChanged: 'game:status_changed',
   GameStarted: 'game:started',
-  GameFirstStarted: 'game:first_started',
-  GameLastStarted: 'game:last_started',
   GameFinished: 'game:finished',
-  GameFirstFinished: 'game:first_finished',
-  GameLastFinished: 'game:last_finished',
   GamePlayersShuffled: 'game:players_shuffled',
   GamesBatchChanged: 'games:batch_changed',
   SlotAvailabilityChanged: 'slot:availability_changed',
@@ -25,8 +21,6 @@ export const WebsocketEvents = {
 
 export type WebsocketEventName =
   (typeof WebsocketEvents)[keyof typeof WebsocketEvents];
-
-export type GamePosition = 'first' | 'last' | 'other';
 
 export interface WebsocketEnvelope<TPayload> {
   type: WebsocketEventName;
@@ -49,7 +43,6 @@ export interface GameStartedPayload {
   teamAName: string;
   teamBName: string;
   scheduledStartTime: string;
-  position: GamePosition;
 }
 
 export interface GameFinishedPayload {
@@ -60,7 +53,6 @@ export interface GameFinishedPayload {
   teamAName: string;
   teamBName: string;
   actualEndTime: string | null;
-  position: GamePosition;
 }
 
 export interface GameUpdatedPayload {

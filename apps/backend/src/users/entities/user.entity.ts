@@ -16,7 +16,6 @@ import { Subscription } from '../../subscriptions/entities/subscription.entity';
 import { StripePayment } from '../../stripe/entities/stripe-payment.entity';
 import { StripePaymentMethod } from '../../stripe/entities/stripe-payment-method.entity';
 import { DeviceToken } from '../../firebase/entities/device-token.entity';
-import { NotificationPreference } from '../../firebase/entities/notification-preference.entity';
 import { AuditLog } from '../../audit/entities/audit-log.entity';
 
 export enum UserRole {
@@ -134,9 +133,6 @@ export class User {
 
   @OneToMany(() => DeviceToken, (token) => token.user)
   deviceTokens: DeviceToken[];
-
-  @OneToOne(() => NotificationPreference, (pref) => pref.user)
-  notificationPreference: NotificationPreference;
 
   @OneToMany(() => AuditLog, (log) => log.user)
   auditLogs: AuditLog[];

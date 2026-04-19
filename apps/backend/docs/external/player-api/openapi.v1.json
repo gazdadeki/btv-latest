@@ -65,6 +65,41 @@
         ]
       }
     },
+    "/api/v1/auth/admin/login": {
+      "post": {
+        "operationId": "AuthController_adminLogin_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Admin login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access restricted to administrators"
+          }
+        },
+        "summary": "Admin login — restricted to users with ADMIN role",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/api/v1/auth/refresh": {
       "post": {
         "operationId": "AuthController_refresh_v1",
@@ -192,6 +227,16 @@
       "put": {
         "operationId": "AuthController_updateProfile_v1",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Profile updated successfully"
@@ -214,7 +259,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Wallet balance"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
         "security": [
@@ -251,7 +299,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Transaction history"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
         "security": [
@@ -271,7 +322,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Player statistics"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
         "security": [
@@ -291,7 +345,13 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Available products"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
           }
         },
         "security": [
@@ -311,7 +371,16 @@
         "parameters": [],
         "responses": {
           "201": {
-            "description": ""
+            "description": "Payment intent created"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
           }
         },
         "security": [
@@ -350,7 +419,16 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Payment status"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
+          },
+          "404": {
+            "description": "Payment not found"
           }
         },
         "security": [
@@ -370,7 +448,16 @@
         "parameters": [],
         "responses": {
           "201": {
-            "description": ""
+            "description": "Subscription intent created"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
           }
         },
         "security": [
@@ -390,7 +477,13 @@
         "parameters": [],
         "responses": {
           "201": {
-            "description": ""
+            "description": "Setup intent created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
           }
         },
         "security": [
@@ -410,8 +503,17 @@
         "operationId": "StripeController_syncPaymentStatus_v1",
         "parameters": [],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Payment status synced"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
           }
         },
         "security": [
@@ -431,7 +533,13 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Payment methods"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
           }
         },
         "security": [
@@ -448,8 +556,17 @@
         "operationId": "StripeController_attachPaymentMethod_v1",
         "parameters": [],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Payment method attached"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
           }
         },
         "security": [
@@ -478,7 +595,16 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Payment method removed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
+          },
+          "404": {
+            "description": "Payment method not found"
           }
         },
         "security": [
@@ -507,7 +633,16 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Default payment method set"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
+          },
+          "404": {
+            "description": "Payment method not found"
           }
         },
         "security": [
@@ -537,7 +672,16 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Conversation created"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
           }
         },
         "security": [
@@ -555,7 +699,13 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of conversations"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
         "security": [
@@ -584,7 +734,16 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Conversation details"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Conversation not found"
           }
         },
         "security": [
@@ -631,7 +790,16 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Conversation messages"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Conversation not found"
           }
         },
         "security": [
@@ -668,7 +836,19 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Message sent"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Conversation not found"
           }
         },
         "security": [
@@ -696,8 +876,17 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Conversation marked as read"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Conversation not found"
           }
         },
         "security": [
@@ -717,7 +906,13 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Unread count"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
         "security": [
@@ -747,7 +942,13 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of admins"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
         "security": [
@@ -767,7 +968,13 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Subscription status"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
           }
         },
         "security": [
@@ -787,7 +994,13 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Subscription history"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
         "security": [
@@ -807,7 +1020,16 @@
         "parameters": [],
         "responses": {
           "201": {
-            "description": ""
+            "description": "Subscribed"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
         "security": [
@@ -826,8 +1048,14 @@
         "operationId": "SubscriptionsController_cancel_v1",
         "parameters": [],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Subscription cancelled"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
         "security": [
@@ -841,120 +1069,19 @@
         ]
       }
     },
-    "/api/v1/players/devices/register": {
-      "post": {
-        "operationId": "FirebaseController_registerDevice_v1",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Register device token",
-        "tags": [
-          "Firebase"
-        ]
-      }
-    },
-    "/api/v1/players/devices": {
-      "get": {
-        "operationId": "FirebaseController_getDevices_v1",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List registered devices",
-        "tags": [
-          "Firebase"
-        ]
-      }
-    },
-    "/api/v1/players/devices/{tokenId}": {
-      "delete": {
-        "operationId": "FirebaseController_unregisterDevice_v1",
-        "parameters": [
-          {
-            "name": "tokenId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Unregister device token",
-        "tags": [
-          "Firebase"
-        ]
-      }
-    },
-    "/api/v1/players/notifications/preferences": {
-      "get": {
-        "operationId": "FirebaseController_getPreferences_v1",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get notification preferences",
-        "tags": [
-          "Firebase"
-        ]
-      },
-      "put": {
-        "operationId": "FirebaseController_updatePreferences_v1",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update notification preferences",
-        "tags": [
-          "Firebase"
-        ]
-      }
-    },
     "/api/v1/verification/request": {
       "post": {
         "operationId": "VerificationController_request_v1",
         "parameters": [],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Verification code sent"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "429": {
+            "description": "Too many requests"
           }
         },
         "security": [
@@ -987,8 +1114,14 @@
           }
         },
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Account verified"
+          },
+          "400": {
+            "description": "Invalid code"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
         "security": [
@@ -1002,13 +1135,109 @@
         ]
       }
     },
+    "/api/v1/players/devices/register": {
+      "post": {
+        "operationId": "FirebaseController_registerDevice_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Device registered"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register device token",
+        "tags": [
+          "Firebase"
+        ]
+      }
+    },
+    "/api/v1/players/devices": {
+      "get": {
+        "operationId": "FirebaseController_getDevices_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of devices"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List registered devices",
+        "tags": [
+          "Firebase"
+        ]
+      }
+    },
+    "/api/v1/players/devices/{tokenId}": {
+      "delete": {
+        "operationId": "FirebaseController_unregisterDevice_v1",
+        "parameters": [
+          {
+            "name": "tokenId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device unregistered"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Device not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unregister device token",
+        "tags": [
+          "Firebase"
+        ]
+      }
+    },
     "/api/v1/players/reservations": {
       "post": {
         "operationId": "ReservationsController_create_v1",
         "parameters": [],
         "responses": {
           "201": {
-            "description": ""
+            "description": "Slot reserved successfully"
+          },
+          "400": {
+            "description": "Invalid request or slot unavailable"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
+          },
+          "404": {
+            "description": "Game or slot not found"
           }
         },
         "security": [
@@ -1036,8 +1265,17 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Reservation confirmed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
+          },
+          "404": {
+            "description": "Reservation not found"
           }
         },
         "security": [
@@ -1066,7 +1304,16 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Reservation cancelled"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
+          },
+          "404": {
+            "description": "Reservation not found"
           }
         },
         "security": [
@@ -1086,7 +1333,13 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of user reservations"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
           }
         },
         "security": [
@@ -1106,7 +1359,13 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of available games"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
           }
         },
         "security": [
@@ -1135,7 +1394,16 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Game details"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
+          },
+          "404": {
+            "description": "Game not found"
           }
         },
         "security": [
@@ -1164,7 +1432,16 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Available slots for game"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
+          },
+          "404": {
+            "description": "Game not found"
           }
         },
         "security": [
@@ -1201,7 +1478,19 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "Slot reserved"
+          },
+          "400": {
+            "description": "Invalid request or slot unavailable"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
+          },
+          "404": {
+            "description": "Game or slot not found"
           }
         },
         "security": [
@@ -1224,6 +1513,15 @@
             "required": false,
             "in": "query",
             "description": "Include games with CREATED status (default: true)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeOpen",
+            "required": false,
+            "in": "query",
+            "description": "Include games with OPEN status (default: true)",
             "schema": {
               "type": "boolean"
             }
@@ -1258,7 +1556,13 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Schedules with games for today"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Account not verified or banned"
           }
         },
         "security": [
@@ -1267,6 +1571,75 @@
           }
         ],
         "summary": "Get schedules with games for today, grouped by schedule",
+        "tags": [
+          "Players"
+        ]
+      }
+    },
+    "/api/v1/players/stream/active": {
+      "get": {
+        "operationId": "PlayersController_getActiveStream_v1",
+        "parameters": [
+          {
+            "name": "includeCreated",
+            "required": false,
+            "in": "query",
+            "description": "Include games with CREATED status (default: true)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeOpen",
+            "required": false,
+            "in": "query",
+            "description": "Include games with OPEN status (default: true)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeInProgress",
+            "required": false,
+            "in": "query",
+            "description": "Include games with IN_PROGRESS status (default: true)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeFinished",
+            "required": false,
+            "in": "query",
+            "description": "Include games with FINISHED status (default: true)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeCancelled",
+            "required": false,
+            "in": "query",
+            "description": "Include games with CANCELLED status (default: false)",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active stream with games, or null if none"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the active stream with its games",
         "tags": [
           "Players"
         ]
@@ -1420,7 +1793,7 @@
           "username": {
             "type": "string",
             "example": "johndoe",
-            "description": "Username (3-30 characters, alphanumeric, underscores, and hyphens only)"
+            "description": "Username (3-14 characters; letters, numbers, and . - _ [ ] ( ) only)"
           },
           "password": {
             "type": "string",
@@ -1500,6 +1873,39 @@
           "password"
         ]
       },
+      "UpdateProfileDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "addressLine1": {
+            "type": "string",
+            "example": "123 Main Street"
+          },
+          "addressLine2": {
+            "type": "string",
+            "example": "Apt 4B"
+          },
+          "city": {
+            "type": "string",
+            "example": "New York"
+          },
+          "state": {
+            "type": "string",
+            "example": "NY"
+          },
+          "country": {
+            "type": "string",
+            "example": "United States"
+          },
+          "zipcode": {
+            "type": "string",
+            "example": "10001"
+          }
+        }
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {
@@ -1511,7 +1917,7 @@
           "username": {
             "type": "string",
             "example": "johndoe",
-            "description": "Username (3-30 characters, alphanumeric, underscores, and hyphens only, must be unique)"
+            "description": "Username (3-14 characters; letters, numbers, and . - _ [ ] ( ) only, must be unique)"
           },
           "password": {
             "type": "string",
@@ -1702,7 +2108,7 @@
           },
           "recurrencePattern": {
             "type": "object",
-            "description": "Recurrence pattern for YEARLY type"
+            "description": "Recurrence pattern for YEARLY/ONCE type"
           },
           "slotsPerGame": {
             "type": "number",
@@ -1741,17 +2147,13 @@
             "type": "string",
             "description": "First game start time (HH:mm format)"
           },
-          "autoStartNextAfterMinutes": {
-            "type": "number",
-            "description": "Auto start next event after minutes"
+          "requiresConfirmation": {
+            "type": "boolean",
+            "description": "Whether reservations require confirmation"
           },
           "gamesPerDay": {
             "type": "number",
             "description": "Number of games per day"
-          },
-          "spacingAfterFinishMinutes": {
-            "type": "number",
-            "description": "Spacing after finish in minutes"
           },
           "teamAName": {
             "type": "string",
@@ -1768,9 +2170,13 @@
               "type": "string"
             }
           },
-          "url": {
+          "scheduleStartDate": {
             "type": "string",
-            "description": "Schedule URL for notifications"
+            "description": "Schedule start date (YYYY-MM-DD)"
+          },
+          "scheduleEndDate": {
+            "type": "string",
+            "description": "Schedule end date (YYYY-MM-DD)"
           },
           "isActive": {
             "type": "boolean",
@@ -1786,6 +2192,10 @@
           "propagateNow": {
             "type": "boolean",
             "description": "Propagate changes now (cancel CREATED events and regenerate)"
+          },
+          "forceDeactivateOverlapping": {
+            "type": "boolean",
+            "description": "Force deactivate overlapping schedules instead of returning an error"
           }
         }
       },
@@ -1804,6 +2214,10 @@
             "type": "boolean",
             "description": "Is exclusive to gold subscribers?"
           },
+          "allowMultipleReservations": {
+            "type": "boolean",
+            "description": "Allow unrestricted reservations?"
+          },
           "url": {
             "type": "string",
             "description": "Game URL (inherited from schedule, editable by admin)"
@@ -1813,6 +2227,32 @@
             "description": "Scheduled start time (ISO datetime string)"
           }
         }
+      },
+      "PreAssignSlotDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number",
+            "description": "User ID to pre-assign (null to clear)"
+          }
+        }
+      },
+      "StartStreamDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Stream title"
+          },
+          "url": {
+            "type": "string",
+            "description": "Stream URL",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "url"
+        ]
       },
       "AuditLog": {
         "type": "object",

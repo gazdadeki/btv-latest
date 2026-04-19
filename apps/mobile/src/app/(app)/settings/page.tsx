@@ -1,7 +1,7 @@
 "use client";
 
 // Translated from Mobile/lib/features/settings/
-// 6 tabs: Profile, Wallet, Statistics, Subscription, Payment Methods, Notifications
+// 5 tabs: Profile, Wallet, Statistics, Subscription, Payment Methods
 // Each tab is a section of this page (tab-based layout, mobile-friendly horizontal scroll)
 
 import { useState, useEffect } from "react";
@@ -13,7 +13,6 @@ import {
   BarChart2,
   Star,
   CreditCard,
-  Bell,
   Edit2,
   Check,
   X,
@@ -31,6 +30,7 @@ import {
   AlertCircle,
   History,
   ChevronRight,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -47,9 +47,9 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorDisplay } from "@/components/error-display";
 import { Button } from "@/components/button";
 import { PageHeader } from "@/components/page-header";
-import { GiGearHammer } from "react-icons/gi";
+import { GiVisoredHelm } from "react-icons/gi";
 import { cn, formatDate, formatCurrency, formatNumber } from "@/lib/utils";
-import { winRate, totalGamesPlayed, netCoins } from "@/types";
+import { winRate, totalGamesPlayed, netCoins, isFree } from "@/types";
 import type { PaymentMethod, UserStatistics, Subscription } from "@/types";
 
 const stripePromise = loadStripe(
@@ -62,7 +62,6 @@ const TABS = [
   { key: "statistics", label: "Stats", icon: BarChart2 },
   { key: "subscription", label: "Subscription", icon: Star },
   { key: "payments", label: "Payment Methods", icon: CreditCard },
-  { key: "notifications", label: "Notifications", icon: Bell },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -143,9 +142,7 @@ function ProfileTab() {
   const readOnly = [
     { label: "Email", value: user.email },
     { label: "Username", value: user.username ?? "N/A" },
-    { label: "Role", value: user.role.toUpperCase() },
     { label: "Subscription", value: user.subscriptionTier },
-    { label: "Verified", value: user.isVerified ? "Yes" : "No" },
   ];
 
   const editFields = [
@@ -160,6 +157,29 @@ function ProfileTab() {
 
   return (
     <div className="px-4 py-4 overflow-y-auto space-y-4">
+      <div className="flex items-center gap-3 pt-2">
+        <div className="relative w-32 aspect-[2/3] shrink-0">
+          <div className="absolute left-[17%] right-[17%] top-[30%] aspect-square rounded-full overflow-hidden">
+            <img
+              src="/avatars/avatar-example.png"
+              alt="Avatar"
+              className="w-full h-full object-cover object-top"
+            />
+          </div>
+          <img
+            src="/images/gold-member-frame.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-lg font-bold text-[#f0f0f0] truncate">
+            {user.username ?? user.fullName ?? user.email}
+          </p>
+        </div>
+      </div>
+
       <div className="panel-dark p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-bold text-[#c9a84c] uppercase tracking-wider">
@@ -224,6 +244,7 @@ function ProfileTab() {
                   setForm((p) => ({ ...p, [key]: e.target.value }))
                 }
                 disabled={!isEditing}
+                maxLength={30}
                 className="auth-input px-3 py-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
@@ -287,8 +308,18 @@ function WalletTab() {
 }
 
 // ─── Statistics Tab ───────────────────────────────────────────────────────────
-function StatisticsTab() {
+const PLACEHOLDER_STATS: UserStatistics = {
+  totalWins: 12,
+  totalLosses: 7,
+  totalCoinsEarned: 2480,
+  totalCoinsSpent: 1150,
+} as UserStatistics;
+
+function StatisticsTab({ onUpgrade }: { onUpgrade?: () => void }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const locked = user ? isFree(user) : true;
+
   const {
     data: stats,
     isLoading,
@@ -297,11 +328,13 @@ function StatisticsTab() {
   } = useQuery({
     queryKey: ["myStatistics"],
     queryFn: api.getMyStatistics,
+    enabled: !locked,
   });
 
   const { data: myReservations = [] } = useQuery({
     queryKey: ["myReservations"],
     queryFn: api.getMyReservations,
+    enabled: !locked,
   });
 
   const finishedGameReservations = myReservations.filter(
@@ -311,53 +344,54 @@ function StatisticsTab() {
     ...new Set(finishedGameReservations.map((r) => r.gameId)),
   ];
 
-  if (isLoading) return <Loading message="Loading statistics..." />;
-  if (error) return <ErrorDisplay message={String(error)} onRetry={refetch} />;
-  if (!stats) return null;
+  if (!locked && isLoading) return <Loading message="Loading statistics..." />;
+  if (!locked && error)
+    return <ErrorDisplay message={String(error)} onRetry={refetch} />;
 
-  const wr = winRate(stats);
-  const wrColor =
-    wr >= 60 ? "text-green-600" : wr >= 40 ? "text-orange-500" : "text-red-500";
-  const nc = netCoins(stats);
+  const displayStats = locked ? PLACEHOLDER_STATS : stats;
+  if (!displayStats) return null;
+
+  const wr = winRate(displayStats);
+  const nc = netCoins(displayStats);
 
   const statCards = [
     {
       icon: Trophy,
       color: "text-[#c9a84c] bg-[#c9a84c]/15",
       label: "Wins",
-      value: stats.totalWins,
+      value: displayStats.totalWins,
     },
     {
       icon: ThumbsDown,
       color: "text-red-400 bg-red-500/15",
       label: "Losses",
-      value: stats.totalLosses,
+      value: displayStats.totalLosses,
     },
     {
       icon: Gamepad2,
       color: "text-[#2a9d8f] bg-[#2a9d8f]/15",
       label: "Games Played",
-      value: totalGamesPlayed(stats),
+      value: totalGamesPlayed(displayStats),
     },
     {
       icon: Coins,
       color: "text-green-400 bg-green-500/15",
       label: "Coins Earned",
-      value: stats.totalCoinsEarned,
+      value: displayStats.totalCoinsEarned,
     },
     {
       icon: Coins,
       color: "text-orange-400 bg-orange-500/15",
       label: "Coins Spent",
-      value: stats.totalCoinsSpent,
+      value: displayStats.totalCoinsSpent,
     },
   ];
 
   const wrColorDark =
     wr >= 60 ? "text-green-400" : wr >= 40 ? "text-orange-400" : "text-red-400";
 
-  return (
-    <div className="px-4 py-4 space-y-3 overflow-y-auto">
+  const statsContent = (
+    <div className="px-4 py-4 space-y-3">
       {/* Header stats */}
       <div className="panel-dark p-5 text-center">
         <p className="text-[10px] font-bold text-[#c9a84c] uppercase tracking-wider mb-3">
@@ -366,7 +400,7 @@ function StatisticsTab() {
         <div className="flex justify-center gap-8">
           <div>
             <p className="text-3xl font-black text-[#f0f0f0]">
-              {totalGamesPlayed(stats)}
+              {totalGamesPlayed(displayStats)}
             </p>
             <p className="text-xs text-[#8a8a8a] mt-0.5 uppercase tracking-wider">
               Total Games
@@ -434,7 +468,7 @@ function StatisticsTab() {
       </div>
 
       {/* Games History */}
-      {finishedGameIds.length > 0 && (
+      {!locked && finishedGameIds.length > 0 && (
         <div className="panel-dark">
           <div className="px-4 py-3 border-b border-[#2a2620]">
             <div className="flex items-center gap-2">
@@ -473,6 +507,41 @@ function StatisticsTab() {
           </div>
         </div>
       )}
+    </div>
+  );
+
+  if (!locked) {
+    return <div className="overflow-y-auto">{statsContent}</div>;
+  }
+
+  return (
+    <div className="relative h-full overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="h-full blur-sm pointer-events-none select-none"
+      >
+        {statsContent}
+      </div>
+
+      <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] px-6">
+        <div className="panel-dark max-w-xs w-full p-6 text-center space-y-3">
+          <div className="mx-auto w-12 h-12 rounded-full bg-[#c9a84c]/15 flex items-center justify-center">
+            <Lock className="w-6 h-6 text-[#c9a84c]" />
+          </div>
+          <p className="text-sm font-bold text-[#c9a84c] uppercase tracking-wider">
+            Gold Members Only
+          </p>
+          <p className="text-xs text-[#c0b8a8] leading-relaxed">
+            Detailed statistics are available exclusively to Gold members.
+            Upgrade to unlock your wins, losses, win rate, and full games
+            history.
+          </p>
+          <Button variant="gold" size="full" onClick={() => onUpgrade?.()}>
+            <Star className="w-4 h-4" />
+            Upgrade to Gold
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -744,17 +813,6 @@ function PaymentMethodsTab() {
   );
 }
 
-// ─── Notifications Tab ─────────────────────────────────────────────────────────
-function NotificationsTab() {
-  return (
-    <div className="flex-1 flex items-center justify-center px-4">
-      <p className="text-sm text-[#8a8a8a] text-center">
-        Notification preferences coming soon
-      </p>
-    </div>
-  );
-}
-
 // ─── Main Settings Page ────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("profile");
@@ -762,16 +820,17 @@ export default function SettingsPage() {
   const tabContent: Record<TabKey, React.ReactNode> = {
     profile: <ProfileTab />,
     wallet: <WalletTab />,
-    statistics: <StatisticsTab />,
+    statistics: (
+      <StatisticsTab onUpgrade={() => setActiveTab("subscription")} />
+    ),
     subscription: <SubscriptionTab />,
     payments: <PaymentMethodsTab />,
-    notifications: <NotificationsTab />,
   };
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <PageHeader label="Settings" icon={GiGearHammer} />
+      <PageHeader label="Profile" icon={GiVisoredHelm} />
 
       {/* Tab bar (horizontal scroll) */}
       <div className="border-b border-[#2a2620] overflow-x-auto scrollbar-hide shrink-0">

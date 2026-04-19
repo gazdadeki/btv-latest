@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Put,
   Delete,
   Param,
   Body,
@@ -62,25 +61,5 @@ export class FirebaseController {
     @Request() req: any,
   ) {
     return this.firebaseService.unregisterDeviceToken(+tokenId, req.user.id);
-  }
-
-  @Get('players/notifications/preferences')
-  @ApiOperation({ summary: 'Get notification preferences' })
-  @ApiResponse({ status: 200, description: 'Notification preferences' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getPreferences(@Request() req: any) {
-    return this.firebaseService.getNotificationPreferences(req.user.id);
-  }
-
-  @Put('players/notifications/preferences')
-  @ApiOperation({ summary: 'Update notification preferences' })
-  @ApiResponse({ status: 200, description: 'Preferences updated' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async updatePreferences(@Request() req: any, @Body() body: any) {
-    return this.firebaseService.updateNotificationPreferences(
-      req.user.id,
-      body,
-    );
   }
 }

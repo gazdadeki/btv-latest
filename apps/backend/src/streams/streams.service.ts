@@ -15,7 +15,11 @@ import { NotificationType } from '../firebase/entities/notification-history.enti
 import { GameCancellationService } from '../games/game-cancellation.service';
 import { WebsocketService } from '../websocket/websocket.service';
 import { WebsocketEvents } from '../websocket/events';
-import { formatUtcDateDDMMYYYY } from '../common/date.utils';
+import {
+  formatUtcDateDDMMYYYY,
+  utcStartOfDay,
+  utcEndOfDay,
+} from '../common/date.utils';
 
 @Injectable()
 export class StreamsService {
@@ -199,6 +203,26 @@ export class StreamsService {
       );
     }
     return affected;
+  }
+
+  /**
+   * True if any stream (any status) already exists for this schedule on the
+   * given UTC calendar day. Used to enforce one-stream-per-schedule-per-day,
+   * so ending a stream does not cause the cron to spawn another.
+   */
+  async hasStreamForScheduleOnDate(
+    manager: EntityManager,
+    scheduleId: number,
+    date: Date,
+  ): Promise<boolean> {
+    const start = utcStartOfDay(date);
+    const end = utcEndOfDay(date);
+    const count = await manager
+      .createQueryBuilder(Stream, 'stream')
+      .where('stream.scheduleId = :scheduleId', { scheduleId })
+      .andWhere('stream.createdAt BETWEEN :start AND :end', { start, end })
+      .getCount();
+    return count > 0;
   }
 
   async createStreamInTransaction(

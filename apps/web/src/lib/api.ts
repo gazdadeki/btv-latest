@@ -207,11 +207,6 @@ export const api = {
     apiRequest<{ cancelledCount: number }>("/admin/games/cancel-all-active", {
       method: "POST",
     }),
-  autoStartNextGame: (id: number, delayMinutes: number) =>
-    apiRequest(`/admin/games/${id}/auto-start-next`, {
-      method: "POST",
-      body: JSON.stringify({ delayMinutes }),
-    }),
   shufflePlayers: (id: number) =>
     apiRequest(`/admin/games/${id}/shuffle`, { method: "POST" }),
   // Streams

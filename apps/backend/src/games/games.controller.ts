@@ -258,24 +258,6 @@ export class GamesController {
     );
   }
 
-  @Post(':id/auto-start-next')
-  @ApiOperation({ summary: 'Auto-start next game after delay' })
-  @ApiResponse({ status: 200, description: 'Auto-start scheduled' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Admin role required' })
-  @ApiResponse({ status: 404, description: 'Game not found' })
-  async autoStartNext(
-    @Param('id') id: string,
-    @Body() body: { delayMinutes: number },
-    @Request() req: any,
-  ) {
-    return this.gamesService.autoStartNextGame(
-      +id,
-      body.delayMinutes,
-      req.user.id,
-    );
-  }
-
   @Post(':id/shuffle')
   @ApiOperation({
     summary:

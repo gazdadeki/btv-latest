@@ -11,7 +11,7 @@ import type { Game } from "@/types";
 interface FinishGameDialogProps {
   game: Game | null;
   onClose: () => void;
-  onFinished: (nextGame?: { id: number }) => void;
+  onFinished: () => void;
 }
 
 export function FinishGameDialog({
@@ -33,13 +33,10 @@ export function FinishGameDialog({
       return;
     }
     try {
-      const res = (await api.finishGame(game.id, { winningTeam: winner })) as {
-        nextGame?: { id: number };
-        isLastGame?: boolean;
-      };
+      await api.finishGame(game.id, { winningTeam: winner });
       toast.success("Game finished");
       onClose();
-      onFinished(res.nextGame && !res.isLastGame ? res.nextGame : undefined);
+      onFinished();
     } catch (err) {
       toastError(err);
     }
