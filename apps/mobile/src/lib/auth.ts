@@ -1,9 +1,9 @@
-import type { User } from '@/types';
+import type { User } from "@/types";
 
 // ─── Cookie helpers ───────────────────────────────────────────────────────────
 
 function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
+  if (typeof document === "undefined") return null;
   const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
   return match ? decodeURIComponent(match[2]) : null;
 }
@@ -17,7 +17,7 @@ function deleteCookie(name: string) {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 }
 
-const COOKIE_USER = 'player_user';
+const COOKIE_USER = "user";
 
 // ─── Auth utilities ───────────────────────────────────────────────────────────
 
@@ -44,7 +44,7 @@ export const AuthUtils = {
 
   clearAuth() {
     deleteCookie(COOKIE_USER);
-    deleteCookie('player_access_token');
-    deleteCookie('player_refresh_token');
+    deleteCookie("access_token");
+    deleteCookie("refresh_token");
   },
 };

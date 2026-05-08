@@ -58,8 +58,8 @@ describe('Auth (e2e)', () => {
 
     expect(response.headers['set-cookie']).toEqual(
       expect.arrayContaining([
-        expect.stringContaining('admin_access_token='),
-        expect.stringContaining('admin_refresh_token='),
+        expect.stringContaining('access_token='),
+        expect.stringContaining('refresh_token='),
       ]),
     );
     expect(response.body.user).toMatchObject({ email, username });
@@ -76,7 +76,7 @@ describe('Auth (e2e)', () => {
     const loginResponse = await loginWithEmail(agent, user.email, password);
     expect(loginResponse.status).toBe(200);
     expect(loginResponse.headers['set-cookie']).toEqual(
-      expect.arrayContaining([expect.stringContaining('admin_access_token=')]),
+      expect.arrayContaining([expect.stringContaining('access_token=')]),
     );
 
     const meResponse = await agent.get('/api/v1/auth/me').expect(200);
@@ -97,7 +97,7 @@ describe('Auth (e2e)', () => {
 
     const refreshToken = extractCookie(
       loginResponse.headers['set-cookie'],
-      'admin_refresh_token',
+      'refresh_token',
     );
     expect(refreshToken).toBeTruthy();
 
@@ -120,8 +120,8 @@ describe('Auth (e2e)', () => {
     const logoutResponse = await agent.post('/api/v1/auth/logout').expect(200);
     expect(logoutResponse.headers['set-cookie']).toEqual(
       expect.arrayContaining([
-        expect.stringContaining('admin_access_token=;'),
-        expect.stringContaining('admin_refresh_token=;'),
+        expect.stringContaining('access_token=;'),
+        expect.stringContaining('refresh_token=;'),
       ]),
     );
   });

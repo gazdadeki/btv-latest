@@ -7,6 +7,7 @@ import { User, SubscriptionTier } from '../users/entities/user.entity';
 import { Schedule } from '../schedules/entities/schedule.entity';
 import { StreamsService } from '../streams/streams.service';
 import { ReservationsService } from '../reservations/reservations.service';
+import { AvatarsService } from '../avatars/avatars.service';
 import { utcStartOfDay } from '../common/date.utils';
 
 /**
@@ -22,6 +23,7 @@ export interface SlotWithUsername {
   reservedByUserId: number | null;
   reservedByUsername: string | null;
   reservedByRole: string | null;
+  reservedByAvatarUrl: string | null;
   reservationId: number | null;
   reservationStatus: string | null;
   isPreAssigned: boolean;
@@ -103,7 +105,13 @@ export class PlayersService {
   ): Promise<GameWithEnrichedSlots> {
     const game = await this.gameRepository.findOne({
       where: { id: gameId },
-      relations: ['schedule', 'slots', 'reservations', 'reservations.user'],
+      relations: [
+        'schedule',
+        'slots',
+        'reservations',
+        'reservations.user',
+        'reservations.user.avatar',
+      ],
     });
 
     if (!game) {
@@ -137,6 +145,9 @@ export class PlayersService {
         reservedByUserId: slot.reservedByUserId,
         reservedByUsername: reservation?.user?.username || null,
         reservedByRole: reservation?.user?.role || null,
+        reservedByAvatarUrl: reservation?.user?.avatar
+          ? AvatarsService.buildUrl(reservation.user.avatar.filename)
+          : null,
         reservationId: reservation?.id || null,
         reservationStatus: reservation?.status || null,
         isPreAssigned: slot.isPreAssigned,
@@ -291,7 +302,7 @@ export class PlayersService {
       teamAName: string;
       teamBName: string;
     };
-    games: Game[];
+    games: GameWithEnrichedSlots[];
   } | null> {
     // Prefer LIVE stream; fall back to PENDING if no LIVE stream exists
     const stream = await this.streamsService.findPlayerVisibleStream();
@@ -335,6 +346,14 @@ export class PlayersService {
     const query = this.gameRepository
       .createQueryBuilder('game')
       .leftJoinAndSelect('game.slots', 'slots')
+      .leftJoinAndSelect(
+        'game.reservations',
+        'reservations',
+        'reservations.status IN (:...activeStatuses)',
+        { activeStatuses: ['RESERVED', 'CONFIRMED'] },
+      )
+      .leftJoinAndSelect('reservations.user', 'reservationUser')
+      .leftJoinAndSelect('reservationUser.avatar', 'reservationUserAvatar')
       .where('game.streamId = :streamId', { streamId: stream.id })
       .andWhere('game.status IN (:...statuses)', { statuses })
       .orderBy('game.gameIndex', 'ASC')
@@ -348,6 +367,37 @@ export class PlayersService {
 
     const games = await query.getMany();
 
+    const enrichedGames = games.map((game) => {
+      const enrichedSlots: SlotWithUsername[] = game.slots.map((slot) => {
+        const reservation = game.reservations?.find(
+          (r) =>
+            r.slotId === slot.id &&
+            (r.status === 'RESERVED' || r.status === 'CONFIRMED'),
+        );
+        return {
+          id: slot.id,
+          gameId: slot.gameId,
+          slotNumber: slot.slotNumber,
+          team: slot.team,
+          isReserved: slot.isReserved,
+          reservedByUserId: slot.reservedByUserId,
+          reservedByUsername: reservation?.user?.username || null,
+          reservedByRole: reservation?.user?.role || null,
+          reservedByAvatarUrl: reservation?.user?.avatar
+            ? AvatarsService.buildUrl(reservation.user.avatar.filename)
+            : null,
+          reservationId: reservation?.id || null,
+          reservationStatus: reservation?.status || null,
+          isPreAssigned: slot.isPreAssigned,
+          preAssignedUserId: slot.preAssignedUserId,
+          isGoldOnly: slot.isGoldOnly,
+          createdAt: slot.createdAt,
+          updatedAt: slot.updatedAt,
+        };
+      });
+      return { ...game, slots: enrichedSlots };
+    });
+
     return {
       stream: {
         id: stream.id,
@@ -359,7 +409,7 @@ export class PlayersService {
         teamAName: stream.schedule?.teamAName || '',
         teamBName: stream.schedule?.teamBName || '',
       },
-      games,
+      games: enrichedGames,
     };
   }
 }

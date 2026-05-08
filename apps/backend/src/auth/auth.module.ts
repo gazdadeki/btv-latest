@@ -15,6 +15,7 @@ import { ConfigModule } from '../config/config.module';
 import { AuditModule } from '../audit/audit.module';
 import { EmailModule } from '../email/email.module';
 import { ProfanityModule } from '../common/profanity/profanity.module';
+import { AvatarsModule } from '../avatars/avatars.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ProfanityModule } from '../common/profanity/profanity.module';
     AuditModule,
     EmailModule,
     ProfanityModule,
+    AvatarsModule,
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],

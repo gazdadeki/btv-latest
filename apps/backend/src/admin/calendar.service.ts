@@ -138,6 +138,17 @@ export class CalendarService {
         }
       }
 
+      // Past days never offer pseudo-games — generation only makes sense for today/future.
+      if (dateKey < todayKey) {
+        const dayGames = gamesByDate.get(dateKey)!;
+        dayGames.sort((a, b) => {
+          const timeA = new Date(a.scheduledStartTime).getTime();
+          const timeB = new Date(b.scheduledStartTime).getTime();
+          return timeA - timeB;
+        });
+        continue;
+      }
+
       for (const meta of scheduleMeta) {
         const { schedule, createdDate, startHours, startMinutes } = meta;
         if (date < createdDate) {

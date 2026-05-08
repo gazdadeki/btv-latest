@@ -8,7 +8,6 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { wsManager } from "@/lib/websocket";
 import { Button } from "@/components/button";
 
 const CODE_LENGTH = 6;
@@ -75,7 +74,6 @@ export default function VerificationPage() {
     try {
       await api.verifyEmail(code);
       await refreshUser();
-      wsManager.connect();
       router.replace("/home");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Invalid code");

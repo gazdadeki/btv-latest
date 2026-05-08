@@ -16,9 +16,25 @@ export interface User {
   state?: string;
   country?: string;
   zipcode?: string;
+  avatarId?: number | null;
+  avatarUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+export type AvatarTier = "FREE" | "GOLD" | "ADMIN";
+
+export interface Avatar {
+  id: number;
+  key: string;
+  filename: string;
+  url: string;
+  tier: AvatarTier;
+  displayName?: string | null;
+  sortOrder: number;
+}
+
+export const AVATAR_PLACEHOLDER_URL = "/avatars/placeholder-avatar.png";
 
 export function isPlayer(user: User) {
   return user.role === "player";
@@ -104,6 +120,7 @@ export interface Slot {
   reservedByUserId?: number;
   reservedByUsername?: string;
   reservedByRole?: string;
+  reservedByAvatarUrl?: string | null;
   reservationId?: number;
   reservationStatus?: string;
   isGoldOnly?: boolean;

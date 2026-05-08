@@ -17,8 +17,45 @@ import { Loading } from "@/components/loading";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorDisplay } from "@/components/error-display";
 import { cn, formatTime } from "@/lib/utils";
-import type { Game, GameStatusFilter } from "@/types";
-import { isGold, reservationIsActive, availableSlotsCount } from "@/types";
+import type { Game, GameStatusFilter, Slot } from "@/types";
+import {
+  isGold,
+  reservationIsActive,
+  availableSlotsCount,
+  AVATAR_PLACEHOLDER_URL,
+} from "@/types";
+
+const MAX_VISIBLE_AVATARS = 6;
+
+function ReservedAvatars({ slots }: { slots: Slot[] }) {
+  const reserved = slots.filter((s) => s.isReserved);
+  if (reserved.length === 0) return null;
+  const visible = reserved.slice(0, MAX_VISIBLE_AVATARS);
+  const overflow = reserved.length - visible.length;
+  return (
+    <div className="flex items-center -space-x-1.5">
+      {visible.map((slot) => (
+        <div
+          key={slot.id}
+          className="w-6 h-6 rounded-full overflow-hidden border border-[#0f0e0c] ring-1 ring-[#3a342c] bg-[#1a1612]"
+          title={slot.reservedByUsername ?? undefined}
+        >
+          <img
+            src={slot.reservedByAvatarUrl ?? AVATAR_PLACEHOLDER_URL}
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover object-top"
+          />
+        </div>
+      ))}
+      {overflow > 0 && (
+        <div className="w-6 h-6 rounded-full border border-[#0f0e0c] ring-1 ring-[#3a342c] bg-[#1a1612] flex items-center justify-center text-[9px] font-bold text-[#c9a84c]">
+          +{overflow}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const DEFAULT_FILTER: GameStatusFilter = {
   includeCreated: true,
@@ -73,12 +110,15 @@ function GameCard({
       }}
     >
       <div className="flex items-center justify-between gap-3">
-        {/* Left: game title */}
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          {game.isExclusiveToGold && (
-            <RiVipCrownFill className="w-4 h-4 text-[#c9a84c] shrink-0" />
-          )}
-          <span className="text-sm font-bold text-[#f0f0f0] flex-1">{`Game ${game.gameIndex ?? game.id}`}</span>
+        {/* Left: game title + reserved avatars */}
+        <div className="min-w-0 flex-1 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            {game.isExclusiveToGold && (
+              <RiVipCrownFill className="w-4 h-4 text-[#c9a84c] shrink-0" />
+            )}
+            <span className="text-sm font-bold text-[#f0f0f0] truncate">{`Game ${game.gameIndex ?? game.id}`}</span>
+          </div>
+          <ReservedAvatars slots={game.slots} />
         </div>
 
         {/* Right: status-dependent content */}

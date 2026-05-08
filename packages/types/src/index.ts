@@ -36,6 +36,20 @@ export interface Paginated<T> {
 /** User role enum */
 export type UserRole = "admin" | "player";
 
+/** Avatar tier — mirrors backend AvatarTier enum */
+export type AvatarTier = "FREE" | "GOLD" | "ADMIN";
+
+/** Avatar catalog entry shared between frontend and backend */
+export interface Avatar {
+  id: number;
+  key: string;
+  filename: string;
+  url: string;
+  tier: AvatarTier;
+  displayName?: string | null;
+  sortOrder: number;
+}
+
 /** Base user shape shared between frontend and backend */
 export interface BaseUser {
   id: number;
@@ -44,4 +58,6 @@ export interface BaseUser {
   role: UserRole;
   isVerified: boolean;
   isBanned: boolean;
+  avatarId?: number | null;
+  avatarUrl?: string | null;
 }

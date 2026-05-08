@@ -1,6 +1,7 @@
 import { AuthUtils } from "./auth";
 import type {
   User,
+  Avatar,
   Game,
   Slot,
   Reservation,
@@ -153,6 +154,17 @@ async function updateProfile(fields: {
   return apiRequest<User>("/auth/me", {
     method: "PUT",
     body: JSON.stringify(body),
+  });
+}
+
+async function listAvatars(): Promise<Avatar[]> {
+  return apiRequest<Avatar[]>("/avatars");
+}
+
+async function selectAvatar(avatarId: number): Promise<User> {
+  return apiRequest<User>("/auth/me/avatar", {
+    method: "PATCH",
+    body: JSON.stringify({ avatarId }),
   });
 }
 
@@ -544,6 +556,8 @@ export const api = {
   logout,
   getMe,
   updateProfile,
+  listAvatars,
+  selectAvatar,
   forgotPassword,
   resetPassword,
   getWebSocketToken,

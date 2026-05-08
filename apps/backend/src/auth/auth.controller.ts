@@ -4,6 +4,7 @@ import {
   Body,
   Get,
   Put,
+  Patch,
   UseGuards,
   Request,
   Response,
@@ -24,6 +25,9 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { SelectAvatarDto } from '../avatars/dto/select-avatar.dto';
+import { AvatarsService } from '../avatars/avatars.service';
+import { User } from '../users/entities/user.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 
@@ -33,6 +37,33 @@ export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
   constructor(private readonly authService: AuthService) {}
+
+  private buildUserResponse(user: User) {
+    const avatarUrl = user.avatar
+      ? AvatarsService.buildUrl(user.avatar.filename)
+      : null;
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      subscriptionTier: user.subscriptionTier,
+      isVerified: user.isVerified,
+      isBanned: user.isBanned,
+      bannedUntil: user.bannedUntil ? user.bannedUntil.toISOString() : null,
+      fullName: user.fullName,
+      addressLine1: user.addressLine1,
+      addressLine2: user.addressLine2,
+      city: user.city,
+      state: user.state,
+      country: user.country,
+      zipcode: user.zipcode,
+      avatarId: user.avatarId ?? null,
+      avatarUrl,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+    };
+  }
 
   private extractIpAddress(req: any): string {
     // Try X-Forwarded-For header first (for proxies/load balancers)
@@ -97,15 +128,13 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       };
 
-      // Set player-scoped HTTP-only cookies
-      res.cookie('player_access_token', result.accessToken, {
+      res.cookie('access_token', result.accessToken, {
         ...cookieOptions,
         maxAge: 15 * 60 * 1000, // 15 minutes (access token expiry)
       });
 
-      res.cookie('player_refresh_token', result.refreshToken, cookieOptions);
+      res.cookie('refresh_token', result.refreshToken, cookieOptions);
 
-      // Return user data only (no tokens in JSON)
       this.logger.log(
         `Registration request completed successfully for email: ${registerDto.email}`,
       );
@@ -122,7 +151,7 @@ export class AuthController {
   }
 
   @Post('login')
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({
     status: 200,
@@ -158,15 +187,13 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       };
 
-      // Set player-scoped HTTP-only cookies
-      res.cookie('player_access_token', result.accessToken, {
+      res.cookie('access_token', result.accessToken, {
         ...cookieOptions,
         maxAge: 15 * 60 * 1000, // 15 minutes (access token expiry)
       });
 
-      res.cookie('player_refresh_token', result.refreshToken, cookieOptions);
+      res.cookie('refresh_token', result.refreshToken, cookieOptions);
 
-      // Return user data only (no tokens in JSON)
       this.logger.log(
         `Login request completed successfully for email: ${loginDto.email}`,
       );
@@ -182,87 +209,18 @@ export class AuthController {
     }
   }
 
-  @Post('admin/login')
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @ApiOperation({
-    summary: 'Admin login — restricted to users with ADMIN role',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Admin login successful',
-    type: AuthResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Access restricted to administrators',
-  })
-  async adminLogin(
-    @Body() loginDto: LoginDto,
-    @Request() req: any,
-    @Response() res: ExpressResponse,
-  ) {
-    const ipAddress = this.extractIpAddress(req);
-    const userAgent = req.get('user-agent') || 'unknown';
-
-    this.logger.log(
-      `Admin login request received for email: ${loginDto.email} from IP: ${ipAddress}`,
-    );
-
-    try {
-      const result = await this.authService.adminLogin(
-        loginDto,
-        ipAddress,
-        userAgent,
-      );
-
-      const isProduction = process.env.NODE_ENV === 'production';
-      const cookieOptions = {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'lax' as const,
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      };
-
-      res.cookie('admin_access_token', result.accessToken, {
-        ...cookieOptions,
-        maxAge: 15 * 60 * 1000,
-      });
-
-      res.cookie('admin_refresh_token', result.refreshToken, cookieOptions);
-
-      this.logger.log(
-        `Admin login request completed successfully for email: ${loginDto.email}`,
-      );
-      return res.json({
-        user: result.user,
-      });
-    } catch (error) {
-      this.logger.error(
-        `Admin login request failed for email: ${loginDto.email} from IP: ${ipAddress}: ${error.message}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
-
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh access token' })
   async refresh(@Request() req: any, @Response() res: ExpressResponse) {
     const ipAddress = this.extractIpAddress(req);
 
-    // Detect whether this is a player or admin session by which cookie is present
-    const isPlayerSession = !!req.cookies?.player_refresh_token;
-    const refreshToken =
-      req.cookies?.player_refresh_token ||
-      req.cookies?.admin_refresh_token ||
-      req.body?.refreshToken;
+    const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
     const tokenPrefix = refreshToken
       ? refreshToken.substring(0, 10) + '...'
       : 'null';
 
     this.logger.log(
-      `Token refresh request received (token prefix: ${tokenPrefix}, session: ${isPlayerSession ? 'player' : 'admin'}) from IP: ${ipAddress}`,
+      `Token refresh request received (token prefix: ${tokenPrefix}) from IP: ${ipAddress}`,
     );
 
     if (!refreshToken) {
@@ -284,20 +242,13 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       };
 
-      const accessCookie = isPlayerSession
-        ? 'player_access_token'
-        : 'admin_access_token';
-      const refreshCookie = isPlayerSession
-        ? 'player_refresh_token'
-        : 'admin_refresh_token';
-
-      res.cookie(accessCookie, result.accessToken, {
+      res.cookie('access_token', result.accessToken, {
         ...cookieOptions,
         maxAge: 15 * 60 * 1000, // 15 minutes (access token expiry)
       });
 
       if (result.refreshToken && result.refreshToken !== refreshToken) {
-        res.cookie(refreshCookie, result.refreshToken, cookieOptions);
+        res.cookie('refresh_token', result.refreshToken, cookieOptions);
       }
 
       // Return user data only if available (no tokens in JSON)
@@ -328,11 +279,7 @@ export class AuthController {
     const ipAddress = this.extractIpAddress(req);
     const userId = req.user?.id;
 
-    // Get refresh token from either player or admin cookie
-    const refreshToken =
-      req.cookies?.player_refresh_token ||
-      req.cookies?.admin_refresh_token ||
-      body?.refreshToken;
+    const refreshToken = req.cookies?.refresh_token || body?.refreshToken;
 
     this.logger.log(
       `Logout request received for user ID: ${userId} from IP: ${ipAddress}`,
@@ -341,7 +288,11 @@ export class AuthController {
     try {
       await this.authService.logout(userId, refreshToken);
 
-      // Clear all session cookies (player and admin)
+      res.clearCookie('access_token', { path: '/' });
+      res.clearCookie('refresh_token', { path: '/' });
+      res.clearCookie('user', { path: '/' });
+      // Defensively clear legacy namespaced cookies (pre-consolidation) so users
+      // upgrading across the cookie change don't keep stale auth state.
       res.clearCookie('player_access_token', { path: '/' });
       res.clearCookie('player_refresh_token', { path: '/' });
       res.clearCookie('player_user', { path: '/' });
@@ -368,9 +319,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Get WebSocket authentication token' })
   @ApiResponse({ status: 200, description: 'WebSocket token returned' })
   async getWebSocketToken(@Request() req: any) {
-    // Check player cookie first, then admin — both are valid for WebSocket auth.
-    const token =
-      req.cookies?.player_access_token || req.cookies?.admin_access_token;
+    const token = req.cookies?.access_token;
     if (!token) {
       throw new UnauthorizedException('No access token found');
     }
@@ -463,25 +412,7 @@ export class AuthController {
       `Get current user request for user ID: ${user.id} from IP: ${ipAddress}`,
     );
 
-    return {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      role: user.role,
-      subscriptionTier: user.subscriptionTier,
-      isVerified: user.isVerified,
-      isBanned: user.isBanned,
-      bannedUntil: user.bannedUntil ? user.bannedUntil.toISOString() : null,
-      fullName: user.fullName,
-      addressLine1: user.addressLine1,
-      addressLine2: user.addressLine2,
-      city: user.city,
-      state: user.state,
-      country: user.country,
-      zipcode: user.zipcode,
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString(),
-    };
+    return this.buildUserResponse(user);
   }
 
   @Put('me')
@@ -505,27 +436,7 @@ export class AuthController {
       this.logger.log(
         `Profile update completed successfully for user ID: ${userId}`,
       );
-      return {
-        id: updatedUser.id,
-        email: updatedUser.email,
-        username: updatedUser.username,
-        role: updatedUser.role,
-        subscriptionTier: updatedUser.subscriptionTier,
-        isVerified: updatedUser.isVerified,
-        isBanned: updatedUser.isBanned,
-        bannedUntil: updatedUser.bannedUntil
-          ? updatedUser.bannedUntil.toISOString()
-          : null,
-        fullName: updatedUser.fullName,
-        addressLine1: updatedUser.addressLine1,
-        addressLine2: updatedUser.addressLine2,
-        city: updatedUser.city,
-        state: updatedUser.state,
-        country: updatedUser.country,
-        zipcode: updatedUser.zipcode,
-        createdAt: updatedUser.createdAt.toISOString(),
-        updatedAt: updatedUser.updatedAt.toISOString(),
-      };
+      return this.buildUserResponse(updatedUser);
     } catch (error) {
       this.logger.error(
         `Profile update failed for user ID: ${userId} from IP: ${ipAddress}: ${error.message}`,
@@ -533,5 +444,24 @@ export class AuthController {
       );
       throw error;
     }
+  }
+
+  @Patch('me/avatar')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Select current user avatar (tier-validated server-side)',
+  })
+  @ApiResponse({ status: 200, description: 'Avatar updated' })
+  @ApiResponse({ status: 400, description: 'Avatar not available for tier' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Avatar not found' })
+  async selectAvatar(@Request() req: any, @Body() body: SelectAvatarDto) {
+    const userId = req.user.id;
+    const updatedUser = await this.authService.updateMyAvatar(
+      userId,
+      body.avatarId,
+    );
+    return this.buildUserResponse(updatedUser);
   }
 }

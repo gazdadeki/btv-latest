@@ -10,7 +10,6 @@ import Link from "next/link";
 import { Mail, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
-import { wsManager } from "@/lib/websocket";
 import { Button } from "@/components/button";
 import { validateRequired, validatePassword } from "@/lib/utils";
 
@@ -51,7 +50,6 @@ export default function LoginPage() {
         return;
       }
 
-      wsManager.connect();
       router.replace("/home");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Login failed");

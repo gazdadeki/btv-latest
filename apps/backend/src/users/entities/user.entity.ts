@@ -6,7 +6,10 @@ import {
   UpdateDateColumn,
   OneToOne,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { Avatar } from '../../avatars/entities/avatar.entity';
 import { Wallet } from '../../wallet/entities/wallet.entity';
 import { Reservation } from '../../reservations/entities/reservation.entity';
 import { UserStatistics } from '../../statistics/entities/user-statistics.entity';
@@ -100,6 +103,13 @@ export class User {
 
   @Column({ nullable: true })
   stripeCustomerId: string | null;
+
+  @Column({ nullable: true })
+  avatarId: number | null;
+
+  @ManyToOne(() => Avatar, { nullable: true, eager: true })
+  @JoinColumn({ name: 'avatarId' })
+  avatar: Avatar | null;
 
   @CreateDateColumn()
   createdAt: Date;

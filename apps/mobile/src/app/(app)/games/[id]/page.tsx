@@ -24,6 +24,7 @@ import {
   type Team,
   GAME_STATUS_DISPLAY,
   TEAM_DISPLAY,
+  AVATAR_PLACEHOLDER_URL,
   availableSlotsCount,
   reservedSlotsCount,
   slotIsPending,
@@ -128,24 +129,36 @@ function SlotCard({
     >
       <div className="flex items-center justify-between gap-2 px-5 h-14 overflow-hidden">
         <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
-          <div
-            className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0",
-              isOwn
-                ? isConfirmed
-                  ? "bg-[#3d8f5f]"
-                  : "bg-blue-500"
-                : slot.isReserved
-                  ? slot.reservedByRole === "admin"
-                    ? "bg-[#9c3e3b]"
-                    : "bg-gray-400"
-                  : showGoldOnly
-                    ? "bg-[#c9a84c]"
-                    : "bg-[#2a9d8f]",
-            )}
-          >
-            {slot.slotNumber}
-          </div>
+          {slot.isReserved ? (
+            <div
+              className={cn(
+                "w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2",
+                isOwn
+                  ? isConfirmed
+                    ? "ring-[#3d8f5f]"
+                    : "ring-blue-500"
+                  : slot.reservedByRole === "admin"
+                    ? "ring-[#9c3e3b]"
+                    : "ring-gray-400",
+              )}
+            >
+              <img
+                src={slot.reservedByAvatarUrl ?? AVATAR_PLACEHOLDER_URL}
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full object-cover object-top"
+              />
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0",
+                showGoldOnly ? "bg-[#c9a84c]" : "bg-[#2a9d8f]",
+              )}
+            >
+              {slot.slotNumber}
+            </div>
+          )}
           <div className="min-w-0 flex-1 overflow-hidden">
             {!slot.isReserved && (
               <p className="text-sm font-medium text-[#8a8a8a]">Open</p>

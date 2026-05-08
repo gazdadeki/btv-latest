@@ -46,7 +46,6 @@ async function apiRequest<T = unknown>(
 
   const isAuthEndpoint =
     endpoint.startsWith("/auth/login") ||
-    endpoint.startsWith("/auth/admin/login") ||
     endpoint.startsWith("/auth/register") ||
     endpoint.startsWith("/auth/forgot-password") ||
     endpoint.startsWith("/auth/reset-password");
@@ -87,11 +86,18 @@ function buildQuery(params?: Record<string, string | undefined>): string {
 
 export const api = {
   // Auth
-  login: (email: string, password: string) =>
-    apiRequest("/auth/admin/login", {
+  login: async (email: string, password: string) => {
+    const result = (await apiRequest("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
-    }),
+    })) as { user?: { role?: string } };
+    if (result?.user?.role !== "admin") {
+      await apiRequest("/auth/logout", { method: "POST" }).catch(() => {});
+      AuthUtils.clearAuth();
+      throw new Error("Admin access required");
+    }
+    return result;
+  },
   logout: () => apiRequest("/auth/logout", { method: "POST" }),
   getMe: () => apiRequest("/auth/me"),
   getWebSocketToken: () =>
