@@ -27,6 +27,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { SelectAvatarDto } from '../avatars/dto/select-avatar.dto';
 import { AvatarsService } from '../avatars/avatars.service';
+import { User } from '../users/entities/user.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 
@@ -37,7 +38,7 @@ export class AuthController {
 
   constructor(private readonly authService: AuthService) {}
 
-  private buildUserResponse(user: any) {
+  private buildUserResponse(user: User) {
     const avatarUrl = user.avatar
       ? AvatarsService.buildUrl(user.avatar.filename)
       : null;
@@ -290,6 +291,14 @@ export class AuthController {
       res.clearCookie('access_token', { path: '/' });
       res.clearCookie('refresh_token', { path: '/' });
       res.clearCookie('user', { path: '/' });
+      // Defensively clear legacy namespaced cookies (pre-consolidation) so users
+      // upgrading across the cookie change don't keep stale auth state.
+      res.clearCookie('player_access_token', { path: '/' });
+      res.clearCookie('player_refresh_token', { path: '/' });
+      res.clearCookie('player_user', { path: '/' });
+      res.clearCookie('admin_access_token', { path: '/' });
+      res.clearCookie('admin_refresh_token', { path: '/' });
+      res.clearCookie('admin_user', { path: '/' });
 
       this.logger.log(
         `Logout request completed successfully for user ID: ${userId}`,

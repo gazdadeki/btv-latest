@@ -63,8 +63,8 @@ export function RecurrenceForm({ form, setForm }: RecurrenceFormProps) {
                 ...v,
                 recurrenceDays: String(v.recurrenceDays)
                   .split(",")
-                  .map(Number)
-                  .filter(Boolean),
+                  .map((s) => Number(s.trim()))
+                  .filter((n) => Number.isInteger(n) && n >= 1 && n <= 31),
               })
             }
             placeholder="e.g. 1,15"
