@@ -47,6 +47,8 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorDisplay } from "@/components/error-display";
 import { Button } from "@/components/button";
 import { PageHeader } from "@/components/page-header";
+import { AvatarPicker } from "@/components/avatar-picker";
+import { AVATAR_PLACEHOLDER_URL } from "@/types";
 import { GiVisoredHelm } from "react-icons/gi";
 import { cn, formatDate, formatCurrency, formatNumber } from "@/lib/utils";
 import { winRate, totalGamesPlayed, netCoins, isFree } from "@/types";
@@ -72,6 +74,7 @@ function ProfileTab() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false);
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -158,27 +161,60 @@ function ProfileTab() {
   return (
     <div className="px-4 py-4 overflow-y-auto space-y-4">
       <div className="flex items-center gap-3 pt-2">
-        <div className="relative w-32 aspect-[2/3] shrink-0">
-          <div className="absolute left-[17%] right-[17%] top-[30%] aspect-square rounded-full overflow-hidden">
-            <img
-              src="/avatars/avatar-example.png"
-              alt="Avatar"
-              className="w-full h-full object-cover object-top"
-            />
+        {isFree(user) ? (
+          <div className="relative w-24 aspect-square shrink-0">
+            <div className="w-full h-full rounded-full overflow-hidden border-2 border-[#2a2620] ring-1 ring-[#3a342c]">
+              <img
+                src={user.avatarUrl ?? AVATAR_PLACEHOLDER_URL}
+                alt="Avatar"
+                className="w-full h-full object-cover object-top"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsAvatarPickerOpen(true)}
+              aria-label="Change avatar"
+              className="absolute right-0 bottom-0 w-8 h-8 rounded-full bg-[#2a9d8f] border-2 border-[#0f0e0c] flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+            >
+              <Edit2 className="w-4 h-4 text-white" />
+            </button>
           </div>
-          <img
-            src="/images/gold-member-frame.png"
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
-          />
-        </div>
+        ) : (
+          <div className="relative w-32 aspect-[2/3] shrink-0">
+            <div className="absolute left-[17%] right-[17%] top-[30%] aspect-square rounded-full overflow-hidden">
+              <img
+                src={user.avatarUrl ?? AVATAR_PLACEHOLDER_URL}
+                alt="Avatar"
+                className="w-full h-full object-cover object-top"
+              />
+            </div>
+            <img
+              src="/frames/gold-member-frame.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+            />
+            <button
+              type="button"
+              onClick={() => setIsAvatarPickerOpen(true)}
+              aria-label="Change avatar"
+              className="absolute left-[calc(17%+0.25rem)] bottom-[calc(15%+0.25rem)] w-8 h-8 rounded-full bg-[#2a9d8f] border-2 border-[#0f0e0c] flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+            >
+              <Edit2 className="w-4 h-4 text-white" />
+            </button>
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <p className="text-lg font-bold text-[#f0f0f0] truncate">
             {user.username ?? user.fullName ?? user.email}
           </p>
         </div>
       </div>
+
+      <AvatarPicker
+        open={isAvatarPickerOpen}
+        onClose={() => setIsAvatarPickerOpen(false)}
+      />
 
       <div className="panel-dark p-4">
         <div className="flex items-center justify-between mb-3">

@@ -73,7 +73,10 @@ export function ScheduleDetailDialog({
       isActive: schedule.isActive,
       reminderMinutes: (schedule.reminderMinutesBefore || []).join(","),
       recurrenceType: schedule.recurrenceType,
-      recurrenceDays: schedule.recurrenceDays || [],
+      // Strip legacy/invalid values (backend uses 0=Sun..6=Sat)
+      recurrenceDays: (schedule.recurrenceDays || []).filter(
+        (d: number) => d >= 0 && d <= 6,
+      ),
       recurrenceMonth: schedule.recurrencePattern?.month ?? 1,
       recurrenceDay: schedule.recurrencePattern?.day ?? 1,
       onceDate: (() => {
@@ -507,7 +510,10 @@ export function ScheduleDetailDialog({
               <td>
                 {schedule.recurrenceType === "WEEKLY" && schedule.recurrenceDays
                   ? schedule.recurrenceDays
-                      .map((d) => WEEKDAYS[d - 1])
+                      // Backend uses 0=Sun..6=Sat (getUTCDay()); WEEKDAYS is Mon-first.
+                      // Filter out legacy/invalid values (e.g. stale 7 from previous UI bug).
+                      .filter((d) => d >= 0 && d <= 6)
+                      .map((d) => (d === 0 ? "Sun" : WEEKDAYS[d - 1]))
                       .join(", ")
                   : schedule.recurrenceType === "YEARLY" &&
                       schedule.recurrencePattern

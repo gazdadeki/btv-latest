@@ -223,7 +223,7 @@ export class UsersService {
 
     const user = await this.usersRepository.findOne({
       where: { id },
-      relations: ['wallet', 'statistics', 'subscription'],
+      relations: ['wallet', 'statistics', 'subscription', 'avatar'],
     });
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
@@ -241,7 +241,7 @@ export class UsersService {
 
     const user = await this.usersRepository.findOne({
       where: { email },
-      relations: ['wallet', 'statistics', 'subscription'],
+      relations: ['wallet', 'statistics', 'subscription', 'avatar'],
     });
     if (user) {
       this.cacheService.set(cacheKey, user.id);
@@ -266,7 +266,7 @@ export class UsersService {
 
     const user = await this.usersRepository.findOne({
       where: { username },
-      relations: ['wallet', 'statistics', 'subscription'],
+      relations: ['wallet', 'statistics', 'subscription', 'avatar'],
     });
     if (user) {
       this.cacheService.set(cacheKey, user.id);
@@ -321,6 +321,19 @@ export class UsersService {
     const updated = await this.usersRepository.save(user);
     this.invalidateCache(updated);
     return updated;
+  }
+
+  /**
+   * Update only the avatar FK on a user. Uses a raw column UPDATE to bypass
+   * TypeORM's entity save path, which can clobber the FK when the eager-loaded
+   * `avatar` relation object is out of sync with the new `avatarId`.
+   * Invalidates cache and re-loads the user so `avatar` is fresh.
+   */
+  async updateAvatar(userId: number, avatarId: number | null): Promise<User> {
+    const existing = await this.findOne(userId);
+    await this.usersRepository.update(userId, { avatarId });
+    this.invalidateCache(existing);
+    return this.findOne(userId);
   }
 
   /**

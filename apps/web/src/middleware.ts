@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get("admin_access_token")?.value?.trim();
-  const userCookie = request.cookies.get("admin_user")?.value?.trim();
+  const token = request.cookies.get("access_token")?.value?.trim();
+  const userCookie = request.cookies.get("user")?.value?.trim();
   const isAuthenticated = !!token && !!userCookie;
   const isLoginPage = request.nextUrl.pathname === "/admin/login";
 

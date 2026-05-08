@@ -30,6 +30,7 @@ import { StreamsModule } from './streams/streams.module';
 import { DownloadsModule } from './downloads/downloads.module';
 import { MessagesModule } from './messages/messages.module';
 import { TutorialsModule } from './tutorials/tutorials.module';
+import { AvatarsModule } from './avatars/avatars.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { TutorialsModule } from './tutorials/tutorials.module';
     DownloadsModule,
     MessagesModule,
     TutorialsModule,
+    AvatarsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

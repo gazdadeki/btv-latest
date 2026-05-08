@@ -28,6 +28,7 @@ import { Stream } from '../streams/entities/stream.entity';
 import { Tutorial } from '../tutorials/entities/tutorial.entity';
 import { Tag } from '../tutorials/entities/tag.entity';
 import { Category } from '../tutorials/entities/category.entity';
+import { Avatar } from '../avatars/entities/avatar.entity';
 
 /**
  * Database module configuration for TypeORM.
@@ -164,6 +165,7 @@ function getDatabaseConfig() {
         Tutorial,
         Tag,
         Category,
+        Avatar,
       ],
       // Synchronization: controlled by TYPEORM_SYNCHRONIZE (default false)
       // Use migrations for schema changes in shared/prod environments.
