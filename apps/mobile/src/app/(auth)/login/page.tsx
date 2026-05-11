@@ -5,7 +5,6 @@
 // isBanned → show toast, do NOT navigate
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -14,7 +13,6 @@ import { Button } from "@/components/button";
 import { validateRequired, validatePassword } from "@/lib/utils";
 
 export default function LoginPage() {
-  const router = useRouter();
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -42,18 +40,17 @@ export default function LoginPage() {
 
       if (user.isBanned) {
         toast.error("Your account has been banned. Please contact support.");
+        setIsLoading(false);
         return;
       }
 
-      if (!user.isVerified) {
-        router.replace("/verification");
-        return;
-      }
-
-      router.replace("/home");
+      // Hard navigation (matches the web admin pattern): avoids the Next.js
+      // router cache returning a stale pre-auth redirect, and the 50ms delay
+      // gives the browser time to commit the Set-Cookie from the login response.
+      await new Promise((r) => setTimeout(r, 50));
+      window.location.href = user.isVerified ? "/home" : "/verification";
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Login failed");
-    } finally {
       setIsLoading(false);
     }
   }
