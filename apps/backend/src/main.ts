@@ -111,7 +111,10 @@ async function bootstrap() {
 
   // Enable CORS with credentials support for cookies.
   // CORS_ORIGINS is required at boot (validated in EnvValidationService).
-  const corsOrigins = process.env.CORS_ORIGINS!.split(',').map((o) => o.trim());
+  const corsOrigins = process.env
+    .CORS_ORIGINS!.split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
   app.enableCors({
     origin: corsOrigins,
     credentials: true,
