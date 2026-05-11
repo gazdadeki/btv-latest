@@ -8,7 +8,7 @@
 
 ## Auth
 
-- Cookie-based: `player_user` cookie read by middleware (`src/middleware.ts`)
+- Cookie-based: middleware (`src/middleware.ts`) reads the client-readable `user` cookie and parses `isVerified` to gate auth/verification routing. httpOnly `access_token` and `refresh_token` are set by the backend on login
 - Unauthenticated → `/login`; authenticated but unverified → `/verification`; authenticated and verified → `/home`
 - `AuthProvider` / `useAuth()` React context for auth state
 
