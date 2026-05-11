@@ -16,8 +16,8 @@ All HTTP endpoints are rooted under `/api/v1`.
 This API uses **HTTP-only cookies** for player authentication.
 
 - Login or register sets two cookies:
-  - `player_access_token` (short-lived access token)
-  - `player_refresh_token` (longer-lived refresh token)
+  - `access_token` (short-lived access token, ~15 min)
+  - `refresh_token` (longer-lived refresh token, 7 days)
 - Clients must send cookies with each request.
 
 Example (fetch):

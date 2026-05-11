@@ -42,21 +42,7 @@ export class UsersController {
    * Extract IP address from request for audit logging
    */
   private extractIpAddress(req: any): string {
-    const forwardedFor = req.headers['x-forwarded-for'];
-    if (forwardedFor) {
-      const ips = forwardedFor.split(',');
-      return ips[0].trim();
-    }
-    const realIp = req.headers['x-real-ip'];
-    if (realIp) {
-      return realIp;
-    }
-    if (req.ip) {
-      return req.ip;
-    }
-    return (
-      req.connection?.remoteAddress || req.socket?.remoteAddress || 'unknown'
-    );
+    return req.ip ?? 'unknown';
   }
 
   @Get()

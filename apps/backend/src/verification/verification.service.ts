@@ -13,6 +13,11 @@ import { ConfigService } from '../config/config.service';
 import { IEmailService } from '../email/email.service.interface';
 import { Inject } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
+import { randomInt } from 'crypto';
+import {
+  VERIFICATION_CODE_MIN,
+  VERIFICATION_CODE_MAX_EXCLUSIVE,
+} from './verification.constants';
 
 @Injectable()
 export class VerificationService {
@@ -33,7 +38,10 @@ export class VerificationService {
     const maxAttempts = 100;
 
     while (attempts < maxAttempts) {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const code = randomInt(
+        VERIFICATION_CODE_MIN,
+        VERIFICATION_CODE_MAX_EXCLUSIVE,
+      ).toString();
       const exists = await this.verificationCodeRepository.findOne({
         where: { code },
       });

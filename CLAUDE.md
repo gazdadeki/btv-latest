@@ -38,16 +38,19 @@ Event scheduling and reservation system. Turborepo monorepo with three apps:
 
 ### Auth Cookie Strategy
 
-Two separate cookie namespaces prevent session collision between admin and player apps:
+Both apps share a single cookie namespace (no `admin_*` / `player_*` prefixes):
 
-|                                  | Admin app (apps/web)  | Player app (apps/mobile) |
-| -------------------------------- | --------------------- | ------------------------ |
-| Access token (HTTP-only)         | `admin_access_token`  | `player_access_token`    |
-| Refresh token (HTTP-only)        | `admin_refresh_token` | `player_refresh_token`   |
-| User indicator (client-readable) | `admin_user`          | `player_user`            |
+|                                  | Cookie name     | Set by   | Notes                                                 |
+| -------------------------------- | --------------- | -------- | ----------------------------------------------------- |
+| Access token (HTTP-only)         | `access_token`  | Backend  | ~15 min, JWT-signed                                   |
+| Refresh token (HTTP-only)        | `refresh_token` | Backend  | 7 days, DB-backed, revocable                          |
+| User indicator (client-readable) | `user`          | Frontend | JSON: id, email, username, role, isVerified, isBanned |
 
-- JWT strategy checks `player_access_token` first, then `admin_access_token`, then `Authorization` header
-- Logout clears all cookies
+- JWT strategy (`jwt.strategy.ts`) reads `access_token` from cookies, then falls back to `Authorization: Bearer` header
+- Role separation is enforced **client-side at login**: `apps/web/src/lib/api.ts` `login()` wrapper rejects non-admin roles (logs out, throws "Admin access required"). `apps/mobile/src/lib/api.ts` does NOT currently check role — admins can log into the player app (documented gap, low impact)
+- Logout clears `access_token`, `refresh_token`, `user`; also defensively clears legacy `admin_*` / `player_*` namespaced cookies from before the consolidation
+- In production, separate domains (`web.domain.com` / `app.domain.com`) naturally isolate sessions
+- In localhost dev, both apps share cookies across ports (same `localhost` domain) — known dev-only limitation
 
 ### SQL / TypeORM Conventions
 

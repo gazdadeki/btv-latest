@@ -27,6 +27,7 @@ export class EnvValidationService {
     'NODE_ENV',
     'STRIPE_SECRET_KEY',
     'STRIPE_WEBHOOK_SECRET',
+    'CORS_ORIGINS',
   ];
 
   /**
@@ -146,6 +147,40 @@ export class EnvValidationService {
       throw new Error(
         'JWT_SECRET must be changed from the default value. Please set a secure secret key.',
       );
+    }
+
+    // Validate CORS_ORIGINS entries are well-formed bare origins.
+    // Required-presence is enforced via requiredEnvVars; this checks format
+    // so typos fail at boot rather than as browser CORS errors at runtime.
+    const corsOrigins = process.env.CORS_ORIGINS;
+    if (corsOrigins) {
+      const origins = corsOrigins
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean);
+      if (origins.length === 0) {
+        throw new Error(
+          `CORS_ORIGINS must contain at least one origin, got: "${corsOrigins}"`,
+        );
+      }
+      for (const origin of origins) {
+        let parsed: URL;
+        try {
+          parsed = new URL(origin);
+        } catch {
+          throw new Error(`CORS_ORIGINS entry "${origin}" is not a valid URL`);
+        }
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          throw new Error(
+            `CORS_ORIGINS entry "${origin}" must use http or https scheme`,
+          );
+        }
+        if (parsed.pathname !== '/' && parsed.pathname !== '') {
+          throw new Error(
+            `CORS_ORIGINS entry "${origin}" must be a bare origin (no path component)`,
+          );
+        }
+      }
     }
   }
 }

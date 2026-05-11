@@ -8,8 +8,9 @@
 
 ## Auth
 
-- Middleware reads `admin_access_token` cookie server-side to protect `/admin/*` routes
-- `admin_user` cookie is client-side only (used for display purposes)
+- Middleware reads the `access_token` httpOnly cookie and the client-readable `user` cookie to gate `/admin/*` routes (presence-only check)
+- Role separation enforced at login: `api.ts` `login()` wrapper rejects non-admin roles, calls `/auth/logout`, and shows "Admin access required"
+- `user` cookie is set client-side (contains id, email, username, role, isVerified, isBanned) — used by the UI for immediate render
 
 ## UI
 

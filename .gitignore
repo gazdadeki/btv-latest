@@ -75,5 +75,8 @@ apps/mobile/public/workbox-*.js
 # Spec drift temp files
 .spec-drift-*
 
+# Local-only deployment notes (not for source control)
+/docs/deployment/
+
 # Misc
 *.tsbuildinfo

@@ -14,10 +14,9 @@ paths:
 
 ## Auth
 
-- Cookie-based: `player_user` cookie read by middleware
+- Cookie-based: `user` cookie (client-readable) read by middleware; backend sets `access_token` / `refresh_token` httpOnly cookies on login
 - `AuthProvider` / `useAuth()` React context for auth state
 - Unauthenticated → `/login`, unverified → `/verification`
-- Never reference `admin_*` cookies in this app
 
 ## Data Fetching
 

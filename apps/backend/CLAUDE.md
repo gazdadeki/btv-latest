@@ -16,7 +16,8 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 ## Runtime (main.ts)
 
 - Global prefix: `api` with URI versioning (`/api/v1/...`)
-- CORS: configurable via `CORS_ORIGINS` env var (comma-separated), defaults to reflect-origin
+- CORS: `CORS_ORIGINS` env var (comma-separated) — required at boot, validated in `EnvValidationService`
+- `app.set('trust proxy', 1)` — trusts exactly one proxy hop (nginx in prod, Next.js dev server in dev). Bump the value if you add a load balancer in front
 - Stripe webhook raw body handling at `/api/v1/stripe/webhook`
 - Swagger at `/api` in non-production
 - `.env` loaded explicitly at startup; process exits on failure
@@ -25,7 +26,7 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 ## WebSocket
 
 - Socket.IO gateway for real-time game status broadcasts
-- WebSocket CORS uses same `CORS_ORIGINS` env var, defaults to `*`
+- WebSocket CORS uses the same `CORS_ORIGINS` env var (required at boot — same allowlist gates HTTP API and Socket.IO)
 
 ## Database
 

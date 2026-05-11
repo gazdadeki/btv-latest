@@ -50,7 +50,7 @@ btv/
 │       │       ├── forgot-password/
 │       │       └── reset-password/
 │       ├── src/lib/              # API client, auth utils, auth context
-│       ├── src/middleware.ts     # Route protection (player_user cookie)
+│       ├── src/middleware.ts     # Route protection (reads `user` cookie)
 │       ├── public/icons/         # PWA icons (192x192, 512x512)
 │       └── .env.local            # Mobile environment variables
 ├── packages/
@@ -120,12 +120,12 @@ All modules registered in `app.module.ts`:
 
 - Next.js App Router serving the admin dashboard only.
 - Routes:
-  - `/admin/*` — admin dashboard (protected by middleware, requires `admin_user` cookie)
+  - `/admin/*` — admin dashboard (protected by middleware, requires `access_token` + `user` cookies)
   - `/downloads` — public downloads page
   - `/reset-password` — public password reset
   - `/` — redirects to `/admin`
 - API calls proxied via Next.js rewrites (`/api/*` → backend)
-- Cookie-based auth: reads `admin_access_token` and `admin_user` cookies
+- Cookie-based auth: middleware reads `access_token` (HTTP-only, set by backend) and `user` (client-readable, set after login); admin role enforced at login by the `api.login()` wrapper
 - WebSocket connection via Socket.IO client (direct to backend)
 - Admin pages: Dashboard, Calendar, Users, Schedules, Games, Subscriptions, Tutorials, Stripe Products, Messages, Audit Log
 
@@ -136,7 +136,7 @@ All modules registered in `app.module.ts`:
 - Route groups:
   - `(app)/` — authenticated player routes, protected by middleware
   - `(auth)/` — public auth routes (login, register, verification, forgot/reset-password)
-- Middleware (`src/middleware.ts`) reads the `player_user` client-side cookie:
+- Middleware (`src/middleware.ts`) reads the `user` client-side cookie:
   - Unauthenticated on protected route → redirect `/login`
   - Authenticated but `isVerified: false` → redirect `/verification`
   - Authenticated + verified on public auth route → redirect `/home`
@@ -146,22 +146,26 @@ All modules registered in `app.module.ts`:
 
 ## Auth cookie strategy
 
-Two separate cookie namespaces prevent session collision between the admin and player apps (critical when both run on `localhost` in development; fully isolated by domain in production).
+Both apps share a single cookie namespace (no `admin_*` / `player_*` prefixes). Session isolation in production comes from separate domains; in localhost dev the apps share cookies across ports (a known dev-only limitation).
 
-|                                  | Admin app (`apps/web`) | Player app (`apps/mobile`) |
-| -------------------------------- | ---------------------- | -------------------------- |
-| Access token (HTTP-only)         | `admin_access_token`   | `player_access_token`      |
-| Refresh token (HTTP-only)        | `admin_refresh_token`  | `player_refresh_token`     |
-| User indicator (client-readable) | `admin_user`           | `player_user`              |
+|                                  | Cookie name     | Set by   | Notes                                                  |
+| -------------------------------- | --------------- | -------- | ------------------------------------------------------ |
+| Access token (HTTP-only)         | `access_token`  | Backend  | ~15 min, JWT-signed, sent on every request             |
+| Refresh token (HTTP-only)        | `refresh_token` | Backend  | 7 days, DB-backed (revocable via `refresh_tokens` row) |
+| User indicator (client-readable) | `user`          | Frontend | JSON of `{id, email, username, role, isVerified, ...}` |
 
 **Backend behavior:**
 
-- `POST /api/v1/auth/login` and `POST /api/v1/auth/register` → set `player_*` cookies
-- `POST /api/v1/auth/admin/login` → set `admin_*` cookies
-- `POST /api/v1/auth/refresh` → auto-detects session type by which cookie is present, responds with matching prefix
-- `POST /api/v1/auth/logout` → clears all four HTTP-only cookies plus both user cookies
-- `GET /api/v1/auth/websocket-token` → returns `player_access_token` if present, falls back to `admin_access_token`
-- JWT strategy (`jwt.strategy.ts`) → checks `player_access_token` first, then `admin_access_token`, then `Authorization` header
+- `POST /api/v1/auth/login` and `POST /api/v1/auth/register` → set `access_token` + `refresh_token` cookies, return user JSON
+- `POST /api/v1/auth/refresh` → rotates access token (and refresh token if near expiry), sets new cookies
+- `POST /api/v1/auth/logout` → revokes the refresh token in DB, clears `access_token` / `refresh_token` / `user`, and defensively clears legacy `admin_*` / `player_*` cookies from older deploys
+- `GET /api/v1/auth/websocket-token` → returns the `access_token` cookie value as JSON (used by Socket.IO handshake)
+- JWT strategy (`jwt.strategy.ts`) → reads `access_token` from cookies, falls back to `Authorization: Bearer` header
+
+**Role separation** is enforced client-side at login, not via cookie naming:
+
+- `apps/web/src/lib/api.ts` `login()` wrapper rejects non-admin roles: calls `/auth/logout`, clears local cookies, throws "Admin access required"
+- `apps/mobile/src/lib/api.ts` does NOT currently check role at login (documented gap — admins can log in to the player app as a player). Low impact; backend `RolesGuard` blocks admin actions either way.
 
 ## Date & Time Convention
 

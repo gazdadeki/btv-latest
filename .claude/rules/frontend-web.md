@@ -14,9 +14,9 @@ paths:
 
 ## Auth
 
-- Cookie-based: `admin_access_token` (HTTP-only) and `admin_user` (client-readable)
-- Middleware at `src/middleware.ts` protects `/admin/*` routes
-- Never reference `player_*` cookies in this app
+- Cookie-based: `access_token` (HTTP-only, set by backend) and `user` (client-readable, set by frontend after login)
+- Middleware at `src/middleware.ts` protects `/admin/*` routes via cookie presence
+- Role separation enforced at login: the `api.login()` wrapper rejects non-admin roles client-side
 
 ## UI Components
 

@@ -17,9 +17,10 @@ import { MessagesGatewayService } from '../messages/messages.gateway.service';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
-      : '*',
+    origin: process.env
+      .CORS_ORIGINS!.split(',')
+      .map((o) => o.trim())
+      .filter(Boolean),
     credentials: true,
   },
   namespace: '/',

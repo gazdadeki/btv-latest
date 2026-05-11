@@ -66,29 +66,7 @@ export class AuthController {
   }
 
   private extractIpAddress(req: any): string {
-    // Try X-Forwarded-For header first (for proxies/load balancers)
-    const forwardedFor = req.headers['x-forwarded-for'];
-    if (forwardedFor) {
-      // X-Forwarded-For can contain multiple IPs, take the first one
-      const ips = forwardedFor.split(',');
-      return ips[0].trim();
-    }
-
-    // Try X-Real-IP header (common in nginx)
-    const realIp = req.headers['x-real-ip'];
-    if (realIp) {
-      return realIp;
-    }
-
-    // Fall back to req.ip (requires trust proxy to be set)
-    if (req.ip) {
-      return req.ip;
-    }
-
-    // Last resort: connection remote address
-    return (
-      req.connection?.remoteAddress || req.socket?.remoteAddress || 'unknown'
-    );
+    return req.ip ?? 'unknown';
   }
 
   @Post('register')
@@ -210,6 +188,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Refresh access token' })
   async refresh(@Request() req: any, @Response() res: ExpressResponse) {
     const ipAddress = this.extractIpAddress(req);

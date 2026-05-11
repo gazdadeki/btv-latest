@@ -9,11 +9,12 @@ import { ConfigService } from './config.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Config')
 @ApiBearerAuth()
 @Controller({ path: 'admin/config', version: '1' })
-@UseGuards(RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class ConfigController {
   constructor(private readonly configService: ConfigService) {}
