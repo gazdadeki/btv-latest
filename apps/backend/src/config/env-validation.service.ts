@@ -27,6 +27,7 @@ export class EnvValidationService {
     'NODE_ENV',
     'STRIPE_SECRET_KEY',
     'STRIPE_WEBHOOK_SECRET',
+    'CORS_ORIGINS',
   ];
 
   /**

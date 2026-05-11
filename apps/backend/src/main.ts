@@ -70,9 +70,13 @@ async function bootstrap() {
     rawBody: true,
   });
 
-  // Configure trust proxy for accurate IP extraction behind proxies/load balancers
-  app.set('trust proxy', true);
-  logger.log('Trust proxy enabled for accurate IP extraction');
+  // Trust exactly one proxy hop in front of Node (nginx in prod, Next.js dev
+  // server in local dev). If the topology changes (e.g., a managed load
+  // balancer is added in front of nginx), bump this to match the new hop count
+  // — too low fails loudly (everyone shares one rate-limit bucket), too high
+  // silently re-enables X-Forwarded-For spoofing.
+  app.set('trust proxy', 1);
+  logger.log('Trust proxy set to 1 hop');
 
   // Get Express instance for direct route configuration
   const expressApp = app.getHttpAdapter().getInstance();
@@ -105,20 +109,16 @@ async function bootstrap() {
     prefix: '/',
   });
 
-  // Enable CORS with credentials support for cookies
-  // CORS_ORIGINS env var: comma-separated list of allowed origins, or omit for reflect-origin
-  const corsOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
-    : true;
+  // Enable CORS with credentials support for cookies.
+  // CORS_ORIGINS is required at boot (validated in EnvValidationService).
+  const corsOrigins = process.env.CORS_ORIGINS!.split(',').map((o) => o.trim());
   app.enableCors({
     origin: corsOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
-  logger.log(
-    `CORS enabled (origins: ${Array.isArray(corsOrigins) ? corsOrigins.join(', ') : 'reflect-origin'})`,
-  );
+  logger.log(`CORS enabled (origins: ${corsOrigins.join(', ')})`);
 
   // Global validation pipe
   app.useGlobalPipes(

@@ -17,6 +17,10 @@ import { StatisticsService } from '../statistics/statistics.service';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { VerificationCode } from '../verification/entities/verification-code.entity';
+import {
+  VERIFICATION_CODE_MIN,
+  VERIFICATION_CODE_MAX_EXCLUSIVE,
+} from '../verification/verification.constants';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -875,7 +879,9 @@ export class AuthService {
     const maxAttempts = 100;
 
     while (attempts < maxAttempts) {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const code = crypto
+        .randomInt(VERIFICATION_CODE_MIN, VERIFICATION_CODE_MAX_EXCLUSIVE)
+        .toString();
       const exists = await this.verificationCodeRepository.findOne({
         where: { code },
       });
