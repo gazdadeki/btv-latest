@@ -290,7 +290,9 @@ export function GameDetailDialog({
                       {game.stream?.schedule?.name ||
                         (game.stream?.scheduleId
                           ? `#${game.stream.scheduleId}`
-                          : "—")}
+                          : game.scheduleId
+                            ? `#${game.scheduleId}`
+                            : "—")}
                     </span>
                   </td>
                 </tr>

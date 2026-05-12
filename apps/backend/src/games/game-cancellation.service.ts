@@ -265,11 +265,27 @@ export class GameCancellationService {
       relations: ['user', 'user.wallet'],
     });
 
-    const schedule = game.stream?.schedule;
+    if (reservations.length === 0) return;
+
+    // Schedule drives refund policy/percentage — if the caller passed a game
+    // without `stream.schedule` loaded we'd silently under-refund. Reload via
+    // gameRepository instead of trusting the partial entity.
+    let schedule = game.stream?.schedule;
+    if (!schedule) {
+      const reloaded = await this.gameRepository.findOne({
+        where: { id: game.id },
+        relations: ['stream', 'stream.schedule'],
+      });
+      schedule = reloaded?.stream?.schedule;
+    }
+    if (!schedule) {
+      throw new Error(
+        `Cannot refund reservations for game ${game.id}: schedule could not be resolved`,
+      );
+    }
+
     for (const reservation of reservations) {
-      const refundAmount = schedule
-        ? this.calculateRefund(reservation, schedule)
-        : 0;
+      const refundAmount = this.calculateRefund(reservation, schedule);
       if (refundAmount > 0 && reservation.user?.wallet) {
         await this.walletService.deposit(
           reservation.user.wallet.id,

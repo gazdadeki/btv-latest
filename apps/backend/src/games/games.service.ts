@@ -169,9 +169,21 @@ export class GamesService {
     // top of the bucket by the stream's earlier createdAt). Time is
     // informational only; the streamer controls actual pacing.
     const streamDay = utcStartOfDay(new Date(activeStream.createdAt));
-    const [firstStartHours, firstStartMinutes] = schedule.firstGameStartTime
-      .split(':')
-      .map(Number);
+    const timeMatch = /^(\d{1,2}):(\d{2})$/.exec(
+      schedule.firstGameStartTime ?? '',
+    );
+    if (!timeMatch) {
+      throw new BadRequestException(
+        `Schedule ${schedule.id} has invalid firstGameStartTime: ${schedule.firstGameStartTime}`,
+      );
+    }
+    const firstStartHours = Number(timeMatch[1]);
+    const firstStartMinutes = Number(timeMatch[2]);
+    if (firstStartHours > 23 || firstStartMinutes > 59) {
+      throw new BadRequestException(
+        `Schedule ${schedule.id} firstGameStartTime out of range: ${schedule.firstGameStartTime}`,
+      );
+    }
     const scheduledStartTime = new Date(streamDay);
     scheduledStartTime.setUTCHours(firstStartHours, firstStartMinutes, 0, 0);
 

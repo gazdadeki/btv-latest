@@ -121,7 +121,13 @@ export class CalendarService {
       const dateKey = toUtcDateString(date);
       const scheduleMap = realGamesByDate.get(dateKey);
 
-      if (scheduleMap) {
+      // Real games only belong on past/today buckets — cron generates games
+      // for "today" and manual games inherit the active stream's day. A real
+      // game on a future date would be a data anomaly; skip rendering it so
+      // future days only ever show pseudo-games per the documented invariant.
+      const isFutureDay = dateKey > todayKey;
+
+      if (scheduleMap && !isFutureDay) {
         for (const bucket of scheduleMap.values()) {
           // Within a stream's bucket, cron games all share the same
           // scheduledStartTime, and manual games match that too (see
