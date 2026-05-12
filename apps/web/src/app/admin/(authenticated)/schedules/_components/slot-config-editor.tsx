@@ -58,27 +58,6 @@ export function SlotConfigEditor({
               />
               Gold
             </label>
-            <input
-              type="number"
-              placeholder="Cost override"
-              value={s.coinsCost ?? ""}
-              min={0}
-              onChange={(e) =>
-                setSlots(
-                  slots.map((sl) =>
-                    sl.slotNumber === s.slotNumber
-                      ? {
-                          ...sl,
-                          coinsCost: e.target.value
-                            ? Number(e.target.value)
-                            : null,
-                        }
-                      : sl,
-                  ),
-                )
-              }
-              className="w-24 border border-gray-300 rounded px-2 py-1"
-            />
             <UserSearchInput
               value={s.preAssignedUserId}
               displayName={s.preAssignedUsername ?? undefined}

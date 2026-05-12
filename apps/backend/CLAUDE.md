@@ -43,7 +43,9 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 
 ## Streams
 
-- A **Stream** groups games from a single session, decoupling them from calendar dates (solves timezone issues)
+- A **Stream** groups games from a single streaming session. It is the **source of truth for game ownership** — every game belongs to exactly one stream, and the stream belongs to the schedule whose cron run spawned it.
+- Lineage: `game → stream → schedule`. `games` table no longer carries a `scheduleId` column; navigate via `game.stream.schedule` (or join `INNER JOIN streams ON game.streamId = streams.id` and filter on `streams.scheduleId`).
+- A session can cross midnight: a manual game added at 02:00 while last night's stream is still LIVE belongs to **that** stream (its `scheduledStartTime` is set to the active stream's `createdAt`, so it groups with the rest of the session on the calendar). Schedule remains tied to a UTC calendar day; stream is not.
 - Only one active (non-ENDED) stream at a time
 - Lifecycle: `PENDING` → `LIVE` → `ENDED`
 - Stream has `title` (auto-generated as "Let's GO - dd.mm.yyyy" on creation, editable when starting) and `url` (required when starting)
@@ -53,6 +55,11 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - Other endpoints: `GET /admin/streams` (list recent), `GET /admin/streams/active`, `PUT /admin/streams/:id/end`
 - Admin UI: persistent stream controls in header bar + dashboard widget
 - Mobile app shows active stream's games instead of "today's games"
+
+## Manual game creation
+
+- Single-game admin path (`POST /admin/games`, `createManually`) requires an **active stream**. If none, returns 400. The new game is attached to that stream; no `scheduleId` is accepted or needed from the client.
+- `scheduledStartTime` mirrors the active stream's `createdAt` — i.e., a manual game created at 02:00 next day still carries last night's stream date, so it groups with that stream's other games in admin views.
 
 ## Schedules
 
@@ -94,8 +101,10 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 
 ## Calendar
 
-- Past days only show `FINISHED` games; CREATED/OPEN/CANCELLED are hidden
-- Manually created games use the stream's creation date as `scheduledStartTime` (midnight-safe)
+- A real game is visible in its day's calendar slot when either (a) its status is `FINISHED`, or (b) its owning stream is still PENDING/LIVE. Once the stream ends, `cancelGamesForEndedStreams` flips any leftover CREATED/OPEN games to CANCELLED, so the only thing remaining on past days is FINISHED.
+- The stream-active exception is what makes the **cross-midnight** case work: a manual game added at 01:00 next day inherits `scheduledStartTime` from the active stream's `createdAt` (the previous calendar day), so it groups visually with the rest of that stream's games, and stays visible because its stream hasn't ended yet.
+- Manually created games use `utcStartOfDay(activeStream.createdAt) + schedule.firstGameStartTime` as `scheduledStartTime` — matches the time the cron uses for bulk-generated games on that stream's day. This keeps a manual game sorted alongside its sibling cron games (stable sort by time + insertion order puts it last in the bucket) rather than at the top by the stream's earlier `createdAt`. Calendar bucketing still keys by the stream's day, so a 02:00 manual add still lands on the previous day's calendar slot.
+- Future days never show real games (cron hasn't generated them yet) — only pseudo-games derived from schedule recurrence patterns.
 
 ## Admin Auto-Assignment
 

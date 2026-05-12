@@ -481,8 +481,13 @@ export class SlotAdminAssignmentService {
       order: { slotNumber: 'ASC' },
     });
 
+    if (!game.stream?.scheduleId) {
+      throw new BadRequestException(
+        'Cannot shuffle players: game is not attached to a stream/schedule',
+      );
+    }
     const slotConfigs = await this.slotConfigService.findBySchedule(
-      game.scheduleId,
+      game.stream.scheduleId,
     );
     const goldOnlySlots = new Set<string>();
     slotConfigs.forEach((config) => {

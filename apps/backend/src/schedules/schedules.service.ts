@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
 import { Schedule, RecurrenceType } from './entities/schedule.entity';
 import { Stream, StreamStatus } from '../streams/entities/stream.entity';
+import { Game } from '../games/entities/game.entity';
 import { AuditService } from '../audit/audit.service';
 import { SlotConfigService } from './slot-config.service';
 import { SlotConfig } from './entities/slot-config.entity';
@@ -19,6 +20,8 @@ export class SchedulesService {
     private scheduleRepository: Repository<Schedule>,
     @InjectRepository(Stream)
     private streamRepository: Repository<Stream>,
+    @InjectRepository(Game)
+    private gameRepository: Repository<Game>,
     private auditService: AuditService,
     private slotConfigService: SlotConfigService,
     private gameCancellationService: GameCancellationService,
@@ -146,18 +149,35 @@ export class SchedulesService {
     });
   }
 
-  async findOne(id: number): Promise<Schedule> {
+  async findOne(
+    id: number,
+    options?: { loadGames?: boolean },
+  ): Promise<Schedule> {
     const schedule = await this.scheduleRepository.findOne({
       where: { id, deletedAt: null },
       relations: [
         'createdByUser',
-        'games',
         'slotConfigs',
         'slotConfigs.preAssignedUser',
       ],
     });
     if (!schedule) {
       throw new BadRequestException('Schedule not found');
+    }
+    // Games are no longer directly related to schedule (game → stream → schedule).
+    // Fetch via the stream join and attach for backward-compat with consumers
+    // that expect `schedule.games` (e.g., admin schedule-detail Games tab).
+    // Callers that only need schedule metadata (e.g., manual game creation)
+    // can opt out with `{ loadGames: false }` to skip this query.
+    if (options?.loadGames !== false) {
+      const games = await this.gameRepository
+        .createQueryBuilder('game')
+        .innerJoin('game.stream', 'stream')
+        .where('stream.scheduleId = :scheduleId', { scheduleId: id })
+        .orderBy('game.scheduledStartTime', 'DESC')
+        .addOrderBy('game.gameIndex', 'ASC')
+        .getMany();
+      (schedule as Schedule & { games: Game[] }).games = games;
     }
     return schedule;
   }

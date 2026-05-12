@@ -49,7 +49,8 @@ export class CalendarService {
       this.scheduleRepository.find({ where: { isActive: true } }),
       this.gameRepository
         .createQueryBuilder('game')
-        .leftJoinAndSelect('game.schedule', 'schedule')
+        .leftJoinAndSelect('game.stream', 'stream')
+        .leftJoinAndSelect('stream.schedule', 'schedule')
         .where('game.scheduledStartTime >= :startOfRange', { startOfRange })
         .andWhere('game.scheduledStartTime <= :endOfRange', { endOfRange })
         .getMany(),
@@ -84,19 +85,32 @@ export class CalendarService {
       const gameDate = new Date(game.scheduledStartTime);
       const dateKey = toUtcDateString(gameDate);
 
-      // For past days, only show games that were actually played
-      if (dateKey < todayKey && game.status !== 'FINISHED') {
+      // For past days, only show games that were actually played — unless the
+      // owning stream is still LIVE/PENDING (a streamer's session running past
+      // midnight should still surface its games on the day the stream started).
+      // Once the stream ends, leftover non-FINISHED games are auto-cancelled,
+      // so they're naturally filtered out here.
+      const streamStatus = game.stream?.status;
+      const streamActive =
+        streamStatus === 'PENDING' || streamStatus === 'LIVE';
+      if (dateKey < todayKey && game.status !== 'FINISHED' && !streamActive) {
         continue;
       }
+
+      // Bucket games by their stream's schedule. Manual games created
+      // post-midnight share the active stream's schedule, so they group with
+      // the rest of that streaming session even on the next calendar day.
+      const gameScheduleId = game.stream?.scheduleId;
+      if (gameScheduleId == null) continue;
 
       if (!realGamesByDate.has(dateKey)) {
         realGamesByDate.set(dateKey, new Map());
       }
       const scheduleMap = realGamesByDate.get(dateKey)!;
-      if (!scheduleMap.has(game.scheduleId)) {
-        scheduleMap.set(game.scheduleId, { games: [], timeKeys: new Set() });
+      if (!scheduleMap.has(gameScheduleId)) {
+        scheduleMap.set(gameScheduleId, { games: [], timeKeys: new Set() });
       }
-      const bucket = scheduleMap.get(game.scheduleId)!;
+      const bucket = scheduleMap.get(gameScheduleId)!;
       bucket.games.push(game);
       bucket.timeKeys.add(
         `${gameDate.getUTCHours()}:${gameDate.getUTCMinutes()}`,
@@ -107,17 +121,32 @@ export class CalendarService {
       const dateKey = toUtcDateString(date);
       const scheduleMap = realGamesByDate.get(dateKey);
 
-      if (scheduleMap) {
+      // Real games only belong on past/today buckets — cron generates games
+      // for "today" and manual games inherit the active stream's day. A real
+      // game on a future date would be a data anomaly; skip rendering it so
+      // future days only ever show pseudo-games per the documented invariant.
+      const isFutureDay = dateKey > todayKey;
+
+      if (scheduleMap && !isFutureDay) {
         for (const bucket of scheduleMap.values()) {
-          bucket.games.sort(
-            (a, b) =>
+          // Within a stream's bucket, cron games all share the same
+          // scheduledStartTime, and manual games match that too (see
+          // createManually). gameIndex is the authoritative in-stream order
+          // (1=first cron game ... N=last manual add), so we use it as a
+          // secondary key to make ordering deterministic regardless of the
+          // DB's return order.
+          bucket.games.sort((a, b) => {
+            const timeDiff =
               new Date(a.scheduledStartTime).getTime() -
-              new Date(b.scheduledStartTime).getTime(),
-          );
+              new Date(b.scheduledStartTime).getTime();
+            if (timeDiff !== 0) return timeDiff;
+            return (a.gameIndex ?? 0) - (b.gameIndex ?? 0);
+          });
           bucket.games.forEach((game, index) => {
+            const schedule = game.stream?.schedule;
             const gameWithOrder: any = {
               id: game.id,
-              scheduleId: game.scheduleId,
+              scheduleId: schedule?.id ?? null,
               status: game.status,
               scheduledStartTime: game.scheduledStartTime,
               actualStartTime: game.actualStartTime,
@@ -131,7 +160,7 @@ export class CalendarService {
               createdAt: game.createdAt,
               updatedAt: game.updatedAt,
               orderIndex: index + 1,
-              scheduleName: game.schedule?.name || null,
+              scheduleName: schedule?.name ?? null,
             };
             gamesByDate.get(dateKey)!.push(gameWithOrder);
           });

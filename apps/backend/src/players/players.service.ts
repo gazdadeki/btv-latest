@@ -74,7 +74,8 @@ export class PlayersService {
   async getAvailableGames(user: User): Promise<Game[]> {
     const query = this.gameRepository
       .createQueryBuilder('game')
-      .leftJoinAndSelect('game.schedule', 'schedule')
+      .leftJoinAndSelect('game.stream', 'stream')
+      .leftJoinAndSelect('stream.schedule', 'schedule')
       .leftJoinAndSelect('game.slots', 'slots')
       .where('game.status = :status', { status: GameStatus.CREATED })
       .andWhere('game.scheduledStartTime > :now', { now: new Date() });
@@ -106,7 +107,8 @@ export class PlayersService {
     const game = await this.gameRepository.findOne({
       where: { id: gameId },
       relations: [
-        'schedule',
+        'stream',
+        'stream.schedule',
         'slots',
         'reservations',
         'reservations.user',
@@ -250,38 +252,45 @@ export class PlayersService {
       where: { isActive: true },
     });
 
-    // Get today's games for each schedule
+    if (schedules.length === 0) {
+      return [];
+    }
+
+    // Single query for today's games across all active schedules, then group
+    // in memory — avoids one DB round-trip per schedule (N+1).
+    const scheduleIds = schedules.map((s) => s.id);
+    const todayGames = await this.gameRepository
+      .createQueryBuilder('game')
+      .innerJoinAndSelect('game.stream', 'stream')
+      .leftJoinAndSelect('game.slots', 'slots')
+      .where('stream.scheduleId IN (:...scheduleIds)', { scheduleIds })
+      .andWhere('game.scheduledStartTime >= :today', { today })
+      .andWhere('game.scheduledStartTime < :tomorrow', { tomorrow })
+      .andWhere('game.status IN (:...statuses)', { statuses })
+      .orderBy('game.gameIndex', 'ASC')
+      .addOrderBy('game.id', 'ASC')
+      .getMany();
+
+    const gamesByScheduleId = new Map<number, Game[]>();
+    for (const game of todayGames) {
+      if (
+        game.isExclusiveToGold &&
+        user.subscriptionTier !== SubscriptionTier.GOLD
+      ) {
+        continue;
+      }
+      const scheduleId = game.stream?.scheduleId;
+      if (scheduleId == null) continue;
+      const bucket = gamesByScheduleId.get(scheduleId);
+      if (bucket) bucket.push(game);
+      else gamesByScheduleId.set(scheduleId, [game]);
+    }
+
     const result: Array<{ schedule: Schedule; games: Game[] }> = [];
-
     for (const schedule of schedules) {
-      const query = this.gameRepository
-        .createQueryBuilder('game')
-        .where('game.scheduleId = :scheduleId', { scheduleId: schedule.id })
-        .andWhere('game.scheduledStartTime >= :today', { today })
-        .andWhere('game.scheduledStartTime < :tomorrow', { tomorrow })
-        .andWhere('game.status IN (:...statuses)', { statuses })
-        .leftJoinAndSelect('game.slots', 'slots')
-        .orderBy('game.gameIndex', 'ASC')
-        .addOrderBy('game.id', 'ASC');
-
-      const todayGames = await query.getMany();
-
-      // Filter out exclusive games if user is not Gold
-      const availableGames = todayGames.filter((game) => {
-        if (
-          game.isExclusiveToGold &&
-          user.subscriptionTier !== SubscriptionTier.GOLD
-        ) {
-          return false;
-        }
-        return true;
-      });
-
-      if (availableGames.length > 0) {
-        result.push({
-          schedule,
-          games: availableGames,
-        });
+      const games = gamesByScheduleId.get(schedule.id);
+      if (games && games.length > 0) {
+        result.push({ schedule, games });
       }
     }
 

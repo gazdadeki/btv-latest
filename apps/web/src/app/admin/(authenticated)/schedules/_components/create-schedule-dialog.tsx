@@ -7,13 +7,7 @@ import { toastError, localTimeToUtc } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { Dialog } from "@/components/dialog";
 import { Button } from "@/components/button";
-import {
-  FormRow,
-  FormInput,
-  FormSelect,
-  FormCheckbox,
-} from "@/components/form-fields";
-import { REFUND_POLICIES } from "@/constants";
+import { FormRow, FormInput, FormCheckbox } from "@/components/form-fields";
 import type { SlotConfig } from "@/types";
 import { RecurrenceForm } from "./recurrence-form";
 import { SlotConfigEditor } from "./slot-config-editor";
@@ -45,9 +39,9 @@ function defaultCreate(): Record<string, unknown> {
     recurrenceMonth: 1,
     recurrenceDay: 1,
     onceDate: new Date().toISOString().split("T")[0],
-    // Economy
+    // Economy (coin costs disabled for MVP — kept at 0/NONE)
     reservationCost: 0,
-    refundPolicy: "FULL",
+    refundPolicy: "NONE",
     refundPercentage: 0,
     isExclusiveToGold: false,
     // Confirmation (off by default)
@@ -360,42 +354,13 @@ export function CreateScheduleDialog({
             <Button variant="secondary" onClick={() => setStep(1)}>
               Back
             </Button>
-            <Button onClick={() => setStep(3)}>Next: Economy & Slots</Button>
+            <Button onClick={() => setStep(3)}>Next: Slots</Button>
           </div>
         </div>
       )}
 
       {step === 3 && (
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-gray-700">Economy</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <FormRow label="Reservation Cost">
-              <FormInput
-                form={form}
-                field="reservationCost"
-                setForm={setForm}
-                type="number"
-              />
-            </FormRow>
-            <FormRow label="Refund Policy">
-              <FormSelect
-                form={form}
-                field="refundPolicy"
-                setForm={setForm}
-                options={REFUND_POLICIES}
-              />
-            </FormRow>
-          </div>
-          {form.refundPolicy === "PARTIAL" && (
-            <FormRow label="Refund %">
-              <FormInput
-                form={form}
-                field="refundPercentage"
-                setForm={setForm}
-                type="number"
-              />
-            </FormRow>
-          )}
           <FormCheckbox
             form={form}
             field="isExclusiveToGold"
@@ -416,14 +381,6 @@ export function CreateScheduleDialog({
                   <FormInput
                     form={form}
                     field="confirmationWindowMinutes"
-                    setForm={setForm}
-                    type="number"
-                  />
-                </FormRow>
-                <FormRow label="Instant Reserve Cost">
-                  <FormInput
-                    form={form}
-                    field="instantReservationCost"
                     setForm={setForm}
                     type="number"
                   />

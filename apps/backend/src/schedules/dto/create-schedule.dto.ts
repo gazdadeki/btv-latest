@@ -29,9 +29,11 @@ export class SlotConfigDto {
   isGoldOnly?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Coins cost override (null uses schedule default)',
+    description: 'Coins cost override (must be 0 or null for MVP)',
   })
   @IsNumber()
+  @Min(0)
+  @Max(0)
   @IsOptional()
   coinsCost?: number | null;
 
@@ -75,17 +77,18 @@ export class CreateScheduleDto {
   @Min(2)
   slotsPerGame: number;
 
-  @ApiProperty({ description: 'Reservation cost in coins' })
+  @ApiProperty({ description: 'Reservation cost in coins (must be 0 for MVP)' })
   @IsNumber()
   @Min(0)
+  @Max(0)
   reservationCost: number;
 
   @ApiPropertyOptional({
-    description:
-      'Instant reservation cost in coins (if > 0, allows instant reserve and confirm in one step)',
+    description: 'Instant reservation cost in coins (must be 0 for MVP)',
   })
   @IsNumber()
   @Min(0)
+  @Max(0)
   @IsOptional()
   instantReservationCost?: number | null;
 

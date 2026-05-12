@@ -36,11 +36,18 @@ export type GameStatus =
 
 export interface Game {
   id: number;
-  scheduleId: number;
+  // scheduleId is no longer a column on games — derived via stream.scheduleId
+  // and surfaced on calendar/list responses for convenience.
+  scheduleId?: number | null;
   gameIndex?: number | null;
-  streamId?: number | null;
-  stream?: { id: number; title: string | null; status: string } | null;
-  schedule?: { name: string };
+  streamId: number;
+  stream?: {
+    id: number;
+    title: string | null;
+    status: string;
+    scheduleId?: number;
+    schedule?: { name: string };
+  } | null;
   scheduledStartTime: string;
   actualStartTime?: string;
   actualEndTime?: string;

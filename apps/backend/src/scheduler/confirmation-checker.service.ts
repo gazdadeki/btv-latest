@@ -43,7 +43,8 @@ export class ConfirmationCheckerService {
     const candidates = await this.reservationRepository
       .createQueryBuilder('reservation')
       .innerJoin('reservation.game', 'game')
-      .innerJoin('game.schedule', 'schedule')
+      .innerJoin('game.stream', 'stream')
+      .innerJoin('stream.schedule', 'schedule')
       .select([
         'reservation.id AS reservationId',
         'reservation.slotId AS slotId',

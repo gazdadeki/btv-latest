@@ -9,7 +9,6 @@ import {
   Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { Game } from '../../games/entities/game.entity';
 import { SlotConfig } from './slot-config.entity';
 
 export enum RecurrenceType {
@@ -133,9 +132,6 @@ export class Schedule {
 
   @ManyToOne(() => User)
   createdByUser: User;
-
-  @OneToMany(() => Game, (game) => game.schedule)
-  games: Game[];
 
   @OneToMany(() => SlotConfig, (slotConfig) => slotConfig.schedule)
   slotConfigs: SlotConfig[];

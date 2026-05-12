@@ -7,9 +7,13 @@ describe('GameCancellationService', () => {
   it('cancels games, refunds reservations, and frees slots', async () => {
     const game = {
       id: 1,
-      scheduleId: 10,
+      streamId: 50,
       status: GameStatus.CREATED,
-      schedule: { refundPolicy: RefundPolicy.FULL },
+      stream: {
+        id: 50,
+        scheduleId: 10,
+        schedule: { refundPolicy: RefundPolicy.FULL },
+      },
     };
 
     const reservation = {
@@ -30,6 +34,7 @@ describe('GameCancellationService', () => {
 
     const queryBuilder = {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
+      innerJoinAndSelect: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       getMany: jest.fn().mockResolvedValue([game]),
