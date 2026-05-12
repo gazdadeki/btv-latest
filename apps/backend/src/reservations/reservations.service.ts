@@ -77,10 +77,15 @@ export class ReservationsService {
 
     const game = await this.gameRepository.findOne({
       where: { id: gameId },
-      relations: ['schedule'],
+      relations: ['stream', 'stream.schedule'],
     });
 
     if (!game) {
+      throw new BadRequestException('Game not available for reservation');
+    }
+
+    const schedule = game.stream?.schedule;
+    if (!schedule) {
       throw new BadRequestException('Game not available for reservation');
     }
 
@@ -108,21 +113,19 @@ export class ReservationsService {
     });
     const reservedTeamSlots = teamSlots.filter((s) => s.isReserved).length;
     // Get total slots per team from the schedule
-    const totalSlotsPerTeam = game.schedule
-      ? game.schedule.slotsPerGame / 2
-      : 5;
+    const totalSlotsPerTeam = schedule.slotsPerGame / 2;
     if (reservedTeamSlots >= totalSlotsPerTeam) {
       throw new BadRequestException('Team is full');
     }
 
     // Determine reservation type and cost
-    const instantReservationCost = game.schedule.instantReservationCost;
+    const instantReservationCost = schedule.instantReservationCost;
     const useInstant =
       useInstantReservation &&
       instantReservationCost &&
       instantReservationCost > 0;
 
-    let reservationCost = game.schedule.reservationCost;
+    let reservationCost = schedule.reservationCost;
     let discountApplied = 0;
     const originalCost = reservationCost;
 
@@ -345,7 +348,7 @@ export class ReservationsService {
       }
 
       // Auto-confirm if schedule doesn't require confirmation, or if instant reservation
-      const autoConfirm = !game.schedule.requiresConfirmation || useInstant;
+      const autoConfirm = !schedule.requiresConfirmation || useInstant;
 
       // Create reservation
       const reservation = queryRunner.manager.create(Reservation, {
@@ -429,7 +432,7 @@ export class ReservationsService {
   async confirm(reservationId: number, userId: number): Promise<Reservation> {
     const reservation = await this.reservationRepository.findOne({
       where: { id: reservationId, userId },
-      relations: ['game', 'game.schedule'],
+      relations: ['game', 'game.stream', 'game.stream.schedule'],
     });
 
     if (!reservation) {
@@ -441,11 +444,14 @@ export class ReservationsService {
     }
 
     const game = reservation.game;
+    const schedule = game.stream?.schedule;
+    if (!schedule) {
+      throw new BadRequestException('Reservation cannot be confirmed');
+    }
     const now = new Date();
     const confirmationWindow = new Date(game.scheduledStartTime);
     confirmationWindow.setUTCMinutes(
-      confirmationWindow.getUTCMinutes() -
-        game.schedule.confirmationWindowMinutes,
+      confirmationWindow.getUTCMinutes() - schedule.confirmationWindowMinutes,
     );
 
     if (now > confirmationWindow) {
@@ -506,7 +512,7 @@ export class ReservationsService {
   async cancel(reservationId: number, userId: number): Promise<void> {
     const reservation = await this.reservationRepository.findOne({
       where: { id: reservationId, userId },
-      relations: ['game', 'game.schedule', 'slot'],
+      relations: ['game', 'game.stream', 'game.stream.schedule', 'slot'],
     });
 
     if (!reservation) {
@@ -578,11 +584,13 @@ export class ReservationsService {
    * @returns Refund amount in coins
    */
   private calculateRefund(reservation: Reservation): number {
-    const policy = reservation.game.schedule.refundPolicy;
+    const schedule = reservation.game.stream?.schedule;
+    if (!schedule) return 0;
+    const policy = schedule.refundPolicy;
     if (policy === 'NONE') return 0;
     if (policy === 'FULL') return reservation.totalCostPaid;
     if (policy === 'PARTIAL') {
-      const percentage = reservation.game.schedule.refundPercentage || 0;
+      const percentage = schedule.refundPercentage || 0;
       return (reservation.totalCostPaid * percentage) / 100;
     }
     return 0;

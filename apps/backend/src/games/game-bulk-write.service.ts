@@ -130,7 +130,6 @@ export class GameBulkWriteService {
         for (let i = 0; i < schedule.gamesPerDay; i += 1) {
           gamesToCreate.push(
             manager.create(Game, {
-              scheduleId: schedule.id,
               status: initialStatus,
               scheduledStartTime: baseStartTime,
               teamAName: schedule.teamAName,
@@ -226,7 +225,8 @@ export class GameBulkWriteService {
     const { start, end } = this.getDateBounds(targetDate);
     const count = await manager
       .createQueryBuilder(Game, 'game')
-      .where('game.scheduleId = :scheduleId', { scheduleId })
+      .innerJoin('game.stream', 'stream')
+      .where('stream.scheduleId = :scheduleId', { scheduleId })
       .andWhere('game.status != :cancelled', {
         cancelled: GameStatus.CANCELLED,
       })

@@ -13,18 +13,8 @@ import { Dialog } from "@/components/dialog";
 import { Button } from "@/components/button";
 import { Tabs } from "@/components/tabs";
 import { StatusBadge } from "@/components/status-badge";
-import {
-  FormRow,
-  FormInput,
-  FormSelect,
-  FormCheckbox,
-} from "@/components/form-fields";
-import {
-  REFUND_POLICIES,
-  WEEKDAYS,
-  GAME_STATUS_COLORS,
-  teamDisplay,
-} from "@/constants";
+import { FormRow, FormInput, FormCheckbox } from "@/components/form-fields";
+import { WEEKDAYS, GAME_STATUS_COLORS, teamDisplay } from "@/constants";
 import type { Schedule, SlotConfig } from "@/types";
 import { RecurrenceForm } from "./recurrence-form";
 import { SlotConfigEditor } from "./slot-config-editor";
@@ -65,10 +55,11 @@ export function ScheduleDetailDialog({
       gamesPerDay: schedule.gamesPerDay,
       requiresConfirmation: schedule.requiresConfirmation,
       confirmationWindowMinutes: schedule.confirmationWindowMinutes,
-      reservationCost: schedule.reservationCost,
-      instantReservationCost: schedule.instantReservationCost || 0,
-      refundPolicy: schedule.refundPolicy,
-      refundPercentage: schedule.refundPercentage || 0,
+      // Coin costs disabled for MVP — always send 0/NONE regardless of stored values
+      reservationCost: 0,
+      instantReservationCost: 0,
+      refundPolicy: "NONE",
+      refundPercentage: 0,
       isExclusiveToGold: schedule.isExclusiveToGold,
       isActive: schedule.isActive,
       reminderMinutes: (schedule.reminderMinutesBefore || []).join(","),
@@ -105,11 +96,12 @@ export function ScheduleDetailDialog({
       .map(Number)
       .filter(Boolean);
     const cleanSlots = editSlots.map(
-      ({ slotNumber, team, isGoldOnly, coinsCost, preAssignedUserId }) => ({
+      ({ slotNumber, team, isGoldOnly, preAssignedUserId }) => ({
         slotNumber,
         team,
         isGoldOnly: !!isGoldOnly,
-        coinsCost: coinsCost != null ? Number(coinsCost) : null,
+        // Per-slot coin cost disabled for MVP — always null
+        coinsCost: null,
         preAssignedUserId:
           preAssignedUserId != null ? Number(preAssignedUserId) : null,
       }),
@@ -281,10 +273,6 @@ export function ScheduleDetailDialog({
               <td>{schedule.gamesPerDay}</td>
             </tr>
             <tr>
-              <td className="py-2 font-medium">Reservation Cost</td>
-              <td>{schedule.reservationCost} coins</td>
-            </tr>
-            <tr>
               <td className="py-2 font-medium">Requires Confirmation</td>
               <td>{schedule.requiresConfirmation ? "Yes" : "No"}</td>
             </tr>
@@ -294,21 +282,6 @@ export function ScheduleDetailDialog({
                 <td>{schedule.confirmationWindowMinutes} min</td>
               </tr>
             )}
-            {schedule.requiresConfirmation && (
-              <tr>
-                <td className="py-2 font-medium">Instant Reserve Cost</td>
-                <td>{schedule.instantReservationCost || 0} coins</td>
-              </tr>
-            )}
-            <tr>
-              <td className="py-2 font-medium">Refund Policy</td>
-              <td>
-                {schedule.refundPolicy}
-                {schedule.refundPercentage
-                  ? ` (${schedule.refundPercentage}%)`
-                  : ""}
-              </td>
-            </tr>
             <tr>
               <td className="py-2 font-medium">Exclusive to Gold</td>
               <td>{schedule.isExclusiveToGold ? "Yes" : "No"}</td>
@@ -412,33 +385,7 @@ export function ScheduleDetailDialog({
                 type="number"
               />
             </FormRow>
-            <FormRow label="Reserve Cost">
-              <FormInput
-                form={editForm}
-                field="reservationCost"
-                setForm={setEditForm}
-                type="number"
-              />
-            </FormRow>
-            <FormRow label="Refund Policy">
-              <FormSelect
-                form={editForm}
-                field="refundPolicy"
-                setForm={setEditForm}
-                options={REFUND_POLICIES}
-              />
-            </FormRow>
           </div>
-          {editForm.refundPolicy === "PARTIAL" && (
-            <FormRow label="Refund %">
-              <FormInput
-                form={editForm}
-                field="refundPercentage"
-                setForm={setEditForm}
-                type="number"
-              />
-            </FormRow>
-          )}
           <FormCheckbox
             form={editForm}
             field="isExclusiveToGold"
@@ -458,14 +405,6 @@ export function ScheduleDetailDialog({
                   <FormInput
                     form={editForm}
                     field="confirmationWindowMinutes"
-                    setForm={setEditForm}
-                    type="number"
-                  />
-                </FormRow>
-                <FormRow label="Instant Reserve Cost">
-                  <FormInput
-                    form={editForm}
-                    field="instantReservationCost"
                     setForm={setEditForm}
                     type="number"
                   />
@@ -552,7 +491,6 @@ export function ScheduleDetailDialog({
                 <th className="px-3 py-2 text-left">#</th>
                 <th className="px-3 py-2 text-left">Team</th>
                 <th className="px-3 py-2 text-left">Gold Only</th>
-                <th className="px-3 py-2 text-left">Cost Override</th>
                 <th className="px-3 py-2 text-left">Pre-assigned</th>
               </tr>
             </thead>
@@ -564,7 +502,6 @@ export function ScheduleDetailDialog({
                     <td className="px-3 py-2">{s.slotNumber}</td>
                     <td className="px-3 py-2">{teamDisplay(s.team)}</td>
                     <td className="px-3 py-2">{s.isGoldOnly ? "Yes" : "No"}</td>
-                    <td className="px-3 py-2">{s.coinsCost ?? "Default"}</td>
                     <td className="px-3 py-2">
                       <span className="block">
                         {(s as any).preAssignedUser?.username ||
@@ -578,7 +515,7 @@ export function ScheduleDetailDialog({
               {(!schedule.slotConfigs || schedule.slotConfigs.length === 0) && (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={4}
                     className="px-3 py-4 text-center text-gray-400"
                   >
                     No slot configs

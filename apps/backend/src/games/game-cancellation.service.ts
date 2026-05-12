@@ -73,7 +73,8 @@ export class GameCancellationService {
 
     const query = this.gameRepository
       .createQueryBuilder('game')
-      .leftJoinAndSelect('game.schedule', 'schedule')
+      .leftJoinAndSelect('game.stream', 'stream')
+      .leftJoinAndSelect('stream.schedule', 'schedule')
       .where('game.id IN (:...gameIds)', { gameIds })
       .andWhere('game.status IN (:...statuses)', { statuses });
 
@@ -99,7 +100,7 @@ export class GameCancellationService {
           entityId: game.id.toString(),
           details: {
             reason: options.reason || 'Cancelled by system',
-            scheduleId: game.scheduleId,
+            scheduleId: game.stream?.scheduleId ?? null,
           },
         });
       }
@@ -114,8 +115,8 @@ export class GameCancellationService {
   async cancelGamesForEndedStreams(): Promise<number> {
     const games = await this.gameRepository
       .createQueryBuilder('game')
-      .innerJoin('game.stream', 'stream')
-      .leftJoinAndSelect('game.schedule', 'schedule')
+      .leftJoinAndSelect('game.stream', 'stream')
+      .leftJoinAndSelect('stream.schedule', 'schedule')
       .where('stream.status = :ended', { ended: StreamStatus.ENDED })
       .andWhere('game.status IN (:...statuses)', {
         statuses: [GameStatus.CREATED, GameStatus.OPEN],
@@ -150,8 +151,9 @@ export class GameCancellationService {
 
     const query = this.gameRepository
       .createQueryBuilder('game')
-      .leftJoinAndSelect('game.schedule', 'schedule')
-      .where('game.scheduleId = :scheduleId', {
+      .innerJoinAndSelect('game.stream', 'stream')
+      .leftJoinAndSelect('stream.schedule', 'schedule')
+      .where('stream.scheduleId = :scheduleId', {
         scheduleId: options.scheduleId,
       })
       .andWhere('game.status IN (:...statuses)', { statuses });
@@ -214,7 +216,7 @@ export class GameCancellationService {
             entityId: game.id.toString(),
             details: {
               reason: options.reason || 'Cancelled by system',
-              scheduleId: options.scheduleId ?? game.scheduleId,
+              scheduleId: options.scheduleId ?? game.stream?.scheduleId ?? null,
             },
           });
         }
@@ -242,7 +244,7 @@ export class GameCancellationService {
           entityId: game.id.toString(),
           details: {
             reason: options.reason || 'Cancelled by system',
-            scheduleId: options.scheduleId ?? game.scheduleId,
+            scheduleId: options.scheduleId ?? game.stream?.scheduleId ?? null,
           },
         });
       }
@@ -263,8 +265,11 @@ export class GameCancellationService {
       relations: ['user', 'user.wallet'],
     });
 
+    const schedule = game.stream?.schedule;
     for (const reservation of reservations) {
-      const refundAmount = this.calculateRefund(reservation, game.schedule);
+      const refundAmount = schedule
+        ? this.calculateRefund(reservation, schedule)
+        : 0;
       if (refundAmount > 0 && reservation.user?.wallet) {
         await this.walletService.deposit(
           reservation.user.wallet.id,

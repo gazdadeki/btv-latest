@@ -24,6 +24,7 @@ import { GamesBatchChangedPayload, WebsocketEvents } from '../websocket/events';
 import { shouldEmitPerGameEvents } from './bulk-game-event-mode';
 import { StreamsService } from '../streams/streams.service';
 import { buildZeroCostReservation } from '../common/reservation.utils';
+import { utcStartOfDay } from '../common/date.utils';
 
 /**
  * Service for managing games and their lifecycle.
@@ -129,8 +130,6 @@ export class GamesService {
 
   async createManually(
     data: {
-      scheduleId?: number;
-      scheduledStartTime?: string;
       teamAName?: string;
       teamBName?: string;
       isExclusiveToGold?: boolean;
@@ -145,37 +144,36 @@ export class GamesService {
     },
     adminId: number,
   ): Promise<Game> {
-    // Resolve schedule: use provided scheduleId or derive from active stream
-    let resolvedScheduleId = data.scheduleId;
-    let activeStreamId: number | null = null;
-
+    // Game lineage is now: game → stream → schedule. A manual game is always
+    // attached to the currently active stream; if there is no active stream,
+    // the streamer has not started a session, so there is nothing to attach to.
+    // (A game added at 02:00 while last night's stream is still LIVE belongs
+    // to that stream — its scheduledStartTime stays on the stream's own day.)
     const activeStream = await this.streamsService.findActiveStream();
-    if (activeStream) {
-      if (!resolvedScheduleId) {
-        resolvedScheduleId = activeStream.scheduleId;
-        activeStreamId = activeStream.id;
-      } else if (resolvedScheduleId === activeStream.scheduleId) {
-        activeStreamId = activeStream.id;
-      }
-      // If scheduleId doesn't match stream's schedule, don't attach to stream
-    }
-
-    if (!resolvedScheduleId) {
+    if (!activeStream) {
       throw new BadRequestException(
-        'No active stream. Cannot create game without a schedule.',
+        'No active stream. Start a stream before adding a manual game.',
       );
     }
 
-    const schedule = await this.schedulesService.findOne(resolvedScheduleId);
+    // Skip loading all of the schedule's historical games — we only need
+    // schedule metadata (teams, slot configs, firstGameStartTime) here.
+    const schedule = await this.schedulesService.findOne(
+      activeStream.scheduleId,
+      { loadGames: false },
+    );
 
-    const scheduledStartTime = data.scheduledStartTime
-      ? new Date(data.scheduledStartTime)
-      : activeStream
-        ? new Date(activeStream.createdAt)
-        : new Date();
-    if (isNaN(scheduledStartTime.getTime())) {
-      throw new BadRequestException('Invalid scheduledStartTime format');
-    }
+    // scheduledStartTime uses the active stream's day + the schedule's
+    // firstGameStartTime — same value the cron uses for bulk-generated games.
+    // This keeps manual games sorted alongside cron games (rather than at the
+    // top of the bucket by the stream's earlier createdAt). Time is
+    // informational only; the streamer controls actual pacing.
+    const streamDay = utcStartOfDay(new Date(activeStream.createdAt));
+    const [firstStartHours, firstStartMinutes] = schedule.firstGameStartTime
+      .split(':')
+      .map(Number);
+    const scheduledStartTime = new Date(streamDay);
+    scheduledStartTime.setUTCHours(firstStartHours, firstStartMinutes, 0, 0);
 
     // Use custom slot configs if provided, otherwise fall back to schedule defaults
     const slotConfigs = data.slotConfigs?.length
@@ -187,7 +185,6 @@ export class GamesService {
     const generationBatchId = randomUUID();
 
     const game = await this.create({
-      scheduleId: schedule.id,
       status: GameStatus.OPEN,
       scheduledStartTime,
       teamAName: data.teamAName || schedule.teamAName,
@@ -200,8 +197,8 @@ export class GamesService {
       slotsPerGame: schedule.slotsPerGame,
       slotConfigs: slotConfigs,
       generationBatchId,
-      gameIndex: await this.getNextGameIndex(activeStreamId),
-      streamId: activeStreamId,
+      gameIndex: await this.getNextGameIndex(activeStream.id),
+      streamId: activeStream.id,
     });
 
     // Auto-assign admin to slot 1
@@ -215,10 +212,10 @@ export class GamesService {
       entityId: game.id.toString(),
       details: {
         scheduleId: schedule.id,
-        scheduledStartTime: data.scheduledStartTime,
+        scheduledStartTime: scheduledStartTime.toISOString(),
         generationBatchId,
         gameIndex: savedGameIndex,
-        streamId: activeStreamId,
+        streamId: activeStream.id,
       },
     });
 
@@ -274,8 +271,7 @@ export class GamesService {
     }
   }
 
-  private async getNextGameIndex(streamId: number | null): Promise<number> {
-    if (!streamId) return 1;
+  private async getNextGameIndex(streamId: number): Promise<number> {
     const result = await this.gameRepository
       .createQueryBuilder('game')
       .select('MAX(game.gameIndex)', 'maxIndex')
@@ -299,11 +295,6 @@ export class GamesService {
     if (filters?.status) {
       query.andWhere('game.status = :status', { status: filters.status });
     }
-    if (filters?.scheduleId) {
-      query.andWhere('game.scheduleId = :scheduleId', {
-        scheduleId: filters.scheduleId,
-      });
-    }
     if (filters?.streamId) {
       query.andWhere('game.streamId = :streamId', {
         streamId: filters.streamId,
@@ -321,9 +312,16 @@ export class GamesService {
     }
 
     query
-      .leftJoinAndSelect('game.schedule', 'schedule')
       .leftJoinAndSelect('game.stream', 'stream')
+      .leftJoinAndSelect('stream.schedule', 'schedule')
       .leftJoinAndSelect('game.slots', 'slots');
+
+    // scheduleId filter applies via the stream's schedule
+    if (filters?.scheduleId) {
+      query.andWhere('stream.scheduleId = :scheduleId', {
+        scheduleId: filters.scheduleId,
+      });
+    }
 
     // When filtering by a single stream, order by in-stream game index
     // (Game 1, 2, 3 ...). Otherwise show newest streams' games first,
@@ -347,8 +345,8 @@ export class GamesService {
     const game = await this.gameRepository.findOne({
       where: { id },
       relations: [
-        'schedule',
         'stream',
+        'stream.schedule',
         'slots',
         'slots.reservedByUser',
         'slots.preAssignedUser',
@@ -389,7 +387,7 @@ export class GamesService {
     try {
       const game = await queryRunner.manager.findOne(Game, {
         where: { id },
-        relations: ['schedule', 'stream', 'slots'],
+        relations: ['stream', 'stream.schedule', 'slots'],
         lock: { mode: 'pessimistic_write' },
       });
 
@@ -437,7 +435,7 @@ export class GamesService {
 
     const wsEventData = {
       gameId: updated.id,
-      scheduleId: updated.scheduleId,
+      scheduleId: updated.stream?.scheduleId ?? null,
       url: gameUrl,
       teamAName: updated.teamAName,
       teamBName: updated.teamBName,
@@ -537,7 +535,7 @@ export class GamesService {
 
     this.websocketService.broadcast(WebsocketEvents.GameFinished, {
       gameId: updated.id,
-      scheduleId: updated.scheduleId,
+      scheduleId: updated.stream?.scheduleId ?? null,
       url: gameUrl,
       winningTeam: updated.winningTeam,
       teamAName: updated.teamAName,
@@ -835,9 +833,10 @@ export class GamesService {
     }
 
     // When unrestricted mode is disabled, restore gold-only from schedule slot configs
-    if (data.allowMultipleReservations === false && game.scheduleId) {
+    const scheduleIdForSlotConfigs = game.stream?.scheduleId;
+    if (data.allowMultipleReservations === false && scheduleIdForSlotConfigs) {
       const slotConfigs = await this.slotConfigService.findBySchedule(
-        game.scheduleId,
+        scheduleIdForSlotConfigs,
       );
       const goldConfigs = slotConfigs.filter((c) => c.isGoldOnly);
       for (const config of goldConfigs) {

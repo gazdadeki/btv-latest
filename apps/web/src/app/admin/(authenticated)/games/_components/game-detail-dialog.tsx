@@ -287,7 +287,10 @@ export function GameDetailDialog({
                   <td className="py-2 font-medium">Schedule</td>
                   <td>
                     <span className="block">
-                      {game.schedule?.name || `#${game.scheduleId}`}
+                      {game.stream?.schedule?.name ||
+                        (game.stream?.scheduleId
+                          ? `#${game.stream.scheduleId}`
+                          : "—")}
                     </span>
                   </td>
                 </tr>

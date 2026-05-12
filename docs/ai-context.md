@@ -215,6 +215,10 @@ All dates must be in UTC ISO 8601 format when sent to the backend.
 
 ## Game Generation & Scheduling
 
+### Game lineage
+
+`game → stream → schedule`. A game belongs to exactly one stream (NOT NULL `streamId` FK), and that stream belongs to exactly one schedule. `games.scheduleId` was removed in migration `1781000000000-DecoupleGamesFromSchedule`; queries that filter by schedule join through `stream.scheduleId`. Schedule is the recurring template (tied to a UTC calendar day); stream is the actual streaming session (can cross midnight).
+
 ### Game status lifecycle
 
 `CREATED` → `OPEN` → `IN_PROGRESS` → `FINISHED` (or `CANCELLED` at any stage)
@@ -228,6 +232,13 @@ All dates must be in UTC ISO 8601 format when sent to the backend.
 - **Idempotent**: checks for existing non-cancelled games before creation — if games already exist for a schedule+date, skips
 - Compares current UTC time against schedule's `gameCreationTime` (stored as UTC HH:MM)
 - Only generates for dates matching the schedule's recurrence pattern (`shouldCreateGameOnDate`)
+- Each cron run creates a new `Stream` first, then the games for that stream
+
+### Manual game creation (admin "Add Game" page)
+
+- Requires an active stream (PENDING/LIVE); rejects with 400 otherwise — no scheduleId is accepted from the client
+- New game attaches to the active stream; `scheduledStartTime` = `utcStartOfDay(stream.createdAt) + schedule.firstGameStartTime` so it sorts alongside the stream's cron-generated games
+- Cross-midnight: a manual game added at 02:00 while last night's stream is still LIVE inherits last night's stream date — appears on the previous day's calendar slot
 
 ### Admin force-regenerate (calendar "Generate" button)
 
@@ -238,6 +249,12 @@ All dates must be in UTC ISO 8601 format when sent to the backend.
 
 - New schedules default to all 7 days `[0,1,2,3,4,5,6]` (Sun–Sat)
 - Admin can uncheck days in the recurrence form (Step 2)
+
+### Calendar visibility rules
+
+- A real game is visible in its day's calendar slot when either its status is `FINISHED` or its owning stream is still PENDING/LIVE
+- Pseudo-games (recurrence projections) render only for today + future days where no real game exists; they swap out for real games once the cron generates them
+- Once a stream ends, `cancelGamesForEndedStreams` flips leftover CREATED/OPEN games to CANCELLED, so past days settle into "FINISHED only"
 
 ### Mobile API response shape
 

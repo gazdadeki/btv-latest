@@ -50,15 +50,21 @@ export class UpdateScheduleDto {
   @IsOptional()
   slotsPerGame?: number;
 
-  @ApiPropertyOptional({ description: 'Reservation cost in coins' })
+  @ApiPropertyOptional({
+    description: 'Reservation cost in coins (must be 0 for MVP)',
+  })
   @IsNumber()
   @Min(0)
+  @Max(0)
   @IsOptional()
   reservationCost?: number;
 
-  @ApiPropertyOptional({ description: 'Instant reservation cost in coins' })
+  @ApiPropertyOptional({
+    description: 'Instant reservation cost in coins (must be 0 for MVP)',
+  })
   @IsNumber()
   @Min(0)
+  @Max(0)
   @IsOptional()
   instantReservationCost?: number | null;
 

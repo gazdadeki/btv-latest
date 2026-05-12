@@ -120,7 +120,8 @@ export class EventGenerationService {
     // Find CREATED games for those schedules scheduled today.
     const gamesToOpen = await this.gameRepository
       .createQueryBuilder('game')
-      .where('game.scheduleId IN (:...scheduleIds)', { scheduleIds })
+      .innerJoin('game.stream', 'stream')
+      .where('stream.scheduleId IN (:...scheduleIds)', { scheduleIds })
       .andWhere('game.status = :status', { status: GameStatus.CREATED })
       .andWhere('game.scheduledStartTime BETWEEN :start AND :end', {
         start: todayStart,

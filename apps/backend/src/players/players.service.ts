@@ -74,7 +74,8 @@ export class PlayersService {
   async getAvailableGames(user: User): Promise<Game[]> {
     const query = this.gameRepository
       .createQueryBuilder('game')
-      .leftJoinAndSelect('game.schedule', 'schedule')
+      .leftJoinAndSelect('game.stream', 'stream')
+      .leftJoinAndSelect('stream.schedule', 'schedule')
       .leftJoinAndSelect('game.slots', 'slots')
       .where('game.status = :status', { status: GameStatus.CREATED })
       .andWhere('game.scheduledStartTime > :now', { now: new Date() });
@@ -106,7 +107,8 @@ export class PlayersService {
     const game = await this.gameRepository.findOne({
       where: { id: gameId },
       relations: [
-        'schedule',
+        'stream',
+        'stream.schedule',
         'slots',
         'reservations',
         'reservations.user',
@@ -256,7 +258,8 @@ export class PlayersService {
     for (const schedule of schedules) {
       const query = this.gameRepository
         .createQueryBuilder('game')
-        .where('game.scheduleId = :scheduleId', { scheduleId: schedule.id })
+        .innerJoin('game.stream', 'stream')
+        .where('stream.scheduleId = :scheduleId', { scheduleId: schedule.id })
         .andWhere('game.scheduledStartTime >= :today', { today })
         .andWhere('game.scheduledStartTime < :tomorrow', { tomorrow })
         .andWhere('game.status IN (:...statuses)', { statuses })

@@ -68,8 +68,10 @@ export const GAME_STATUS_DISPLAY: Record<GameStatus, string> = {
 
 export interface Game {
   id: number;
-  scheduleId: number;
-  streamId?: number | null;
+  // scheduleId is no longer a column on games — when surfaced in API responses,
+  // it's derived from stream.scheduleId for backward-compat.
+  scheduleId?: number | null;
+  streamId: number;
   gameIndex?: number | null;
   scheduledStartTime: string;
   actualStartTime?: string;
