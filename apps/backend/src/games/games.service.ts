@@ -188,10 +188,21 @@ export class GamesService {
     scheduledStartTime.setUTCHours(firstStartHours, firstStartMinutes, 0, 0);
 
     // Use custom slot configs if provided, otherwise fall back to schedule defaults
-    const slotConfigs = data.slotConfigs?.length
+    const rawSlotConfigs = data.slotConfigs?.length
       ? (data.slotConfigs as unknown as SlotConfig[])
       : schedule.slotConfigs ||
         (await this.slotConfigService.findBySchedule(schedule.id));
+
+    // Slot 1 is always claimed by the admin via assignAdminToFirstSlot below.
+    // If the source configs pre-assign someone else to slot 1, create() would
+    // persist that reservation and the admin assignment would silently no-op
+    // (it bails on an already-reserved slot). Strip the pre-assignment here so
+    // the admin's slot 1 invariant always wins.
+    const slotConfigs: SlotConfig[] = rawSlotConfigs.map((config) =>
+      config.slotNumber === 1 && config.preAssignedUserId
+        ? { ...config, preAssignedUserId: null }
+        : config,
+    );
 
     // Generate a new batch ID for manually created games
     const generationBatchId = randomUUID();
