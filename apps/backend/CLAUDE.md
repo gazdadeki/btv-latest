@@ -22,6 +22,13 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - Swagger at `/api` in non-production
 - `.env` loaded explicitly at startup; process exits on failure
 - Required env vars validated via `EnvValidationService`
+- **Global `ClassSerializerInterceptor`** registered in `main.ts` — runs `instanceToPlain` on every controller response so `class-transformer` decorators (e.g. `@Exclude`) are honored. This is what strips `User.password` from every response that returns a `User` entity directly or via a relation.
+
+## Response Serialization & Sensitive Fields
+
+- `User.password` carries `@Exclude({ toPlainOnly: true })` — TypeORM still loads it (auth login uses `bcrypt.compare` on `user.password`), but the global serializer drops it on the way out. Any future sensitive field on an entity that should never reach the client should follow the same pattern.
+- For endpoints that need to expose _less_ than `@Exclude` covers (e.g. you want to expose `id` and `username` of an author but hide everything else even from admins), prefer an **explicit response DTO** mapped in the service. See `src/tutorials/dto/tutorial-response.dto.ts` and `TutorialsService` — the service maps the raw `Tutorial` entity to `TutorialResponse` with a minimal `author: { id, username, avatarUrl }` shape. The entity is never returned directly to controllers.
+- Ownership-scoped lookups: any "mutate my own X by id" endpoint must scope the repository lookup with `userId` (from `req.user.id`), not just the resource id. See `StripeService.detachPaymentMethod`/`setDefaultPaymentMethod` for the canonical shape.
 
 ## WebSocket
 
@@ -114,6 +121,15 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - Admin pre-assign cannot place free users into gold-only slots (unless game is unrestricted)
 - Kicking a user or player leaving also clears pre-assignment fields
 - `username` is required on all users (used for display in slot reservations)
+
+## Tutorials
+
+- One tutorial belongs to **exactly one category** (`@ManyToOne` with `onDelete: 'RESTRICT'`) — categories cannot be deleted while in use. `categoryId` is required on create/update. Earlier many-to-many `categories[]` shape is gone.
+- Tags remain many-to-many.
+- `youtubeUrl` (optional, https-only, must match `youtube.com`/`youtu.be`) is rendered as an embedded YouTube player on the mobile detail page.
+- `featured` flag removed (migration `1784000000000-RemoveTutorialFeatured`).
+- Reads (`findAll`, `findOne`, `findBySlug`, `incrementViewCount`, `create`, `update`) return `TutorialResponse` — never the raw entity. Author is minimized to `{ id, username, avatarUrl }`. Mutation paths that need the raw entity use the private `findOneEntity()` helper.
+- Player controller (`/players/tutorials`) returns only `PUBLISHED` tutorials and increments view count on detail fetch. Admin controller (`/admin/tutorials`) returns drafts too.
 
 ## Push Notifications (Firebase)
 

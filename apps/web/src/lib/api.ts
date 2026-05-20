@@ -296,19 +296,6 @@ export const api = {
     }),
   deleteTutorial: (id: number) =>
     apiRequest(`/admin/tutorials/${id}`, { method: "DELETE" }),
-  getTutorialTags: () => apiRequest("/admin/tutorials/tags"),
-  createTutorialTag: (data: Record<string, unknown>) =>
-    apiRequest("/admin/tutorials/tags", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-  updateTutorialTag: (id: number, data: Record<string, unknown>) =>
-    apiRequest(`/admin/tutorials/tags/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
-  deleteTutorialTag: (id: number) =>
-    apiRequest(`/admin/tutorials/tags/${id}`, { method: "DELETE" }),
   getTutorialCategories: () => apiRequest("/admin/tutorials/categories"),
   createTutorialCategory: (data: Record<string, unknown>) =>
     apiRequest("/admin/tutorials/categories", {

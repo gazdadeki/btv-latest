@@ -2,7 +2,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToMany,
+  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -42,6 +42,6 @@ export class Category {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToMany(() => Tutorial, (tutorial) => tutorial.categories)
+  @OneToMany(() => Tutorial, (tutorial) => tutorial.category)
   tutorials: Tutorial[];
 }

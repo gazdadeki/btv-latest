@@ -503,8 +503,8 @@ export class StripeController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Account not verified or banned' })
   @ApiResponse({ status: 404, description: 'Payment method not found' })
-  async detachPaymentMethod(@Param('id') id: string) {
-    await this.stripeService.detachPaymentMethod(id);
+  async detachPaymentMethod(@Request() req: any, @Param('id') id: string) {
+    await this.stripeService.detachPaymentMethod(req.user.id, id);
     return { success: true };
   }
 

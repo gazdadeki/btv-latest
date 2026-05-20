@@ -2,9 +2,11 @@ import {
   IsString,
   IsOptional,
   IsEnum,
-  IsBoolean,
   IsArray,
+  IsInt,
   IsNumber,
+  IsUrl,
+  Matches,
   MinLength,
   MaxLength,
 } from 'class-validator';
@@ -19,9 +21,8 @@ import { TutorialStatus } from '../entities/tutorial.entity';
  * @property {string} body - Markdown content body (required)
  * @property {string} excerpt - Short description/excerpt (optional)
  * @property {TutorialStatus} status - Publication status (default: DRAFT)
- * @property {boolean} featured - Whether tutorial is featured (default: false)
  * @property {number[]} tagIds - Array of tag IDs to associate (optional)
- * @property {number[]} categoryIds - Array of category IDs to associate (optional)
+ * @property {number} categoryId - Category ID this tutorial belongs to
  */
 export class CreateTutorialDto {
   @ApiProperty({
@@ -64,6 +65,20 @@ export class CreateTutorialDto {
   excerpt?: string;
 
   @ApiPropertyOptional({
+    example: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    description: 'YouTube video URL (youtube.com or youtu.be)',
+    maxLength: 500,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  @IsUrl({ protocols: ['https'], require_protocol: true })
+  @Matches(/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\/.+/, {
+    message: 'youtubeUrl must be a youtube.com or youtu.be URL',
+  })
+  youtubeUrl?: string;
+
+  @ApiPropertyOptional({
     enum: TutorialStatus,
     default: TutorialStatus.DRAFT,
     description: 'Publication status',
@@ -71,14 +86,6 @@ export class CreateTutorialDto {
   @IsOptional()
   @IsEnum(TutorialStatus)
   status?: TutorialStatus;
-
-  @ApiPropertyOptional({
-    default: false,
-    description: 'Whether tutorial is featured/pinned',
-  })
-  @IsOptional()
-  @IsBoolean()
-  featured?: boolean;
 
   @ApiPropertyOptional({
     example: [1, 2, 3],
@@ -90,13 +97,10 @@ export class CreateTutorialDto {
   @IsNumber({}, { each: true })
   tagIds?: number[];
 
-  @ApiPropertyOptional({
-    example: [1, 2],
-    description: 'Array of category IDs to associate with this tutorial',
-    type: [Number],
+  @ApiProperty({
+    example: 1,
+    description: 'Category ID this tutorial belongs to',
   })
-  @IsOptional()
-  @IsArray()
-  @IsNumber({}, { each: true })
-  categoryIds?: number[];
+  @IsInt()
+  categoryId: number;
 }

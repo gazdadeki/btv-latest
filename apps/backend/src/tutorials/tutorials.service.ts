@@ -16,6 +16,10 @@ import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import {
+  TutorialResponse,
+  toTutorialResponse,
+} from './dto/tutorial-response.dto';
 
 /**
  * Service for managing tutorials, tags, and categories.
@@ -155,7 +159,7 @@ export class TutorialsService {
   async create(
     createTutorialDto: CreateTutorialDto,
     authorId: number,
-  ): Promise<Tutorial> {
+  ): Promise<TutorialResponse> {
     // Generate slug if not provided
     let slug = createTutorialDto.slug;
     if (!slug) {
@@ -167,10 +171,8 @@ export class TutorialsService {
     // Ensure slug is unique
     slug = await this.generateUniqueSlug(slug);
 
-    // Load tags and categories if provided
+    // Load tags if provided
     let tags: Tag[] = [];
-    let categories: Category[] = [];
-
     if (createTutorialDto.tagIds && createTutorialDto.tagIds.length > 0) {
       tags = await this.tagsRepository.findBy({
         id: In(createTutorialDto.tagIds),
@@ -180,16 +182,14 @@ export class TutorialsService {
       }
     }
 
-    if (
-      createTutorialDto.categoryIds &&
-      createTutorialDto.categoryIds.length > 0
-    ) {
-      categories = await this.categoriesRepository.findBy({
-        id: In(createTutorialDto.categoryIds),
-      });
-      if (categories.length !== createTutorialDto.categoryIds.length) {
-        throw new BadRequestException('One or more categories not found');
-      }
+    // Verify category exists
+    const category = await this.categoriesRepository.findOne({
+      where: { id: createTutorialDto.categoryId },
+    });
+    if (!category) {
+      throw new BadRequestException(
+        `Category with ID ${createTutorialDto.categoryId} not found`,
+      );
     }
 
     // Create tutorial
@@ -198,11 +198,11 @@ export class TutorialsService {
       slug,
       body: createTutorialDto.body,
       excerpt: createTutorialDto.excerpt || null,
+      youtubeUrl: createTutorialDto.youtubeUrl || null,
       status: createTutorialDto.status || TutorialStatus.DRAFT,
-      featured: createTutorialDto.featured || false,
       authorId,
+      categoryId: category.id,
       tags,
-      categories,
     });
 
     const saved = await this.tutorialsRepository.save(tutorial);
@@ -215,21 +215,21 @@ export class TutorialsService {
   /**
    * Find all tutorials with optional filters.
    *
-   * @param filters - Optional filters (status, featured, categoryId, tagId, search)
+   * @param filters - Optional filters (status, categoryId, tagId, search)
    * @returns Array of tutorial entities
    */
   async findAll(filters?: {
     status?: TutorialStatus;
-    featured?: boolean;
     categoryId?: number;
     tagId?: number;
     search?: string;
-  }): Promise<Tutorial[]> {
+  }): Promise<TutorialResponse[]> {
     const queryBuilder = this.tutorialsRepository
       .createQueryBuilder('tutorial')
       .leftJoinAndSelect('tutorial.author', 'author')
+      .leftJoinAndSelect('author.avatar', 'authorAvatar')
       .leftJoinAndSelect('tutorial.tags', 'tags')
-      .leftJoinAndSelect('tutorial.categories', 'categories')
+      .leftJoinAndSelect('tutorial.category', 'category')
       .orderBy('tutorial.createdAt', 'DESC');
 
     if (filters?.status) {
@@ -238,14 +238,8 @@ export class TutorialsService {
       });
     }
 
-    if (filters?.featured !== undefined) {
-      queryBuilder.andWhere('tutorial.featured = :featured', {
-        featured: filters.featured,
-      });
-    }
-
     if (filters?.categoryId) {
-      queryBuilder.andWhere('categories.id = :categoryId', {
+      queryBuilder.andWhere('tutorial.categoryId = :categoryId', {
         categoryId: filters.categoryId,
       });
     }
@@ -261,20 +255,18 @@ export class TutorialsService {
       );
     }
 
-    return queryBuilder.getMany();
+    const tutorials = await queryBuilder.getMany();
+    return tutorials.map(toTutorialResponse);
   }
 
   /**
-   * Find a single tutorial by ID.
-   *
-   * @param id - Tutorial ID
-   * @returns Tutorial entity with relations
-   * @throws NotFoundException if tutorial not found
+   * Internal helper that returns the raw Tutorial entity (with relations).
+   * Used by mutation paths that need the entity reference before mapping.
    */
-  async findOne(id: number): Promise<Tutorial> {
+  private async findOneEntity(id: number): Promise<Tutorial> {
     const tutorial = await this.tutorialsRepository.findOne({
       where: { id },
-      relations: ['author', 'tags', 'categories'],
+      relations: ['author', 'tags', 'category'],
     });
 
     if (!tutorial) {
@@ -285,32 +277,43 @@ export class TutorialsService {
   }
 
   /**
+   * Find a single tutorial by ID.
+   *
+   * @param id - Tutorial ID
+   * @returns Tutorial response DTO with relations (author stripped to id/username/avatarUrl)
+   * @throws NotFoundException if tutorial not found
+   */
+  async findOne(id: number): Promise<TutorialResponse> {
+    return toTutorialResponse(await this.findOneEntity(id));
+  }
+
+  /**
    * Find a tutorial by slug.
    *
    * @param slug - Tutorial slug
-   * @returns Tutorial entity with relations
+   * @returns Tutorial response DTO with relations
    * @throws NotFoundException if tutorial not found
    */
-  async findBySlug(slug: string): Promise<Tutorial> {
+  async findBySlug(slug: string): Promise<TutorialResponse> {
     const tutorial = await this.tutorialsRepository.findOne({
       where: { slug },
-      relations: ['author', 'tags', 'categories'],
+      relations: ['author', 'tags', 'category'],
     });
 
     if (!tutorial) {
       throw new NotFoundException(`Tutorial with slug "${slug}" not found`);
     }
 
-    return tutorial;
+    return toTutorialResponse(tutorial);
   }
 
   /**
    * Increment view count for a tutorial.
    *
    * @param id - Tutorial ID
-   * @returns Updated tutorial entity
+   * @returns Updated tutorial response DTO
    */
-  async incrementViewCount(id: number): Promise<Tutorial> {
+  async incrementViewCount(id: number): Promise<TutorialResponse> {
     await this.tutorialsRepository.increment({ id }, 'viewCount', 1);
     return this.findOne(id);
   }
@@ -328,8 +331,8 @@ export class TutorialsService {
   async update(
     id: number,
     updateTutorialDto: UpdateTutorialDto,
-  ): Promise<Tutorial> {
-    const tutorial = await this.findOne(id);
+  ): Promise<TutorialResponse> {
+    const tutorial = await this.findOneEntity(id);
 
     // Handle slug update
     if (updateTutorialDto.slug !== undefined) {
@@ -351,11 +354,11 @@ export class TutorialsService {
     if (updateTutorialDto.excerpt !== undefined) {
       tutorial.excerpt = updateTutorialDto.excerpt;
     }
+    if (updateTutorialDto.youtubeUrl !== undefined) {
+      tutorial.youtubeUrl = updateTutorialDto.youtubeUrl || null;
+    }
     if (updateTutorialDto.status !== undefined) {
       tutorial.status = updateTutorialDto.status;
-    }
-    if (updateTutorialDto.featured !== undefined) {
-      tutorial.featured = updateTutorialDto.featured;
     }
 
     // Handle tags update
@@ -373,19 +376,17 @@ export class TutorialsService {
       }
     }
 
-    // Handle categories update
-    if (updateTutorialDto.categoryIds !== undefined) {
-      if (updateTutorialDto.categoryIds.length === 0) {
-        tutorial.categories = [];
-      } else {
-        const categories = await this.categoriesRepository.findBy({
-          id: In(updateTutorialDto.categoryIds),
-        });
-        if (categories.length !== updateTutorialDto.categoryIds.length) {
-          throw new BadRequestException('One or more categories not found');
-        }
-        tutorial.categories = categories;
+    // Handle category update
+    if (updateTutorialDto.categoryId !== undefined) {
+      const category = await this.categoriesRepository.findOne({
+        where: { id: updateTutorialDto.categoryId },
+      });
+      if (!category) {
+        throw new BadRequestException(
+          `Category with ID ${updateTutorialDto.categoryId} not found`,
+        );
       }
+      tutorial.categoryId = category.id;
     }
 
     const saved = await this.tutorialsRepository.save(tutorial);
@@ -402,7 +403,7 @@ export class TutorialsService {
    * @throws NotFoundException if tutorial not found
    */
   async remove(id: number): Promise<void> {
-    const tutorial = await this.findOne(id);
+    const tutorial = await this.findOneEntity(id);
     await this.tutorialsRepository.remove(tutorial);
     this.logger.log(`Deleted tutorial: ${id} - ${tutorial.title}`);
   }

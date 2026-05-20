@@ -31,12 +31,13 @@ if (missing.length > 0) {
 }
 
 // Now import NestJS modules (they will have access to env vars)
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import {
   ValidationPipe,
   VersioningType,
   Logger,
   BadRequestException,
+  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -93,6 +94,10 @@ async function bootstrap() {
   // Register global exception filter
   app.useGlobalFilters(new HttpExceptionFilter());
   logger.log('Global exception filter registered');
+
+  // Strip @Exclude()-marked fields (e.g. User.password) from every response.
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  logger.log('Global ClassSerializerInterceptor registered');
 
   // Register cookie parser middleware
   app.use(cookieParser());

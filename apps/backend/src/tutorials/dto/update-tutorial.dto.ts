@@ -2,11 +2,14 @@ import {
   IsString,
   IsOptional,
   IsEnum,
-  IsBoolean,
   IsArray,
+  IsInt,
   IsNumber,
+  IsUrl,
+  Matches,
   MinLength,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { TutorialStatus } from '../entities/tutorial.entity';
@@ -21,9 +24,8 @@ import { TutorialStatus } from '../entities/tutorial.entity';
  * @property {string} body - Markdown content body
  * @property {string} excerpt - Short description/excerpt
  * @property {TutorialStatus} status - Publication status
- * @property {boolean} featured - Whether tutorial is featured
  * @property {number[]} tagIds - Array of tag IDs to associate
- * @property {number[]} categoryIds - Array of category IDs to associate
+ * @property {number} categoryId - Category ID this tutorial belongs to
  */
 export class UpdateTutorialDto {
   @ApiPropertyOptional({
@@ -67,19 +69,28 @@ export class UpdateTutorialDto {
   excerpt?: string;
 
   @ApiPropertyOptional({
+    example: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    description:
+      'YouTube video URL (youtube.com or youtu.be). Send empty string to clear.',
+    maxLength: 500,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  @ValidateIf((o) => o.youtubeUrl !== '')
+  @IsUrl({ protocols: ['https'], require_protocol: true })
+  @Matches(/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\/.+/, {
+    message: 'youtubeUrl must be a youtube.com or youtu.be URL',
+  })
+  youtubeUrl?: string;
+
+  @ApiPropertyOptional({
     enum: TutorialStatus,
     description: 'Publication status',
   })
   @IsOptional()
   @IsEnum(TutorialStatus)
   status?: TutorialStatus;
-
-  @ApiPropertyOptional({
-    description: 'Whether tutorial is featured/pinned',
-  })
-  @IsOptional()
-  @IsBoolean()
-  featured?: boolean;
 
   @ApiPropertyOptional({
     example: [1, 2, 3],
@@ -92,12 +103,10 @@ export class UpdateTutorialDto {
   tagIds?: number[];
 
   @ApiPropertyOptional({
-    example: [1, 2],
-    description: 'Array of category IDs to associate with this tutorial',
-    type: [Number],
+    example: 1,
+    description: 'Category ID this tutorial belongs to',
   })
   @IsOptional()
-  @IsArray()
-  @IsNumber({}, { each: true })
-  categoryIds?: number[];
+  @IsInt()
+  categoryId?: number;
 }

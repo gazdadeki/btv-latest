@@ -9,6 +9,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { Avatar } from '../../avatars/entities/avatar.entity';
 import { Wallet } from '../../wallet/entities/wallet.entity';
 import { Reservation } from '../../reservations/entities/reservation.entity';
@@ -42,6 +43,7 @@ export class User {
   @Column({ unique: true })
   username: string;
 
+  @Exclude({ toPlainOnly: true })
   @Column()
   password: string;
 
