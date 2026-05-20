@@ -138,7 +138,7 @@ export default function TutorialsPage() {
       slug: form.slug || slugify(String(form.title)),
       excerpt: form.excerpt || null,
       body: form.body,
-      youtubeUrl: form.youtubeUrl ? String(form.youtubeUrl).trim() : "",
+      youtubeUrl: String(form.youtubeUrl ?? "").trim() || null,
       status: form.status,
       categoryId: Number(form.categoryId),
     };

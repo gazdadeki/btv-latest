@@ -9,7 +9,6 @@ import {
   Matches,
   MinLength,
   MaxLength,
-  ValidateIf,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TutorialStatus } from '../entities/tutorial.entity';
@@ -73,7 +72,6 @@ export class CreateTutorialDto {
   @IsOptional()
   @IsString()
   @MaxLength(500)
-  @ValidateIf((o) => o.youtubeUrl !== '')
   @IsUrl({ protocols: ['https'], require_protocol: true })
   @Matches(/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\/.+/, {
     message: 'youtubeUrl must be a youtube.com or youtu.be URL',

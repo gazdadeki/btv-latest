@@ -13,6 +13,14 @@ import { Loading } from "@/components/loading";
 import { ErrorDisplay } from "@/components/error-display";
 import { formatDate } from "@/lib/utils";
 
+const YOUTUBE_HOSTS = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "m.youtube.com",
+  "youtube-nocookie.com",
+  "www.youtube-nocookie.com",
+]);
+
 function extractYoutubeId(url: string): string | null {
   try {
     const u = new URL(url);
@@ -20,7 +28,7 @@ function extractYoutubeId(url: string): string | null {
       const id = u.pathname.slice(1).split("/")[0];
       return /^[\w-]{11}$/.test(id) ? id : null;
     }
-    if (u.hostname.endsWith("youtube.com")) {
+    if (YOUTUBE_HOSTS.has(u.hostname)) {
       if (u.pathname === "/watch") {
         const id = u.searchParams.get("v");
         return id && /^[\w-]{11}$/.test(id) ? id : null;

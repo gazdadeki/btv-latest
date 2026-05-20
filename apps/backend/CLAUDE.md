@@ -126,7 +126,7 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 
 - One tutorial belongs to **exactly one category** (`@ManyToOne` with `onDelete: 'RESTRICT'`) — categories cannot be deleted while in use. `categoryId` is required on create/update. Earlier many-to-many `categories[]` shape is gone.
 - Tags remain many-to-many.
-- `youtubeUrl` (optional, https-only, must match `youtube.com`/`youtu.be`) is rendered as an embedded player on the mobile detail page.
+- `youtubeUrl` (optional, https-only, must match `youtube.com`/`youtu.be`) is rendered as an embedded YouTube player on the mobile detail page.
 - `featured` flag removed (migration `1784000000000-RemoveTutorialFeatured`).
 - Reads (`findAll`, `findOne`, `findBySlug`, `incrementViewCount`, `create`, `update`) return `TutorialResponse` — never the raw entity. Author is minimized to `{ id, username, avatarUrl }`. Mutation paths that need the raw entity use the private `findOneEntity()` helper.
 - Player controller (`/players/tutorials`) returns only `PUBLISHED` tutorials and increments view count on detail fetch. Admin controller (`/admin/tutorials`) returns drafts too.
