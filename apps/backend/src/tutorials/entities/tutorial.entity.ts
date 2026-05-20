@@ -29,8 +29,8 @@ export enum TutorialStatus {
  * Tutorial entity representing a tutorial/post/article.
  *
  * Tutorials are content pieces that admins can create and manage.
- * They support markdown content, tags, categories, and have features
- * like featured flag, view counts, and draft/published status.
+ * They support markdown content, tags, categories, view counts, and
+ * draft/published status.
  *
  * @property {number} id - Primary key
  * @property {string} title - Tutorial title
@@ -38,19 +38,19 @@ export enum TutorialStatus {
  * @property {string} body - Markdown content body
  * @property {string} excerpt - Short description/excerpt
  * @property {TutorialStatus} status - Publication status (DRAFT or PUBLISHED)
- * @property {boolean} featured - Whether tutorial is featured/pinned
  * @property {number} viewCount - Number of times tutorial was viewed
  * @property {number} authorId - Foreign key to User (admin who created it)
  * @property {Date} createdAt - When the tutorial was created
  * @property {Date} updatedAt - When the tutorial was last updated
  * @property {User} author - The admin user who created this tutorial
+ * @property {number} categoryId - Foreign key to Category (each tutorial belongs to one category)
+ * @property {Category} category - The category this tutorial belongs to
  * @property {Tag[]} tags - Tags associated with this tutorial
- * @property {Category[]} categories - Categories this tutorial belongs to
  */
 @Entity('tutorials')
 @Index(['status'])
-@Index(['featured'])
 @Index(['authorId'])
+@Index(['categoryId'])
 @Index(['createdAt'])
 export class Tutorial {
   @PrimaryGeneratedColumn()
@@ -68,6 +68,9 @@ export class Tutorial {
   @Column({ type: 'text', nullable: true })
   excerpt: string | null;
 
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  youtubeUrl: string | null;
+
   @Column({
     type: 'enum',
     enum: TutorialStatus,
@@ -75,14 +78,14 @@ export class Tutorial {
   })
   status: TutorialStatus;
 
-  @Column({ default: false })
-  featured: boolean;
-
   @Column({ default: 0 })
   viewCount: number;
 
   @Column()
   authorId: number;
+
+  @Column()
+  categoryId: number;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -94,6 +97,12 @@ export class Tutorial {
   @JoinColumn({ name: 'authorId' })
   author: User;
 
+  @ManyToOne(() => Category, (category) => category.tutorials, {
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'categoryId' })
+  category: Category;
+
   @ManyToMany(() => Tag, (tag) => tag.tutorials, { cascade: false })
   @JoinTable({
     name: 'tutorial_tags',
@@ -101,14 +110,4 @@ export class Tutorial {
     inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
   })
   tags: Tag[];
-
-  @ManyToMany(() => Category, (category) => category.tutorials, {
-    cascade: false,
-  })
-  @JoinTable({
-    name: 'tutorial_categories',
-    joinColumn: { name: 'tutorialId', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'categoryId', referencedColumnName: 'id' },
-  })
-  categories: Category[];
 }

@@ -1875,13 +1875,18 @@ export class StripeService {
   }
 
   /**
-   * Detach a payment method from Stripe customer and remove from database
+   * Detach a payment method from Stripe customer and remove from database.
+   * Scoped to the calling user — a player can only detach their own payment methods.
    *
+   * @param userId - ID of the user requesting the detach (must own the PM)
    * @param paymentMethodId - Stripe payment method ID
    */
-  async detachPaymentMethod(paymentMethodId: string): Promise<void> {
+  async detachPaymentMethod(
+    userId: number,
+    paymentMethodId: string,
+  ): Promise<void> {
     const paymentMethod = await this.stripePaymentMethodRepository.findOne({
-      where: { stripePaymentMethodId: paymentMethodId },
+      where: { stripePaymentMethodId: paymentMethodId, userId },
     });
 
     if (!paymentMethod) {

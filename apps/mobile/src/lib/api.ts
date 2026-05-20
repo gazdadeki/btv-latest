@@ -477,10 +477,8 @@ async function syncPaymentStatus(paymentIntentId: string): Promise<unknown> {
 
 async function getTutorials(filters?: TutorialFilters): Promise<Tutorial[]> {
   const params: Record<string, string | number | boolean | undefined> = {};
-  if (filters?.featured !== undefined) params["featured"] = filters.featured;
   if (filters?.categoryId !== undefined)
     params["categoryId"] = filters.categoryId;
-  if (filters?.tagId !== undefined) params["tagId"] = filters.tagId;
   if (filters?.search) params["search"] = filters.search;
   return apiRequest<Tutorial[]>(`/players/tutorials${buildQuery(params)}`);
 }

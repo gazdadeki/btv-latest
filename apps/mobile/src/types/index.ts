@@ -298,15 +298,7 @@ export interface Wallet {
   updatedAt: string;
 }
 
-// ─── Tag & Category ───────────────────────────────────────────────────────────
-
-export interface Tag {
-  id: number;
-  name: string;
-  slug: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// ─── Category ─────────────────────────────────────────────────────────────────
 
 export interface Category {
   id: number;
@@ -321,27 +313,31 @@ export interface Category {
 
 export type TutorialStatus = "DRAFT" | "PUBLISHED";
 
+export interface TutorialAuthor {
+  id: number;
+  username: string;
+  avatarUrl: string | null;
+}
+
 export interface Tutorial {
   id: number;
   title: string;
   slug: string;
   body: string;
-  excerpt?: string;
+  excerpt?: string | null;
+  youtubeUrl?: string | null;
   status: TutorialStatus;
-  featured: boolean;
   viewCount: number;
   authorId: number;
+  categoryId: number;
   createdAt: string;
   updatedAt: string;
-  author?: User;
-  tags: Tag[];
-  categories: Category[];
+  author: TutorialAuthor | null;
+  category: Category | null;
 }
 
 export interface TutorialFilters {
-  featured?: boolean;
   categoryId?: number;
-  tagId?: number;
   search?: string;
 }
 

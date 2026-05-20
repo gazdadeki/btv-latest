@@ -200,21 +200,13 @@ export interface Tutorial {
   id: number;
   title: string;
   slug?: string;
-  excerpt?: string;
-  content: string;
+  excerpt?: string | null;
+  body: string;
+  youtubeUrl?: string | null;
   status?: string;
-  isPublished: boolean;
-  isFeatured?: boolean;
   createdAt: string;
-  tags?: Array<{ id: number; name: string }>;
-  category?: { id: number; name: string };
-  categoryId?: number;
-  tagIds?: number[];
-}
-
-export interface TutorialTag {
-  id: number;
-  name: string;
+  category: { id: number; name: string } | null;
+  categoryId: number;
 }
 
 export interface TutorialCategory {

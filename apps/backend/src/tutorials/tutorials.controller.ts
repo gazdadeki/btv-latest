@@ -51,20 +51,17 @@ export class TutorialsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Admin role required' })
   @ApiQuery({ name: 'status', required: false, enum: TutorialStatus })
-  @ApiQuery({ name: 'featured', required: false, type: Boolean })
   @ApiQuery({ name: 'categoryId', required: false, type: Number })
   @ApiQuery({ name: 'tagId', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
   async findAll(
     @Query('status') status?: TutorialStatus,
-    @Query('featured') featured?: string,
     @Query('categoryId') categoryId?: string,
     @Query('tagId') tagId?: string,
     @Query('search') search?: string,
   ) {
     const filters: any = {};
     if (status) filters.status = status;
-    if (featured !== undefined) filters.featured = featured === 'true';
     if (categoryId) filters.categoryId = parseInt(categoryId, 10);
     if (tagId) filters.tagId = parseInt(tagId, 10);
     if (search) filters.search = search;
