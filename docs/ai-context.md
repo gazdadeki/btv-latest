@@ -167,6 +167,12 @@ Both apps share a single cookie namespace (no `admin_*` / `player_*` prefixes). 
 - `apps/web/src/lib/api.ts` `login()` wrapper rejects non-admin roles: calls `/auth/logout`, clears local cookies, throws "Admin access required"
 - `apps/mobile/src/lib/api.ts` does NOT currently check role at login (documented gap — admins can log in to the player app as a player). Low impact; backend `RolesGuard` blocks admin actions either way.
 
+## Account state: bans, voiding, usernames
+
+- **Bans are not gated by a global guard.** `NotBannedGuard` was removed from the messages/players/stripe/subscriptions/tutorials controllers and the WebSocket gateway; a banned user can log in and use non-reservation features. The one enforced consequence is **cannot reserve**, checked in `ReservationsService.create` (temp-ban-aware via `bannedUntil`). Admin ban auto-releases the user's active-stream reservations; a daily cron clears elapsed temp bans. Do not assume an endpoint blocks banned users — only the reserve path does.
+- **Voided users** (`voidedAt` set) are rejected at login / refresh / JWT validation / password reset, and voiding revokes their refresh tokens.
+- **`username` is NOT globally unique.** Uniqueness is "one active account per username," enforced by a STORED generated column `usernameActive` + unique index `UQ_users_username_active` (MySQL lacks partial unique indexes); voiding frees the name. Players self-change via `PUT /auth/me/username` (verified + not-banned). See `apps/backend/CLAUDE.md` → Accounts for details.
+
 ## Date & Time Convention
 
 This convention applies to every future change across the entire codebase. Deviations are bugs.

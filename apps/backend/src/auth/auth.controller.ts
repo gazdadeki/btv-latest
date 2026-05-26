@@ -24,11 +24,16 @@ import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateUsernameDto } from './dto/update-username.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { SelectAvatarDto } from '../avatars/dto/select-avatar.dto';
 import { AvatarsService } from '../avatars/avatars.service';
 import { User } from '../users/entities/user.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { VerifiedGuard } from './guards/verified.guard';
+import { NotBannedGuard } from './guards/not-banned.guard';
+import { RequireVerified } from '../common/decorators/require-verified.decorator';
+import { RequireNotBanned } from '../common/decorators/require-not-banned.decorator';
 import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
@@ -419,6 +424,39 @@ export class AuthController {
     } catch (error) {
       this.logger.error(
         `Profile update failed for user ID: ${userId} from IP: ${ipAddress}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  @Put('me/username')
+  @UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+  @RequireVerified()
+  @RequireNotBanned()
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'Change current user username' })
+  @ApiResponse({ status: 200, description: 'Username updated' })
+  @ApiResponse({ status: 400, description: 'Invalid or disallowed username' })
+  @ApiResponse({ status: 409, description: 'Username already taken' })
+  async changeUsername(@Request() req: any, @Body() body: UpdateUsernameDto) {
+    const ipAddress = this.extractIpAddress(req);
+    const userId = req.user.id;
+
+    this.logger.log(
+      `Username change request for user ID: ${userId} from IP: ${ipAddress}`,
+    );
+
+    try {
+      const updatedUser = await this.authService.changeUsername(
+        userId,
+        body.username,
+      );
+      return this.buildUserResponse(updatedUser);
+    } catch (error) {
+      this.logger.error(
+        `Username change failed for user ID: ${userId} from IP: ${ipAddress}: ${error.message}`,
         error.stack,
       );
       throw error;

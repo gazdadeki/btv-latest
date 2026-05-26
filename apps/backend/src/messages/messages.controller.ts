@@ -19,10 +19,8 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { VerifiedGuard } from '../auth/guards/verified.guard';
-import { NotBannedGuard } from '../auth/guards/not-banned.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RequireVerified } from '../common/decorators/require-verified.decorator';
-import { RequireNotBanned } from '../common/decorators/require-not-banned.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { MessagesService } from './messages.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
@@ -41,9 +39,8 @@ import { AddAdminDto } from './dto/add-admin.dto';
 @ApiTags('Messages')
 @ApiBearerAuth()
 @Controller({ path: 'messages', version: '1' })
-@UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, VerifiedGuard, RolesGuard)
 @RequireVerified()
-@RequireNotBanned()
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 

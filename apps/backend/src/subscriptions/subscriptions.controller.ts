@@ -19,9 +19,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { RequireVerified } from '../common/decorators/require-verified.decorator';
-import { RequireNotBanned } from '../common/decorators/require-not-banned.decorator';
 import { VerifiedGuard } from '../auth/guards/verified.guard';
-import { NotBannedGuard } from '../auth/guards/not-banned.guard';
 
 @ApiTags('Subscriptions')
 @ApiBearerAuth()
@@ -31,9 +29,8 @@ export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
   @Get('players/subscription')
-  @UseGuards(VerifiedGuard, NotBannedGuard)
+  @UseGuards(VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiOperation({ summary: 'Get current subscription status and details' })
   @ApiResponse({ status: 200, description: 'Subscription status' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -46,9 +43,8 @@ export class SubscriptionsController {
   }
 
   @Get('players/subscription/history')
-  @UseGuards(VerifiedGuard, NotBannedGuard)
+  @UseGuards(VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiOperation({ summary: 'Get subscription history' })
   @ApiResponse({ status: 200, description: 'Subscription history' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -60,9 +56,8 @@ export class SubscriptionsController {
   }
 
   @Post('players/subscription/subscribe')
-  @UseGuards(VerifiedGuard, NotBannedGuard)
+  @UseGuards(VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiOperation({ summary: 'Subscribe to Gold tier' })
   @ApiResponse({ status: 201, description: 'Subscribed' })
   @ApiResponse({ status: 400, description: 'Bad request' })
@@ -77,9 +72,8 @@ export class SubscriptionsController {
   }
 
   @Post('players/subscription/cancel')
-  @UseGuards(VerifiedGuard, NotBannedGuard)
+  @UseGuards(VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiOperation({ summary: 'Cancel subscription' })
   @ApiResponse({ status: 200, description: 'Subscription cancelled' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

@@ -10,6 +10,7 @@ import {
   UseGuards,
   Request,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,6 +27,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { StripeService } from '../stripe/stripe.service';
+import { ReservationsService } from '../reservations/reservations.service';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -33,9 +35,12 @@ import { StripeService } from '../stripe/stripe.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class UsersController {
+  private readonly logger = new Logger(UsersController.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly stripeService: StripeService,
+    private readonly reservationsService: ReservationsService,
   ) {}
 
   /**
@@ -142,10 +147,38 @@ export class UsersController {
     @Param('id') id: string,
     @Body() body: { isBanned: boolean; bannedUntil?: string },
   ) {
-    return this.usersService.update(+id, {
+    const updated = await this.usersService.update(+id, {
       isBanned: body.isBanned,
       bannedUntil: body.bannedUntil ? new Date(body.bannedUntil) : null,
     });
+
+    if (body.isBanned) {
+      // The ban itself has committed; releasing the user's active-stream slots
+      // is best-effort cleanup and must not turn a successful ban into a 500.
+      // Log loudly so an operator can reconcile — and note that stream-end
+      // cleanup (cancelGamesForEndedStreams) also cancels leftover CREATED/OPEN
+      // games, so a missed release self-heals when the stream ends.
+      try {
+        const released =
+          await this.reservationsService.releaseUserFromActiveStream(
+            +id,
+            'admin_ban',
+          );
+        if (released > 0) {
+          this.logger.log(
+            `Released ${released} reservation(s) for banned user ${id}`,
+          );
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.logger.error(
+          `Ban for user ${id} committed, but releasing reservations failed: ${message}`,
+          err instanceof Error ? err.stack : undefined,
+        );
+      }
+    }
+
+    return updated;
   }
 
   @Put(':id/unban')

@@ -155,6 +155,25 @@ export class VerificationService {
     });
 
     if (!verificationCode) {
+      // Idempotency: a near-simultaneous duplicate request (common with the
+      // OTP auto-submit on the client) may have already consumed this exact
+      // code and verified the user. Only in that precise case — user already
+      // verified AND this code matches a now-used row — treat the retry as a
+      // success instead of a spurious "invalid code". A genuinely wrong,
+      // unknown, or unverified-user code still fails below.
+      const user = await this.usersService.findOne(userId);
+      if (user.isVerified) {
+        const alreadyConsumed = await this.verificationCodeRepository.findOne({
+          where: { userId, code, isUsed: true },
+        });
+        if (alreadyConsumed) {
+          this.logger.log(
+            `Verification retry for already-verified user ID: ${userId} — code already consumed, treating as success`,
+          );
+          return;
+        }
+      }
+
       await this.auditService.log({
         userId,
         action: 'VERIFICATION_FAILED',

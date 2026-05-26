@@ -23,6 +23,7 @@ export default function VerificationPage() {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submittingRef = useRef(false);
+  const submitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startCooldown = useCallback((seconds: number) => {
     if (cooldownRef.current) clearInterval(cooldownRef.current);
@@ -41,6 +42,7 @@ export default function VerificationPage() {
   useEffect(
     () => () => {
       if (cooldownRef.current) clearInterval(cooldownRef.current);
+      if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
     },
     [],
   );
@@ -69,19 +71,30 @@ export default function VerificationPage() {
       toast.error("Please enter the complete 6-digit code");
       return;
     }
+    // Cancel any pending auto-submit so it can't fire a duplicate after this
+    // call finishes (on fast/localhost backends the verify round-trip can beat
+    // the 100ms auto-submit timer, which would otherwise re-submit a consumed
+    // code and surface a spurious "invalid code").
+    if (submitTimeoutRef.current) {
+      clearTimeout(submitTimeoutRef.current);
+      submitTimeoutRef.current = null;
+    }
     submittingRef.current = true;
     setIsLoading(true);
     try {
       await api.verifyEmail(code);
       await refreshUser();
       router.replace("/home");
+      // Stay locked on success: we're navigating away, so any stale timer or
+      // double-tap must not trigger another submit. The guard is only released
+      // in catch, where a genuine wrong code should allow a retry.
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Invalid code");
       setDigits(Array(CODE_LENGTH).fill(""));
       inputRefs.current[0]?.focus();
+      submittingRef.current = false;
     } finally {
       setIsLoading(false);
-      submittingRef.current = false;
     }
   }
 
@@ -94,7 +107,8 @@ export default function VerificationPage() {
       inputRefs.current[index + 1]?.focus();
     }
     if (newDigits.every((d) => d !== "") && char) {
-      setTimeout(() => submitCode(newDigits), 100);
+      if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+      submitTimeoutRef.current = setTimeout(() => submitCode(newDigits), 100);
     }
   }
 
@@ -115,7 +129,8 @@ export default function VerificationPage() {
     setDigits(newDigits);
     inputRefs.current[Math.min(pasted.length, CODE_LENGTH - 1)]?.focus();
     if (newDigits.every((d) => d !== "")) {
-      setTimeout(() => submitCode(newDigits), 100);
+      if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+      submitTimeoutRef.current = setTimeout(() => submitCode(newDigits), 100);
     }
   }
 

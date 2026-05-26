@@ -31,6 +31,7 @@ import {
   History,
   ChevronRight,
   Lock,
+  Ban,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -75,6 +76,9 @@ function ProfileTab() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false);
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [usernameInput, setUsernameInput] = useState("");
+  const [isSavingUsername, setIsSavingUsername] = useState(false);
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -129,6 +133,39 @@ function ProfileTab() {
     }
   }
 
+  async function handleSaveUsername() {
+    const next = usernameInput.trim();
+    if (next === (user?.username ?? "")) {
+      setIsEditingUsername(false);
+      return;
+    }
+    // Mirror the backend rules (register/UpdateUsernameDto) for instant feedback;
+    // the server stays authoritative for profanity + uniqueness.
+    const validFormat =
+      next.length >= 3 &&
+      next.length <= 14 &&
+      /^[A-Za-z0-9._\-()[\]]+$/.test(next);
+    if (!validFormat) {
+      toast.error(
+        "Username must be 3–14 chars: letters, numbers, and . - _ [ ] ( )",
+      );
+      return;
+    }
+    setIsSavingUsername(true);
+    try {
+      await api.changeUsername(next);
+      await refreshUser();
+      setIsEditingUsername(false);
+      toast.success("Username updated");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update username",
+      );
+    } finally {
+      setIsSavingUsername(false);
+    }
+  }
+
   async function handleLogout() {
     setIsLoggingOut(true);
     try {
@@ -144,7 +181,6 @@ function ProfileTab() {
 
   const readOnly = [
     { label: "Email", value: user.email },
-    { label: "Username", value: user.username ?? "N/A" },
     { label: "Subscription", value: user.subscriptionTier },
   ];
 
@@ -158,8 +194,33 @@ function ProfileTab() {
     { key: "zipcode", label: "Zipcode", col: "half" },
   ];
 
+  // A temp ban whose `bannedUntil` has passed is treated as lifted (matches the
+  // backend NotBannedGuard), so it shows no notice.
+  const banActive =
+    user.isBanned &&
+    (!user.bannedUntil || new Date(user.bannedUntil) > new Date());
+  const banLabel = user.bannedUntil
+    ? `Banned until ${formatDate(user.bannedUntil)}`
+    : "Permanently banned";
+
   return (
     <div className="px-4 py-4 overflow-y-auto space-y-4">
+      {banActive && (
+        <div className="panel-dark p-4 border border-[#9c3e3b]/60">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#9c3e3b]/20 flex items-center justify-center shrink-0">
+              <Ban className="w-5 h-5 text-[#c45a57]" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-[#c45a57]">{banLabel}</p>
+              <p className="text-xs text-[#c0b8a8] mt-0.5">
+                Your account is banned, so you can&apos;t reserve slots. Other
+                features remain available.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-3 pt-2">
         {isFree(user) ? (
           <div className="relative w-24 aspect-square shrink-0">
@@ -247,6 +308,61 @@ function ProfileTab() {
                 ) : (
                   <Check className="w-5 h-5" />
                 )}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center py-2 border-b border-[#2a2620]">
+          <span className="w-28 text-[10px] font-bold text-[#8a8a8a] uppercase tracking-wider shrink-0">
+            Username
+          </span>
+          {isEditingUsername ? (
+            <div className="flex-1 flex items-center gap-2 min-w-0">
+              <input
+                type="text"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                disabled={isSavingUsername}
+                maxLength={14}
+                autoFocus
+                className="auth-input px-3 py-1.5 text-sm flex-1 min-w-0"
+              />
+              <button
+                onClick={handleSaveUsername}
+                disabled={isSavingUsername}
+                aria-label="Save username"
+                className="p-1 text-[#2a9d8f] hover:text-[#3bb5a5] disabled:opacity-50"
+              >
+                {isSavingUsername ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Check className="w-4 h-4" />
+                )}
+              </button>
+              <button
+                onClick={() => setIsEditingUsername(false)}
+                disabled={isSavingUsername}
+                aria-label="Cancel username edit"
+                className="p-1 text-[#8a8a8a] hover:text-[#c0c0c0] disabled:opacity-50"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center gap-2 min-w-0">
+              <span className="text-sm text-[#e0d8c8] truncate">
+                {user.username ?? "N/A"}
+              </span>
+              <button
+                onClick={() => {
+                  setUsernameInput(user.username ?? "");
+                  setIsEditingUsername(true);
+                }}
+                aria-label="Edit username"
+                className="p-1 text-[#c9a84c] hover:text-[#d4b04a] shrink-0"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
               </button>
             </div>
           )}

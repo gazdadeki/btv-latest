@@ -96,14 +96,6 @@ export class WebsocketGateway
         return;
       }
 
-      if (user.isBanned) {
-        this.logger.warn(
-          `WebSocket connection rejected: User is banned (userId: ${user.id}, client ID: ${client.id})`,
-        );
-        client.disconnect();
-        return;
-      }
-
       if (!user.isVerified) {
         this.logger.warn(
           `WebSocket connection rejected: User is not verified (userId: ${user.id}, client ID: ${client.id})`,

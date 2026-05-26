@@ -2,7 +2,6 @@
 
 // Translated from Mobile/lib/features/auth/pages/login_page.dart
 // Logic: post-login check isVerified → /verification, isAuthenticated → /home
-// isBanned → show toast, do NOT navigate
 
 import { useState } from "react";
 import Link from "next/link";
@@ -37,12 +36,6 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const user = await login(email.trim(), password);
-
-      if (user.isBanned) {
-        toast.error("Your account has been banned. Please contact support.");
-        setIsLoading(false);
-        return;
-      }
 
       // Hard navigation (matches the web admin pattern): avoids the Next.js
       // router cache returning a stale pre-auth redirect, and the 50ms delay

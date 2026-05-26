@@ -17,18 +17,15 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequireVerified } from '../common/decorators/require-verified.decorator';
-import { RequireNotBanned } from '../common/decorators/require-not-banned.decorator';
 import { VerifiedGuard } from '../auth/guards/verified.guard';
-import { NotBannedGuard } from '../auth/guards/not-banned.guard';
 import { PlayersService } from './players.service';
 import { Team } from '../games/entities/slot.entity';
 
 @ApiTags('Players')
 @ApiBearerAuth()
 @Controller({ path: 'players', version: '1' })
-@UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+@UseGuards(JwtAuthGuard, VerifiedGuard)
 @RequireVerified()
-@RequireNotBanned()
 export class PlayersController {
   constructor(private readonly playersService: PlayersService) {}
 
