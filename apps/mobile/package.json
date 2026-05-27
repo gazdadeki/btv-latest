@@ -7,7 +7,8 @@
     "dev:lan": "node -e \"const n=require('os').networkInterfaces();const ip=Object.values(n).flat().find(i=>i.family==='IPv4'&&!i.internal)?.address||'0.0.0.0';console.log('\\n  LAN: http://'+ip+':3002\\n')\" && next dev -p 3002 --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start -p 3002",
-    "lint": "next lint"
+    "lint": "next lint",
+    "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@btv/types": "*",
@@ -34,6 +35,7 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
