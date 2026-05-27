@@ -16,25 +16,22 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequireVerified } from '../common/decorators/require-verified.decorator';
-import { RequireNotBanned } from '../common/decorators/require-not-banned.decorator';
 import { VerifiedGuard } from '../auth/guards/verified.guard';
-import { NotBannedGuard } from '../auth/guards/not-banned.guard';
 import { TutorialsService } from './tutorials.service';
 import { TutorialStatus } from './entities/tutorial.entity';
 
 /**
  * Player controller for accessing published tutorials.
  *
- * All endpoints require authentication, verification, and user not banned.
+ * All endpoints require authentication and verification.
  * Only returns published tutorials (not drafts).
  * Viewing a tutorial increments its view count.
  */
 @ApiTags('Players Tutorials')
 @ApiBearerAuth()
 @Controller({ path: 'players/tutorials', version: '1' })
-@UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+@UseGuards(JwtAuthGuard, VerifiedGuard)
 @RequireVerified()
-@RequireNotBanned()
 export class PlayersTutorialsController {
   constructor(private readonly tutorialsService: TutorialsService) {}
 

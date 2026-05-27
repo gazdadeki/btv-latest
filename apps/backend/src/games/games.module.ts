@@ -31,7 +31,7 @@ import { StreamsModule } from '../streams/streams.module';
     WalletModule,
     ConfigModule,
     CacheModule,
-    StreamsModule,
+    forwardRef(() => StreamsModule),
   ],
   providers: [
     GamesService,

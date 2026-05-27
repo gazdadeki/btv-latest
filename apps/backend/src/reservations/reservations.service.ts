@@ -9,9 +9,10 @@ import {
   Injectable,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, In } from 'typeorm';
+import { Repository, DataSource, In, QueryRunner } from 'typeorm';
 import { Reservation, ReservationStatus } from './entities/reservation.entity';
 import { Slot, Team } from '../games/entities/slot.entity';
 import { Game, GameStatus } from '../games/entities/game.entity';
@@ -21,10 +22,13 @@ import { ConfigService } from '../config/config.service';
 import { AuditService } from '../audit/audit.service';
 import { WebsocketService } from '../websocket/websocket.service';
 import { StatisticsService } from '../statistics/statistics.service';
+import { StreamsService } from '../streams/streams.service';
 import { clearSlotAssignment } from '../common/reservation.utils';
 
 @Injectable()
 export class ReservationsService {
+  private readonly logger = new Logger(ReservationsService.name);
+
   constructor(
     @InjectRepository(Reservation)
     private reservationRepository: Repository<Reservation>,
@@ -39,6 +43,7 @@ export class ReservationsService {
     private auditService: AuditService,
     private websocketService: WebsocketService,
     private statisticsService: StatisticsService,
+    private streamsService: StreamsService,
     private dataSource: DataSource,
   ) {}
 
@@ -71,8 +76,22 @@ export class ReservationsService {
     if (!user.isVerified) {
       throw new ForbiddenException('User must be verified');
     }
+
+    // Banned users cannot reserve, regardless of membership tier. Enforced here
+    // (the single chokepoint every reservation path funnels through) rather than
+    // only via NotBannedGuard, since the mobile reserve route on PlayersController
+    // does not carry that guard. Mirrors the guard's temp-ban semantics: an
+    // expired temp ban (bannedUntil in the past) is not blocking.
     if (user.isBanned) {
-      throw new ForbiddenException('User is banned');
+      const now = new Date();
+      if (user.bannedUntil && user.bannedUntil > now) {
+        throw new ForbiddenException(
+          `User is banned until ${user.bannedUntil.toISOString()}`,
+        );
+      }
+      if (!user.bannedUntil) {
+        throw new ForbiddenException('User is permanently banned');
+      }
     }
 
     const game = await this.gameRepository.findOne({
@@ -243,7 +262,7 @@ export class ReservationsService {
         }
       }
 
-      // Reservation limit and adjacency checks (inside transaction for consistency)
+      // Reservation limit check (inside transaction for consistency)
       if (!isAdminAction && !game.allowMultipleReservations) {
         const countQuery = queryRunner.manager
           .createQueryBuilder(Reservation, 'reservation')
@@ -287,51 +306,6 @@ export class ReservationsService {
               ? 'Gold users can have at most 2 active reservations'
               : 'Free users can only have one active reservation',
           );
-        }
-
-        // GOLD: must have at least 2 games gap between reservations in the same stream
-        if (
-          user.subscriptionTier === SubscriptionTier.GOLD &&
-          game.streamId != null &&
-          game.gameIndex != null
-        ) {
-          const existingInStream = await queryRunner.manager
-            .createQueryBuilder(Reservation, 'reservation')
-            .innerJoin('reservation.game', 'streamGame')
-            .where('reservation.userId = :userId', { userId })
-            .andWhere('reservation.status IN (:...resStatuses)', {
-              resStatuses: [
-                ReservationStatus.RESERVED,
-                ReservationStatus.CONFIRMED,
-              ],
-            })
-            .andWhere('streamGame.streamId = :streamId', {
-              streamId: game.streamId,
-            })
-            .andWhere('streamGame.status IN (:...gameStatuses)', {
-              gameStatuses: [
-                GameStatus.CREATED,
-                GameStatus.OPEN,
-                GameStatus.IN_PROGRESS,
-              ],
-            })
-            .andWhere('streamGame.allowMultipleReservations = :restricted', {
-              restricted: false,
-            })
-            .select('streamGame.gameIndex', 'gameIndex')
-            .getRawMany();
-
-          const tooClose = existingInStream.some(
-            (r) =>
-              r.gameIndex != null &&
-              Math.abs(r.gameIndex - game.gameIndex!) < 2,
-          );
-
-          if (tooClose) {
-            throw new BadRequestException(
-              'Gold reservations must be at least 2 games apart. Please choose a game further away.',
-            );
-          }
         }
       }
 
@@ -525,34 +499,23 @@ export class ReservationsService {
       );
     }
 
-    const refundAmount = this.calculateRefund(reservation);
     const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ['wallet'],
     });
 
-    // Wrap refund + reservation update + slot update in a transaction
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
+    let refundAmount: number;
     try {
-      if (refundAmount > 0) {
-        await this.walletService.deposit(
-          user.wallet.id,
-          refundAmount,
-          `Refund for cancelled reservation ${reservationId}`,
-          queryRunner.manager,
-        );
-      }
-
-      reservation.status = ReservationStatus.CANCELLED;
-      reservation.cancelledAt = new Date();
-      await queryRunner.manager.save(reservation);
-
-      clearSlotAssignment(reservation.slot);
-      await queryRunner.manager.save(reservation.slot);
-
+      refundAmount = await this.performCancel(
+        reservation,
+        user,
+        queryRunner,
+        `Refund for cancelled reservation ${reservationId}`,
+      );
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -575,6 +538,133 @@ export class ReservationsService {
       entityId: reservationId.toString(),
       details: { refundAmount },
     });
+  }
+
+  /**
+   * Cancels a single reservation inside an existing transaction: refunds wallet
+   * (if applicable), flips status to CANCELLED, and clears the slot.
+   * The caller owns transaction lifecycle (begin/commit/rollback) and
+   * post-commit side effects (broadcast, audit).
+   */
+  private async performCancel(
+    reservation: Reservation,
+    user: User,
+    queryRunner: QueryRunner,
+    refundDescription: string,
+  ): Promise<number> {
+    const refundAmount = this.calculateRefund(reservation);
+
+    if (refundAmount > 0) {
+      await this.walletService.deposit(
+        user.wallet.id,
+        refundAmount,
+        refundDescription,
+        queryRunner.manager,
+      );
+    }
+
+    reservation.status = ReservationStatus.CANCELLED;
+    reservation.cancelledAt = new Date();
+    await queryRunner.manager.save(reservation);
+
+    clearSlotAssignment(reservation.slot);
+    await queryRunner.manager.save(reservation.slot);
+
+    return refundAmount;
+  }
+
+  /**
+   * Auto-releases a user's RESERVED/CONFIRMED reservations on the currently
+   * active stream's CREATED/OPEN games. Used when an admin bans the user so
+   * their slots free up and refunds are issued per schedule policy.
+   * Reservations in IN_PROGRESS/FINISHED games are not touched.
+   *
+   * @returns Number of reservations released
+   */
+  async releaseUserFromActiveStream(
+    userId: number,
+    reason: string,
+  ): Promise<number> {
+    const activeStream = await this.streamsService.findPlayerVisibleStream();
+    if (!activeStream) return 0;
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['wallet'],
+    });
+    if (!user) return 0;
+
+    const reservations = await this.reservationRepository
+      .createQueryBuilder('reservation')
+      .innerJoinAndSelect('reservation.game', 'game')
+      .innerJoinAndSelect('game.stream', 'stream')
+      .innerJoinAndSelect('stream.schedule', 'schedule')
+      .innerJoinAndSelect('reservation.slot', 'slot')
+      .where('reservation.userId = :userId', { userId })
+      .andWhere('reservation.status IN (:...statuses)', {
+        statuses: [ReservationStatus.RESERVED, ReservationStatus.CONFIRMED],
+      })
+      .andWhere('game.streamId = :streamId', { streamId: activeStream.id })
+      .andWhere('game.status IN (:...gameStatuses)', {
+        gameStatuses: [GameStatus.CREATED, GameStatus.OPEN],
+      })
+      .getMany();
+
+    if (reservations.length === 0) return 0;
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    const released: Array<{ reservation: Reservation; refundAmount: number }> =
+      [];
+    try {
+      for (const reservation of reservations) {
+        const refundAmount = await this.performCancel(
+          reservation,
+          user,
+          queryRunner,
+          `Refund for reservation ${reservation.id} released after ${reason}`,
+        );
+        released.push({ reservation, refundAmount });
+      }
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+
+    // The release transaction has already committed (slots freed, refunds
+    // issued). Broadcast/audit are post-commit side effects, so a failure here
+    // must not throw away a successful release — isolate each one.
+    for (const { reservation, refundAmount } of released) {
+      try {
+        await this.websocketService.broadcast('reservation:cancelled', {
+          reservationId: reservation.id,
+          gameId: reservation.gameId,
+          slotId: reservation.slotId,
+        });
+
+        await this.auditService.log({
+          userId,
+          userEmail: user.email,
+          action: 'RESERVATION_AUTO_CANCELLED_BAN',
+          entityType: 'Reservation',
+          entityId: reservation.id.toString(),
+          details: { refundAmount, reason },
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.logger.error(
+          `Post-release side effect failed for reservation ${reservation.id} (release already committed): ${message}`,
+          err instanceof Error ? err.stack : undefined,
+        );
+      }
+    }
+
+    return released.length;
   }
 
   /**

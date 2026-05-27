@@ -72,7 +72,13 @@ async function apiRequest<T = unknown>(
 
   let res = await fetch(url, config);
 
-  if (res.status === 401) {
+  const isAuthEndpoint =
+    endpoint.startsWith("/auth/login") ||
+    endpoint.startsWith("/auth/register") ||
+    endpoint.startsWith("/auth/forgot-password") ||
+    endpoint.startsWith("/auth/reset-password");
+
+  if (res.status === 401 && !isAuthEndpoint) {
     const refreshed = await refreshToken();
     if (refreshed) {
       res = await fetch(url, config);
@@ -154,6 +160,13 @@ async function updateProfile(fields: {
   return apiRequest<User>("/auth/me", {
     method: "PUT",
     body: JSON.stringify(body),
+  });
+}
+
+async function changeUsername(username: string): Promise<User> {
+  return apiRequest<User>("/auth/me/username", {
+    method: "PUT",
+    body: JSON.stringify({ username }),
   });
 }
 
@@ -554,6 +567,7 @@ export const api = {
   logout,
   getMe,
   updateProfile,
+  changeUsername,
   listAvatars,
   selectAvatar,
   forgotPassword,

@@ -47,6 +47,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         );
       }
 
+      if (user.voidedAt) {
+        this.logger.warn(
+          `JWT token validation failed: User ID ${user.id} is voided`,
+        );
+        throw new UnauthorizedException('User account is no longer active');
+      }
+
       this.logger.debug(
         `JWT token validation successful for user ID: ${user.id}, email: ${user.email}`,
       );

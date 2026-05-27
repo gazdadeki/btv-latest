@@ -6,10 +6,12 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, SelectQueryBuilder } from 'typeorm';
+import { Repository, In, IsNull, SelectQueryBuilder } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import * as bcrypt from 'bcrypt';
 import type { Paginated } from '@btv/types';
 import { User, UserRole, SubscriptionTier } from './entities/user.entity';
+import { RefreshToken } from '../auth/entities/refresh-token.entity';
 import { CacheService } from '../cache/cache.service';
 import { WalletService } from '../wallet/wallet.service';
 import { StatisticsService } from '../statistics/statistics.service';
@@ -31,6 +33,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(RefreshToken)
+    private refreshTokenRepository: Repository<RefreshToken>,
     private cacheService: CacheService,
     private walletService: WalletService,
     private statisticsService: StatisticsService,
@@ -46,9 +50,36 @@ export class UsersService {
    */
   async create(data: Partial<User>): Promise<User> {
     const user = this.usersRepository.create(data);
-    const saved = await this.usersRepository.save(user);
+    let saved: User;
+    try {
+      saved = await this.usersRepository.save(user);
+    } catch (err) {
+      // Backstop for the check-then-insert race in register/createUserWithRelations:
+      // the UQ_users_username_active index (one active account per username) may
+      // reject a row that passed the app-level findByUsername pre-check. Surface a
+      // clean 409 instead of a raw 500.
+      if (this.isDuplicateActiveUsername(err)) {
+        throw new ConflictException(
+          `User with username ${data.username} already exists`,
+        );
+      }
+      throw err;
+    }
     this.invalidateCache(saved);
     return saved;
+  }
+
+  /**
+   * True when the error is a MySQL duplicate-key violation on the
+   * single-active-username unique index (not e.g. the email index).
+   */
+  private isDuplicateActiveUsername(err: unknown): boolean {
+    const e = err as { errno?: number; code?: string; message?: string };
+    return (
+      (e?.errno === 1062 || e?.code === 'ER_DUP_ENTRY') &&
+      typeof e?.message === 'string' &&
+      e.message.includes('UQ_users_username_active')
+    );
   }
 
   /**
@@ -261,11 +292,12 @@ export class UsersService {
     const cacheKey = this.cacheService.getUserUsernameKey(username);
     const cachedId = this.cacheService.get<number>(cacheKey);
     if (cachedId) {
-      return this.findOne(cachedId);
+      const cached = await this.findOne(cachedId);
+      return cached.voidedAt ? null : cached;
     }
 
     const user = await this.usersRepository.findOne({
-      where: { username },
+      where: { username, voidedAt: IsNull() },
       relations: ['wallet', 'statistics', 'subscription', 'avatar'],
     });
     if (user) {
@@ -324,6 +356,41 @@ export class UsersService {
   }
 
   /**
+   * Change a user's username. Unlike the generic `update()`, this evicts BOTH
+   * the old and the new username cache keys — the freed name must read as
+   * available again — and translates a `UQ_users_username_active` race into a
+   * clean 409. Uniqueness/profanity are validated by the caller
+   * (AuthService.changeUsername).
+   */
+  async updateUsername(userId: number, newUsername: string): Promise<User> {
+    const user = await this.findOne(userId);
+    const oldUsername = user.username;
+    user.username = newUsername;
+
+    let saved: User;
+    try {
+      saved = await this.usersRepository.save(user);
+    } catch (err) {
+      // `user` is likely the cached instance (findOne caches by id) and we
+      // already mutated its username above. On failure, evict it so a rejected
+      // rename never leaves the unsaved name in cache.
+      this.invalidateCache(user);
+      if (this.isDuplicateActiveUsername(err)) {
+        throw new ConflictException(
+          `User with username ${newUsername} already exists`,
+        );
+      }
+      throw err;
+    }
+
+    if (oldUsername && oldUsername !== newUsername) {
+      this.cacheService.del(this.cacheService.getUserUsernameKey(oldUsername));
+    }
+    this.invalidateCache(saved);
+    return saved;
+  }
+
+  /**
    * Update only the avatar FK on a user. Uses a raw column UPDATE to bypass
    * TypeORM's entity save path, which can clobber the FK when the eager-loaded
    * `avatar` relation object is out of sync with the new `avatarId`.
@@ -375,6 +442,13 @@ export class UsersService {
       voidReason: reason,
     });
 
+    // Revoke all of the user's active refresh tokens so any in-flight
+    // session is killed at the next refresh attempt.
+    await this.refreshTokenRepository.update(
+      { userId: id, isRevoked: false },
+      { isRevoked: true, revokedAt: new Date() },
+    );
+
     // Audit log
     await this.auditService.log({
       userId: voidedBy,
@@ -392,6 +466,29 @@ export class UsersService {
       `User voided: ID ${id}, email: ${user.email}, voided by admin ID: ${voidedBy}`,
     );
     return updated;
+  }
+
+  /**
+   * Daily hygiene job: lifts any temporary ban whose `bannedUntil` has passed.
+   * The runtime NotBannedGuard already treats an expired temp ban as
+   * non-enforcing, but this keeps the `isBanned` column truthful so admin
+   * listings, filters, and analytics aren't lying about the user's status.
+   * Permanent bans (bannedUntil IS NULL) are skipped.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_2AM)
+  async expireTemporaryBans(): Promise<void> {
+    const result = await this.usersRepository
+      .createQueryBuilder()
+      .update(User)
+      .set({ isBanned: false, bannedUntil: null })
+      .where(
+        'isBanned = true AND bannedUntil IS NOT NULL AND bannedUntil <= :now',
+        { now: new Date() },
+      )
+      .execute();
+    if (result.affected && result.affected > 0) {
+      this.logger.log(`Expired ${result.affected} temporary ban(s)`);
+    }
   }
 
   private invalidateCache(user: User): void {

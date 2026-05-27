@@ -11,6 +11,7 @@ import { ConfigModule } from '../config/config.module';
 import { AuditModule } from '../audit/audit.module';
 import { WebsocketModule } from '../websocket/websocket.module';
 import { StatisticsModule } from '../statistics/statistics.module';
+import { StreamsModule } from '../streams/streams.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { StatisticsModule } from '../statistics/statistics.module';
     AuditModule,
     forwardRef(() => WebsocketModule),
     StatisticsModule,
+    StreamsModule,
   ],
   providers: [ReservationsService],
   controllers: [ReservationsController],

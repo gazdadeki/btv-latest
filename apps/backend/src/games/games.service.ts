@@ -169,7 +169,9 @@ export class GamesService {
     // top of the bucket by the stream's earlier createdAt). Time is
     // informational only; the streamer controls actual pacing.
     const streamDay = utcStartOfDay(new Date(activeStream.createdAt));
-    const timeMatch = /^(\d{1,2}):(\d{2})$/.exec(
+    // MySQL TIME columns load back as "HH:MM:SS" even when written as "HH:MM",
+    // so allow the optional seconds segment (and ignore it).
+    const timeMatch = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(
       schedule.firstGameStartTime ?? '',
     );
     if (!timeMatch) {

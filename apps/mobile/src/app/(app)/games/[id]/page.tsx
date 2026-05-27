@@ -310,7 +310,6 @@ function SlotsTab({
   isGoldUser,
   hasActiveReservation,
   atReservationLimit,
-  tooCloseToExisting,
   locked,
   reserveDisabled,
   onReserve,
@@ -322,7 +321,6 @@ function SlotsTab({
   isGoldUser: boolean;
   hasActiveReservation: boolean;
   atReservationLimit: boolean;
-  tooCloseToExisting: boolean;
   locked: boolean;
   reserveDisabled: boolean;
   onReserve: (slotId: number, team: Team) => void;
@@ -387,9 +385,7 @@ function SlotsTab({
               ? isGoldUser
                 ? MESSAGES.reservation.goldAtLimit
                 : MESSAGES.reservation.freeAtLimit
-              : tooCloseToExisting
-                ? MESSAGES.reservation.tooClose
-                : MESSAGES.reservation.alreadyInGame}
+              : MESSAGES.reservation.alreadyInGame}
           </p>
         </div>
       )}
@@ -445,11 +441,18 @@ export default function GameDetailsPage({
     ? LIMITS.GOLD_MAX_RESERVATIONS
     : LIMITS.FREE_MAX_RESERVATIONS;
 
+  // Mirror backend cap logic (reservations.service.ts): only reservations on
+  // games that are still CREATED/OPEN/IN_PROGRESS count against the per-stream
+  // cap. Once a game is FINISHED (or CANCELLED), its slot is released so the
+  // player can reserve another game in the same stream.
   const activeStreamReservations = myReservations.filter(
     (r) =>
       reservationIsActive(r) &&
+      !!r.game &&
+      !gameIsFinished(r.game) &&
+      !gameIsCancelled(r.game) &&
       r.gameId !== gameId &&
-      r.game?.streamId != null &&
+      r.game.streamId != null &&
       r.game.streamId === game?.streamId &&
       !r.game.allowMultipleReservations,
   );
@@ -458,22 +461,18 @@ export default function GameDetailsPage({
     !game?.allowMultipleReservations &&
     activeStreamReservations.length >= maxReservations;
 
-  const tooCloseToExisting =
-    !game?.allowMultipleReservations &&
-    isUserGold &&
-    game?.gameIndex != null &&
-    activeStreamReservations.some(
-      (r) =>
-        r.game?.gameIndex != null &&
-        Math.abs(r.game.gameIndex - game.gameIndex!) < LIMITS.GOLD_MIN_GAME_GAP,
-    );
-
   const hasSlotInThisGame =
     !!user &&
     !!game?.slots?.some((s) => s.isReserved && s.reservedByUserId === user.id);
 
-  const hasActiveReservation =
-    hasSlotInThisGame || atReservationLimit || tooCloseToExisting;
+  const hasActiveReservation = hasSlotInThisGame || atReservationLimit;
+
+  // Banned users can't reserve (backend enforces this too). A temp ban whose
+  // `bannedUntil` has passed is treated as lifted, matching NotBannedGuard.
+  const banActive =
+    !!user &&
+    user.isBanned &&
+    (!user.bannedUntil || new Date(user.bannedUntil) > new Date());
 
   // Join/leave WebSocket event room
   useEffect(() => {
@@ -623,17 +622,18 @@ export default function GameDetailsPage({
             isGoldUser={isUserGold}
             hasActiveReservation={hasActiveReservation}
             atReservationLimit={atReservationLimit}
-            tooCloseToExisting={tooCloseToExisting}
             locked={slotsLocked}
             reserveDisabled={reserveDisabledForPreOpen}
             onReserve={(slotId, team) => {
+              if (banActive) {
+                toast.warning(MESSAGES.reservation.toastBanned);
+                return;
+              }
               if (hasActiveReservation) {
                 toast.warning(
                   hasSlotInThisGame
                     ? MESSAGES.reservation.toastAlreadyInGame
-                    : atReservationLimit
-                      ? MESSAGES.reservation.toastAtLimit
-                      : MESSAGES.reservation.toastTooClose,
+                    : MESSAGES.reservation.toastAtLimit,
                 );
                 return;
               }

@@ -103,8 +103,9 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - **One slot per game per player** — always enforced, no exceptions (checked via both reservations table and slots table)
 - Reservation limits are scoped **per stream**, not global — each new stream resets the allowance
 - Free users: max 1 active reservation per stream
-- Gold users: max 2 active reservations per stream, must be **at least 2 games apart** (by gameIndex)
+- Gold users: max 2 active reservations per stream
 - Games with `allowMultipleReservations=true` bypass stream-level limits and gold-only slot restrictions (but NOT one-slot-per-game)
+- **Banned users cannot reserve** — enforced inside `ReservationsService.create` (the chokepoint every reserve path funnels through, including the mobile `players` route), not via a global guard. Temp-ban-aware: an expired `bannedUntil` is not blocking. See Accounts below.
 
 ## Calendar
 
@@ -121,6 +122,25 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - Admin pre-assign cannot place free users into gold-only slots (unless game is unrestricted)
 - Kicking a user or player leaving also clears pre-assignment fields
 - `username` is required on all users (used for display in slot reservations)
+
+## Accounts: Bans, Voiding & Usernames
+
+### Bans
+
+- Bans are **not** enforced by a global guard anymore — `NotBannedGuard` / `@RequireNotBanned` were removed from the messages, players, stripe, subscriptions and players-tutorials controllers, and the `isBanned` disconnect was removed from the WebSocket gateway. A banned user can still log in and use non-reservation features.
+- The single enforced consequence of a ban is **cannot reserve** (see Reservation Limits) — enforced in `ReservationsService.create`. The mobile app also shows a ban banner and blocks the reserve action client-side.
+- `bannedUntil` semantics: `NULL` = permanent; future datetime = temp ban; past datetime = effectively lifted. A daily cron (`UsersService.expireTemporaryBans`, 02:00) clears `isBanned` / `bannedUntil` for elapsed temp bans so the column stays truthful.
+- `PUT /admin/users/:id/ban` also auto-releases the user's active-stream RESERVED/CONFIRMED reservations on CREATED/OPEN games (refunds per policy). Best-effort: a release failure is logged, not fatal to the (already-committed) ban — and stream-end cleanup also frees leftovers.
+
+### Voiding (soft delete)
+
+- Voided users (`voidedAt` set) are locked out everywhere: login, token refresh, JWT validation, and password reset all reject them, and `voidUser` revokes all their active refresh tokens.
+
+### Usernames
+
+- `username` is **no longer globally unique**. The rule is "at most one **active** account per username," enforced by a STORED generated column `usernameActive` (= `username` when `voidedAt IS NULL`, else `NULL`) with unique index `UQ_users_username_active` — MySQL has no partial unique index, so this is the standard workaround. Migrations `1785000000000` (drop global unique, add plain `IDX_users_username`) + `1786000000000` (add column + unique index). A voided user's name is freed for reuse.
+- The column is declared on the `User` entity with `asExpression` + `generatedType: 'STORED'` and **`insert: false` / `update: false`** — TypeORM does NOT auto-exclude generated columns from INSERT/UPDATE, so the read-only flags are required or MySQL rejects the write.
+- Players change their own username via `PUT /auth/me/username` (verified + not-banned, throttled; profanity + active-uniqueness checked, with the DB index as the race backstop → clean 409 on collision).
 
 ## Tutorials
 

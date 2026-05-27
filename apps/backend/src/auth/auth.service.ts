@@ -230,16 +230,19 @@ export class AuthService {
     );
 
     const user = await this.usersService.findByEmailOrUsername(loginDto.email);
-    if (!user) {
+    if (!user || user.voidedAt) {
       this.logger.warn(
-        `Login failed: User not found with email or username: ${loginDto.email} from IP: ${ipAddress || 'unknown'}`,
+        `Login failed: ${user ? 'voided' : 'not found'} for identifier: ${loginDto.email} from IP: ${ipAddress || 'unknown'}`,
       );
       await this.auditService.log({
+        userId: user?.id,
+        userEmail: user?.email,
+        entityId: user?.id?.toString(),
         action: 'LOGIN_FAILED',
         entityType: 'User',
         details: {
           identifier: loginDto.email,
-          reason: 'User not found',
+          reason: user ? 'User voided' : 'User not found',
         },
         ipAddress,
         userAgent,
@@ -379,6 +382,18 @@ export class AuthService {
       throw new UnauthorizedException(
         `Refresh token expired at ${token.expiresAt.toISOString()}`,
       );
+    }
+
+    if (token.user.voidedAt) {
+      this.logger.warn(
+        `Token refresh rejected: user ID ${token.userId} is voided`,
+      );
+      // Defense in depth: also revoke this token so any subsequent attempts
+      // short-circuit at the lookup above instead of reaching this branch.
+      token.isRevoked = true;
+      token.revokedAt = new Date();
+      await this.refreshTokenRepository.save(token);
+      throw new UnauthorizedException('User account is no longer active');
     }
 
     this.logger.debug(
@@ -636,17 +651,18 @@ export class AuthService {
 
     const user = await this.usersService.findByEmail(forgotPasswordDto.email);
 
-    // Always return success to prevent email enumeration attacks
-    if (!user) {
+    // Always return success to prevent email enumeration attacks. Voided
+    // users are treated as if they don't exist — no reset token, no email.
+    if (!user || user.voidedAt) {
       this.logger.warn(
-        `Password reset requested for non-existent email: ${forgotPasswordDto.email} from IP: ${ipAddress || 'unknown'}`,
+        `Password reset requested for ${user ? 'voided' : 'non-existent'} email: ${forgotPasswordDto.email} from IP: ${ipAddress || 'unknown'}`,
       );
       await this.auditService.log({
         action: 'PASSWORD_RESET_REQUESTED',
         entityType: 'User',
         details: {
           email: forgotPasswordDto.email,
-          reason: 'User not found',
+          reason: user ? 'User voided' : 'User not found',
         },
         ipAddress,
         userAgent,
@@ -825,6 +841,59 @@ export class AuthService {
     });
 
     this.logger.log(`Profile updated successfully for user ID: ${userId}`);
+    return updatedUser;
+  }
+
+  /**
+   * Changes the current user's username. Enforces the same rules as
+   * registration: profanity filter and uniqueness among active (non-voided)
+   * accounts. `UsersService.updateUsername` (backed by the
+   * `UQ_users_username_active` index) is the race backstop and evicts the freed
+   * name from cache.
+   */
+  async changeUsername(userId: number, newUsername: string): Promise<User> {
+    this.logger.log(`Username change request for user ID: ${userId}`);
+
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    // No-op if unchanged — avoids a needless write and a self-collision.
+    if (newUsername === user.username) {
+      return user;
+    }
+
+    if (this.profanityService.isProfane(newUsername)) {
+      this.logger.warn(
+        `Username change rejected by profanity filter for user ID: ${userId}`,
+      );
+      throw new BadRequestException('Username is not allowed');
+    }
+
+    const existing = await this.usersService.findByUsername(newUsername);
+    if (existing && existing.id !== userId) {
+      throw new ConflictException(
+        `User with username ${newUsername} already exists`,
+      );
+    }
+
+    const oldUsername = user.username;
+    const updatedUser = await this.usersService.updateUsername(
+      userId,
+      newUsername,
+    );
+
+    await this.auditService.log({
+      userId,
+      userEmail: user.email,
+      action: 'USERNAME_CHANGED',
+      entityType: 'User',
+      entityId: userId.toString(),
+      details: { from: oldUsername, to: newUsername },
+    });
+
+    this.logger.log(`Username changed successfully for user ID: ${userId}`);
     return updatedUser;
   }
 

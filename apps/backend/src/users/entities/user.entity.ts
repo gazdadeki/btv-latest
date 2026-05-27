@@ -8,6 +8,7 @@ import {
   OneToMany,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { Avatar } from '../../avatars/entities/avatar.entity';
@@ -40,7 +41,8 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ unique: true })
+  @Column()
+  @Index('IDX_users_username')
   username: string;
 
   @Exclude({ toPlainOnly: true })
@@ -81,6 +83,34 @@ export class User {
 
   @Column({ type: 'text', nullable: true })
   voidReason: string | null;
+
+  /**
+   * DB-enforcement plumbing for "at most one ACTIVE account per username".
+   * Holds `username` while the account is active (voidedAt IS NULL) and NULL
+   * once voided. The UQ_users_username_active unique index over it collides on
+   * two active rows sharing a name, while voided rows (all NULL — distinct in
+   * MySQL) free the name for reuse. MySQL has no partial/filtered unique index,
+   * hence this STORED generated column. Derived entirely from `username` +
+   * `voidedAt`; never read or written by application code. See migration
+   * 1786000000000-EnforceSingleActiveUsername.
+   */
+  @Exclude({ toPlainOnly: true })
+  @Index('UQ_users_username_active', { unique: true })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    select: false,
+    // Read-only: the DB computes this. TypeORM does NOT auto-exclude
+    // asExpression columns from INSERT/UPDATE, so mark it explicitly or it
+    // gets written (MySQL then rejects any non-DEFAULT value on a generated
+    // column).
+    insert: false,
+    update: false,
+    asExpression: 'CASE WHEN `voidedAt` IS NULL THEN `username` ELSE NULL END',
+    generatedType: 'STORED',
+  })
+  usernameActive: string | null;
 
   @Column({ nullable: true })
   fullName: string | null;

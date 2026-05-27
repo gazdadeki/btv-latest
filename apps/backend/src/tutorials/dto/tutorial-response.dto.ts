@@ -1,4 +1,5 @@
 import { Tutorial, TutorialStatus } from '../entities/tutorial.entity';
+import { AvatarsService } from '../../avatars/avatars.service';
 
 export interface TutorialAuthorResponse {
   id: number;
@@ -55,7 +56,9 @@ export function toTutorialResponse(tutorial: Tutorial): TutorialResponse {
       ? {
           id: tutorial.author.id,
           username: tutorial.author.username,
-          avatarUrl: tutorial.author.avatar?.url ?? null,
+          avatarUrl: tutorial.author.avatar
+            ? AvatarsService.buildUrl(tutorial.author.avatar.filename)
+            : null,
         }
       : null,
     category: tutorial.category

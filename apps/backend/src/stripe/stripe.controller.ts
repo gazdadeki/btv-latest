@@ -27,9 +27,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { RequireVerified } from '../common/decorators/require-verified.decorator';
-import { RequireNotBanned } from '../common/decorators/require-not-banned.decorator';
 import { VerifiedGuard } from '../auth/guards/verified.guard';
-import { NotBannedGuard } from '../auth/guards/not-banned.guard';
 import {
   StripePaymentStatus,
   StripePaymentType,
@@ -213,9 +211,8 @@ export class StripeController {
   }
 
   @Get('players/stripe/products')
-  @UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+  @UseGuards(JwtAuthGuard, VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get available products (subscriptions and coin packs)',
@@ -233,9 +230,8 @@ export class StripeController {
   }
 
   @Post('players/stripe/payment-intent')
-  @UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+  @UseGuards(JwtAuthGuard, VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create payment intent for coin pack purchase' })
   @ApiResponse({ status: 201, description: 'Payment intent created' })
@@ -261,9 +257,8 @@ export class StripeController {
   }
 
   @Get('players/stripe/payment-status/:paymentIntentId')
-  @UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+  @UseGuards(JwtAuthGuard, VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Check payment status by payment intent ID',
@@ -338,9 +333,8 @@ export class StripeController {
   }
 
   @Post('players/stripe/subscription-intent')
-  @UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+  @UseGuards(JwtAuthGuard, VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create subscription setup intent' })
   @ApiResponse({ status: 201, description: 'Subscription intent created' })
@@ -367,9 +361,8 @@ export class StripeController {
   }
 
   @Post('players/stripe/setup-intent')
-  @UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+  @UseGuards(JwtAuthGuard, VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create setup intent for collecting payment methods',
@@ -389,9 +382,8 @@ export class StripeController {
   }
 
   @Post('players/stripe/sync-payment-status')
-  @UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+  @UseGuards(JwtAuthGuard, VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Sync payment status from Stripe',
@@ -457,9 +449,8 @@ export class StripeController {
   }
 
   @Get('players/stripe/payment-methods')
-  @UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+  @UseGuards(JwtAuthGuard, VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get own payment methods' })
   @ApiResponse({ status: 200, description: 'Payment methods' })
@@ -473,9 +464,8 @@ export class StripeController {
   }
 
   @Post('players/stripe/payment-methods')
-  @UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+  @UseGuards(JwtAuthGuard, VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Attach a payment method' })
   @ApiResponse({ status: 200, description: 'Payment method attached' })
@@ -494,9 +484,8 @@ export class StripeController {
   }
 
   @Delete('players/stripe/payment-methods/:id')
-  @UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+  @UseGuards(JwtAuthGuard, VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Remove a payment method' })
   @ApiResponse({ status: 200, description: 'Payment method removed' })
@@ -509,9 +498,8 @@ export class StripeController {
   }
 
   @Put('players/stripe/payment-methods/:id/default')
-  @UseGuards(JwtAuthGuard, VerifiedGuard, NotBannedGuard)
+  @UseGuards(JwtAuthGuard, VerifiedGuard)
   @RequireVerified()
-  @RequireNotBanned()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Set a payment method as default' })
   @ApiResponse({ status: 200, description: 'Default payment method set' })
