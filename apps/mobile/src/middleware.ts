@@ -24,6 +24,19 @@ function parseUserCookie(request: NextRequest): {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Fully ungated routes: render for every auth state. Unlike PUBLIC_PATHS,
+  // these are NOT bounced to /home when an authenticated user visits them
+  // (the install/landing page must render for installed users too, and the
+  // offline fallback must not redirect — a redirect itself fails offline).
+  if (
+    pathname === "/install" ||
+    pathname.startsWith("/install/") ||
+    pathname === "/offline"
+  ) {
+    return NextResponse.next();
+  }
+
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   const { exists: isAuthenticated, isVerified } = parseUserCookie(request);
 
@@ -47,5 +60,7 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|favicon|icons|manifest|sw\\.js|workbox-.*|api).*)"],
+  matcher: [
+    "/((?!_next|favicon|icons|manifest|apple-touch-icon|sw\\.js|workbox-.*|api).*)",
+  ],
 };

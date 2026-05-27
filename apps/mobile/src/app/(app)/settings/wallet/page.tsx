@@ -75,7 +75,7 @@ export default function WalletTransactionsPage() {
 
       <div className="flex-1 overflow-y-auto px-3 py-3">
         {isLoading && <Loading message="Loading transactions..." />}
-        {error && (
+        {!!error && (
           <ErrorDisplay message={String(error)} onRetry={() => load(1)} />
         )}
         {!isLoading && !error && transactions.length === 0 && (

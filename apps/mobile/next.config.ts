@@ -5,6 +5,7 @@ const withPWA = withPWAInit({
   dest: "public",
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
+  fallbacks: { document: "/offline" },
   disable:
     process.env.NODE_ENV === "development" && process.env.ENABLE_PWA !== "true",
 });
