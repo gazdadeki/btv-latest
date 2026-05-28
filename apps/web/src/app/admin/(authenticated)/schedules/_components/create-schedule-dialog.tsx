@@ -375,7 +375,7 @@ export function CreateScheduleDialog({
               setForm={setForm}
               label="Require reservation confirmation"
             />
-            {form.requiresConfirmation && (
+            {!!form.requiresConfirmation && (
               <div className="grid grid-cols-2 gap-3 mt-3 pl-4 border-l-2 border-indigo-200">
                 <FormRow label="Confirm Window (min)">
                   <FormInput

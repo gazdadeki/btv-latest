@@ -106,7 +106,7 @@ export function ScheduleDetailDialog({
           preAssignedUserId != null ? Number(preAssignedUserId) : null,
       }),
     );
-    let recPattern: { year: number; month: number; day: number } | null = null;
+    let recPattern: { year?: number; month: number; day: number } | null = null;
     let recDays: number[] | null =
       (f.recurrenceDays as number[])?.length > 0
         ? (f.recurrenceDays as number[])
@@ -121,7 +121,7 @@ export function ScheduleDetailDialog({
       recPattern = {
         month: Number(f.recurrenceMonth),
         day: Number(f.recurrenceDay),
-      } as typeof recPattern;
+      };
     }
     try {
       await api.updateSchedule(schedule.id, {
@@ -399,7 +399,7 @@ export function ScheduleDetailDialog({
               setForm={setEditForm}
               label="Require reservation confirmation"
             />
-            {editForm.requiresConfirmation && (
+            {!!editForm.requiresConfirmation && (
               <div className="grid grid-cols-2 gap-3 mt-3 pl-4 border-l-2 border-indigo-200">
                 <FormRow label="Confirm Window (min)">
                   <FormInput

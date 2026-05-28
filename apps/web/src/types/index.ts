@@ -23,7 +23,7 @@ export interface Reservation {
   status: string;
   reservedAt: string;
   confirmedAt: string | null;
-  user?: { email: string };
+  user?: { email: string; username?: string };
   slot?: { slotNumber: number };
 }
 
