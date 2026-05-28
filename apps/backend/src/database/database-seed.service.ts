@@ -84,78 +84,26 @@ export class DatabaseSeedService implements OnModuleInit {
       },
     ];
 
-    // Player users
+    // Player users — 10 FREE + 5 GOLD. Gold tier is set directly on the user row
+    // because the reservation-limit logic reads `subscriptionTier`; seeded test
+    // accounts intentionally have no backing Stripe subscription.
+    const FREE_PLAYER_COUNT = 10;
+    const GOLD_PLAYER_COUNT = 5;
     const playerUsers = [
-      {
-        email: 'player1@baltazartv.app',
+      ...Array.from({ length: FREE_PLAYER_COUNT }, (_, i) => ({
+        email: `player${i + 1}@baltazartv.app`,
         password: passwordHash,
         role: UserRole.PLAYER,
         subscriptionTier: SubscriptionTier.FREE,
         isVerified: true,
-      },
-      {
-        email: 'player2@baltazartv.app',
+      })),
+      ...Array.from({ length: GOLD_PLAYER_COUNT }, (_, i) => ({
+        email: `gold${i + 1}@baltazartv.app`,
         password: passwordHash,
         role: UserRole.PLAYER,
-        subscriptionTier: SubscriptionTier.FREE,
+        subscriptionTier: SubscriptionTier.GOLD,
         isVerified: true,
-      },
-      {
-        email: 'player3@baltazartv.app',
-        password: passwordHash,
-        role: UserRole.PLAYER,
-        subscriptionTier: SubscriptionTier.FREE,
-        isVerified: true,
-      },
-      {
-        email: 'player4@baltazartv.app',
-        password: passwordHash,
-        role: UserRole.PLAYER,
-        subscriptionTier: SubscriptionTier.FREE,
-        isVerified: true,
-      },
-      {
-        email: 'player5@baltazartv.app',
-        password: passwordHash,
-        role: UserRole.PLAYER,
-        subscriptionTier: SubscriptionTier.FREE,
-        isVerified: true,
-      },
-      {
-        email: 'player6@baltazartv.app',
-        password: passwordHash,
-        role: UserRole.PLAYER,
-        subscriptionTier: SubscriptionTier.FREE,
-        isVerified: true,
-      },
-      {
-        email: 'player7@baltazartv.app',
-        password: passwordHash,
-        role: UserRole.PLAYER,
-        subscriptionTier: SubscriptionTier.FREE,
-        isVerified: true,
-      },
-      {
-        email: 'player8@baltazartv.app',
-        password: passwordHash,
-        role: UserRole.PLAYER,
-        subscriptionTier: SubscriptionTier.FREE,
-        isVerified: true,
-      },
-      {
-        email: 'player9@baltazartv.app',
-        password: passwordHash,
-        role: UserRole.PLAYER,
-        subscriptionTier: SubscriptionTier.FREE,
-        isVerified: true,
-      },
-      {
-        email: 'player10@baltazartv.app',
-        password: passwordHash,
-        role: UserRole.PLAYER,
-        subscriptionTier: SubscriptionTier.FREE,
-        isVerified: true,
-      },
+      })),
     ];
 
     // Create admin users
