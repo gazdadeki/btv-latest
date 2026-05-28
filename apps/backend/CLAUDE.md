@@ -17,6 +17,7 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 
 - Global prefix: `api` with URI versioning (`/api/v1/...`)
 - CORS: `CORS_ORIGINS` env var (comma-separated) — required at boot, validated in `EnvValidationService`
+- **Helmet** security headers enabled with `crossOriginResourcePolicy: 'cross-origin'` — required because the API also serves static assets (avatars, `.well-known`) read cross-origin by the web/mobile apps; Helmet's default `same-origin` CORP would block them
 - `app.set('trust proxy', 1)` — trusts exactly one proxy hop (nginx in prod, Next.js dev server in dev). Bump the value if you add a load balancer in front
 - Stripe webhook raw body handling at `/api/v1/stripe/webhook`
 - Swagger at `/api` in non-production
@@ -29,6 +30,8 @@ auth, games, reservations, schedules, streams, subscriptions, stripe, websocket,
 - `User.password` carries `@Exclude({ toPlainOnly: true })` — TypeORM still loads it (auth login uses `bcrypt.compare` on `user.password`), but the global serializer drops it on the way out. Any future sensitive field on an entity that should never reach the client should follow the same pattern.
 - For endpoints that need to expose _less_ than `@Exclude` covers (e.g. you want to expose `id` and `username` of an author but hide everything else even from admins), prefer an **explicit response DTO** mapped in the service. See `src/tutorials/dto/tutorial-response.dto.ts` and `TutorialsService` — the service maps the raw `Tutorial` entity to `TutorialResponse` with a minimal `author: { id, username, avatarUrl }` shape. The entity is never returned directly to controllers.
 - Ownership-scoped lookups: any "mutate my own X by id" endpoint must scope the repository lookup with `userId` (from `req.user.id`), not just the resource id. See `StripeService.detachPaymentMethod`/`setDefaultPaymentMethod` for the canonical shape.
+- **Mass-assignment guard:** admin write endpoints must accept a typed DTO, never `@Body() body: any` — the global `ValidationPipe` (`whitelist` + `forbidNonWhitelisted`) then rejects any field not on the DTO. `UpdateUserDto` (`PUT /admin/users/:id`) deliberately omits `isBanned`/`bannedUntil`/`voided*`/`stripeCustomerId`/timestamps; ban/void have dedicated endpoints.
+- **Auth tokens are stored hashed, never plaintext:** both `refresh_tokens.token` and `password_reset_tokens.token` hold the SHA-256 (64-char hex) of the token via `AuthService.hashToken()`; the plaintext lives only in the client cookie / reset email. Look up by hash, store the hash. A DB leak yields no usable tokens.
 
 ## WebSocket
 

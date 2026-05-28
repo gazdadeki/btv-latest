@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { api } from '@/lib/api';
-import { formatDate, toastError } from '@/lib/utils';
-import { PageHeader } from '@/components/page-header';
-import { PageLoading } from '@/components/loading';
-import { Dialog } from '@/components/dialog';
-import { ConfirmDialog } from '@/components/confirm-dialog';
-import { Button } from '@/components/button';
-import { StatusBadge } from '@/components/status-badge';
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { formatDate, toastError } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
+import { PageLoading } from "@/components/loading";
+import { Dialog } from "@/components/dialog";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { Button } from "@/components/button";
+import { StatusBadge } from "@/components/status-badge";
 import {
   GAME_STATUS_COLORS,
   CALENDAR_STATUS_HEX,
@@ -18,10 +18,10 @@ import {
   WEEKDAY_LABELS_SUNDAY_FIRST,
   EVENTS_PER_DAY_LIMIT,
   RESERVATION_STATUS_COLORS,
-} from '@/constants';
-import type { CalendarEvent, ConfirmActionState } from '@/types';
+} from "@/constants";
+import type { CalendarEvent, ConfirmActionState } from "@/types";
 
-type ViewType = 'month' | 'week' | 'day' | 'list';
+type ViewType = "month" | "week" | "day" | "list";
 
 function addDays(d: Date, n: number) {
   const r = new Date(d);
@@ -34,33 +34,48 @@ function startOfWeek(d: Date) {
   return r;
 }
 function isSameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 function formatHM(d: string) {
-  return new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  return new Date(d).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 function getEventColor(ev: CalendarEvent): string {
   if (ev.isPseudo) return CALENDAR_STATUS_HEX.PSEUDO;
   if (ev.isExclusiveToGold) return CALENDAR_STATUS_HEX_GOLD;
-  return CALENDAR_STATUS_HEX[ev.status] || '#6b7280';
+  return CALENDAR_STATUS_HEX[ev.status] || "#6b7280";
 }
 function getEventTooltip(ev: CalendarEvent): string {
   const parts: string[] = [];
   const name = ev.schedule?.name || ev.scheduleName || `Game #${ev.id}`;
   parts.push(name);
   if (ev.isPseudo) {
-    parts.push('Status: Pseudo (Not Generated)');
+    parts.push("Status: Pseudo (Not Generated)");
   } else {
     parts.push(`Status: ${ev.status}`);
   }
-  if (ev.isExclusiveToGold) parts.push('Gold Exclusive');
+  if (ev.isExclusiveToGold) parts.push("Gold Exclusive");
   parts.push(`Time: ${formatHM(ev.scheduledStartTime)}`);
-  if (ev.teamAName && ev.teamBName) parts.push(`${ev.teamAName} vs ${ev.teamBName}`);
-  if (!ev.isPseudo) parts.push(`Slots: ${ev.slotsReserved || 0}/${ev.totalSlots || '?'}`);
-  return parts.join('\n');
+  if (ev.teamAName && ev.teamBName)
+    parts.push(`${ev.teamAName} vs ${ev.teamBName}`);
+  if (!ev.isPseudo)
+    parts.push(`Slots: ${ev.slotsReserved || 0}/${ev.totalSlots || "?"}`);
+  return parts.join("\n");
 }
+// Internal expand/collapse state key for a calendar cell. Uses local-date
+// components to match the locally-constructed grid (see month render), with a
+// 1-based, zero-padded month/day so the key is well-formed (e.g. "2026-03-05",
+// not "2026-2-5"). When the calendar grid is migrated to UTC, move this with it.
 function dateKey(d: Date): string {
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${month}-${day}`;
 }
 
 export default function CalendarPage() {
@@ -68,21 +83,29 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState<ViewType>('month');
+  const [view, setView] = useState<ViewType>("month");
   const [detail, setDetail] = useState<CalendarEvent | null>(null);
   const [generateDialog, setGenerateDialog] = useState<{
-    scheduleId: number; date: string; event: CalendarEvent;
+    scheduleId: number;
+    date: string;
+    event: CalendarEvent;
   } | null>(null);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
-  const [confirmAction, setConfirmAction] = useState<ConfirmActionState | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmActionState | null>(
+    null,
+  );
 
   const getRange = useCallback((): { start: Date; end: Date } => {
-    if (view === 'month') {
+    if (view === "month") {
       const s = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const e = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      const e = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        0,
+      );
       return { start: s, end: e };
     }
-    if (view === 'week') {
+    if (view === "week") {
       const s = startOfWeek(currentDate);
       return { start: s, end: addDays(s, 6) };
     }
@@ -92,18 +115,27 @@ export default function CalendarPage() {
   const load = useCallback(async () => {
     try {
       const { start, end } = getRange();
-      const wide = view === 'list' ? addDays(start, 30) : end;
+      const rangeEnd = view === "list" ? addDays(start, 30) : end;
+      // These bounds are LOCAL midnights, but the backend keys events by UTC day
+      // (utcStartOfDay/utcEndOfDay of what we send). In a non-UTC timezone a local
+      // midnight falls on the adjacent UTC day, so without padding a boundary day
+      // is dropped — e.g. at UTC+2 the last day of the month never loads. Pad one
+      // day each side; per-cell bucketing (getEventsFor, local isSameDay) still
+      // places each game on its correct local day and out-of-grid days don't render.
       const res = await api.getCalendarEvents({
-        startDate: start.toISOString(),
-        endDate: wide.toISOString(),
+        startDate: addDays(start, -1).toISOString(),
+        endDate: addDays(rangeEnd, 1).toISOString(),
       });
-      const data = res as { dates?: Array<{ date: string; games: CalendarEvent[] }> };
-      const list = data.dates?.flatMap(d =>
-        d.games.map(g => ({
-          ...g,
-          isPseudo: g.status === 'PSEUDO',
-        }))
-      ) || [];
+      const data = res as {
+        dates?: Array<{ date: string; games: CalendarEvent[] }>;
+      };
+      const list =
+        data.dates?.flatMap((d) =>
+          d.games.map((g) => ({
+            ...g,
+            isPseudo: g.status === "PSEUDO",
+          })),
+        ) || [];
       setEvents(list);
     } catch (err) {
       toastError(err);
@@ -112,31 +144,47 @@ export default function CalendarPage() {
     }
   }, [getRange, view]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const navigate = (dir: number) => {
     const d = new Date(currentDate);
-    if (view === 'month') d.setMonth(d.getMonth() + dir);
-    else if (view === 'week') d.setDate(d.getDate() + 7 * dir);
+    if (view === "month") d.setMonth(d.getMonth() + dir);
+    else if (view === "week") d.setDate(d.getDate() + 7 * dir);
     else d.setDate(d.getDate() + dir);
     setCurrentDate(d);
   };
 
   const title = () => {
-    if (view === 'month') return currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-    if (view === 'week') {
+    if (view === "month")
+      return currentDate.toLocaleString("default", {
+        month: "long",
+        year: "numeric",
+      });
+    if (view === "week") {
       const s = startOfWeek(currentDate);
       const e = addDays(s, 6);
-      return `${s.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${e.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      return `${s.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${e.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
     }
-    if (view === 'day') return currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-    return 'Upcoming Events';
+    if (view === "day")
+      return currentDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+    return "Upcoming Events";
   };
 
   const getEventsFor = (date: Date) =>
     events
       .filter((e) => isSameDay(new Date(e.scheduledStartTime), date))
-      .sort((a, b) => new Date(a.scheduledStartTime).getTime() - new Date(b.scheduledStartTime).getTime());
+      .sort(
+        (a, b) =>
+          new Date(a.scheduledStartTime).getTime() -
+          new Date(b.scheduledStartTime).getTime(),
+      );
 
   const toggleExpand = (date: Date) => {
     const key = dateKey(date);
@@ -151,7 +199,9 @@ export default function CalendarPage() {
   const handleEventClick = async (ev: CalendarEvent) => {
     if (ev.isPseudo) {
       // Store the UTC date string (YYYY-MM-DD) for display; it will be sent as UTC midnight on generate.
-      const utcDateStr = new Date(ev.scheduledStartTime).toISOString().split('T')[0];
+      const utcDateStr = new Date(ev.scheduledStartTime)
+        .toISOString()
+        .split("T")[0];
       setGenerateDialog({
         scheduleId: ev.scheduleId || ev.schedule?.id || 0,
         date: utcDateStr,
@@ -171,8 +221,13 @@ export default function CalendarPage() {
     if (!generateDialog) return;
     try {
       // Convert the UTC date string to a UTC midnight ISO string before sending.
-      const utcDate = new Date(generateDialog.date + 'T00:00:00Z').toISOString();
-      const res = (await api.generateGamesForSchedule(generateDialog.scheduleId, utcDate)) as { gamesCreated?: number };
+      const utcDate = new Date(
+        generateDialog.date + "T00:00:00Z",
+      ).toISOString();
+      const res = (await api.generateGamesForSchedule(
+        generateDialog.scheduleId,
+        utcDate,
+      )) as { gamesCreated?: number };
       toast.success(`Generated ${res.gamesCreated || 0} game(s)`);
       setGenerateDialog(null);
       load();
@@ -181,15 +236,23 @@ export default function CalendarPage() {
     }
   };
 
-  const EventPill = ({ ev, compact = false }: { ev: CalendarEvent; compact?: boolean }) => {
-    const icon = ev.isPseudo ? CALENDAR_STATUS_ICONS.PSEUDO : (CALENDAR_STATUS_ICONS[ev.status] || 'fa-circle');
-    const scheduleName = ev.schedule?.name || ev.scheduleName || 'Game';
+  const EventPill = ({
+    ev,
+    compact = false,
+  }: {
+    ev: CalendarEvent;
+    compact?: boolean;
+  }) => {
+    const icon = ev.isPseudo
+      ? CALENDAR_STATUS_ICONS.PSEUDO
+      : CALENDAR_STATUS_ICONS[ev.status] || "fa-circle";
+    const scheduleName = ev.schedule?.name || ev.scheduleName || "Game";
     const orderIndex = ev.orderIndex || 1;
     const label = `${scheduleName} - Game ${orderIndex}`;
     return (
       <button
         onClick={() => handleEventClick(ev)}
-        className={`text-xs px-1.5 py-0.5 rounded truncate text-white cursor-pointer w-full text-left flex items-center gap-1 ${compact ? '' : 'mb-0.5'}`}
+        className={`text-xs px-1.5 py-0.5 rounded truncate text-white cursor-pointer w-full text-left flex items-center gap-1 ${compact ? "" : "mb-0.5"}`}
         style={{ backgroundColor: getEventColor(ev) }}
         title={getEventTooltip(ev)}
       >
@@ -197,7 +260,9 @@ export default function CalendarPage() {
         <span>{formatHM(ev.scheduledStartTime)}</span>
         <span className="truncate">{label}</span>
         {ev.isPseudo && <span className="opacity-70">*</span>}
-        {ev.isExclusiveToGold && !ev.isPseudo && <i className="fas fa-crown text-[8px] shrink-0 opacity-80" />}
+        {ev.isExclusiveToGold && !ev.isPseudo && (
+          <i className="fas fa-crown text-[8px] shrink-0 opacity-80" />
+        )}
       </button>
     );
   };
@@ -213,11 +278,11 @@ export default function CalendarPage() {
         actions={
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
-              {(['month', 'week', 'day', 'list'] as ViewType[]).map((v) => (
+              {(["month", "week", "day", "list"] as ViewType[]).map((v) => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  className={`px-3 py-1.5 text-xs rounded cursor-pointer ${view === v ? 'bg-indigo-600 text-white' : 'border border-gray-300 hover:bg-gray-50'}`}
+                  className={`px-3 py-1.5 text-xs rounded cursor-pointer ${view === v ? "bg-indigo-600 text-white" : "border border-gray-300 hover:bg-gray-50"}`}
                 >
                   {v.charAt(0).toUpperCase() + v.slice(1)}
                 </button>
@@ -242,12 +307,14 @@ export default function CalendarPage() {
                 setRefreshing(true);
                 await load();
                 setRefreshing(false);
-                toast.success('Calendar refreshed');
+                toast.success("Calendar refreshed");
               }}
               disabled={refreshing}
             >
-              <i className={`fas fa-sync mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
+              <i
+                className={`fas fa-sync mr-1.5 ${refreshing ? "animate-spin" : ""}`}
+              />
+              {refreshing ? "Refreshing..." : "Refresh"}
             </Button>
           </div>
         }
@@ -264,115 +331,186 @@ export default function CalendarPage() {
           </Button>
         </div>
 
-        {view === 'month' && (() => {
-          const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-          const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
-          return (
-            <div className="grid grid-cols-7 gap-px bg-gray-200 rounded overflow-hidden">
-              {WEEKDAY_LABELS_SUNDAY_FIRST.map((d) => (
-                <div key={d} className="bg-gray-50 p-2 text-center text-sm font-medium text-gray-600">{d}</div>
-              ))}
-              {Array.from({ length: firstDay }, (_, i) => (
-                <div key={`e-${i}`} className="bg-white p-2 min-h-[100px]" />
-              ))}
-              {Array.from({ length: daysInMonth }, (_, i) => {
-                const day = i + 1;
-                const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-                const dayEvents = getEventsFor(date);
-                const isToday = isSameDay(date, today);
-                const isExpanded = expandedDates.has(dateKey(date));
-                const limit = EVENTS_PER_DAY_LIMIT;
-                const visibleEvents = isExpanded ? dayEvents : dayEvents.slice(0, limit);
-                const hasMore = dayEvents.length > limit;
-                return (
-                  <div key={day} className={`bg-white p-2 min-h-[100px] ${isToday ? 'ring-2 ring-indigo-500 ring-inset' : ''}`}>
-                    <div className={`text-sm font-medium mb-1 ${isToday ? 'text-indigo-600' : 'text-gray-700'}`}>{day}</div>
-                    <div className="space-y-0.5">
-                      {visibleEvents.map((e) => <EventPill key={e.id} ev={e} />)}
-                      {hasMore && (
-                        <button
-                          onClick={() => toggleExpand(date)}
-                          className="text-xs text-indigo-600 hover:text-indigo-800 cursor-pointer w-full text-left px-1"
-                        >
-                          {isExpanded
-                            ? `Show less`
-                            : `+${dayEvents.length - limit} more`}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
-
-        {view === 'week' && (() => {
-          const weekStart = startOfWeek(currentDate);
-          const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-          return (
-            <div className="grid grid-cols-7 gap-px bg-gray-200 rounded overflow-hidden">
-              {days.map((d) => (
-                <div key={d.toISOString()} className="bg-gray-50 p-2 text-center text-sm font-medium text-gray-600">
-                  {WEEKDAY_LABELS_SUNDAY_FIRST[d.getDay()]} {d.getDate()}
-                </div>
-              ))}
-              {days.map((d) => {
-                const dayEvents = getEventsFor(d);
-                const isToday = isSameDay(d, today);
-                return (
-                  <div key={d.toISOString() + '-body'} className={`bg-white p-2 min-h-[200px] ${isToday ? 'ring-2 ring-indigo-500 ring-inset' : ''}`}>
-                    <div className="space-y-1">
-                      {dayEvents.map((e) => (
-                        <div key={e.id}>
-                          <EventPill ev={e} compact />
-                        </div>
-                      ))}
-                      {dayEvents.length === 0 && <p className="text-xs text-gray-300 text-center pt-4">No events</p>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
-
-        {view === 'day' && (() => {
-          const dayEvents = getEventsFor(currentDate);
-          return (
-            <div className="space-y-2">
-              {dayEvents.length === 0 && <p className="text-center text-gray-400 py-8">No events for this day</p>}
-              {dayEvents.map((e) => {
-                const icon = e.isPseudo ? CALENDAR_STATUS_ICONS.PSEUDO : (CALENDAR_STATUS_ICONS[e.status] || 'fa-circle');
-                return (
-                  <button
-                    key={e.id}
-                    onClick={() => handleEventClick(e)}
-                    className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer flex items-center gap-3"
+        {view === "month" &&
+          (() => {
+            const daysInMonth = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth() + 1,
+              0,
+            ).getDate();
+            const firstDay = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth(),
+              1,
+            ).getDay();
+            return (
+              <div className="grid grid-cols-7 gap-px bg-gray-200 rounded overflow-hidden">
+                {WEEKDAY_LABELS_SUNDAY_FIRST.map((d) => (
+                  <div
+                    key={d}
+                    className="bg-gray-50 p-2 text-center text-sm font-medium text-gray-600"
                   >
-                    <div className="w-1 h-10 rounded" style={{ backgroundColor: getEventColor(e) }} />
-                    <i className={`fas ${icon}`} style={{ color: getEventColor(e) }} />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">
-                        {e.schedule?.name || e.scheduleName || `Game #${e.id}`}
-                        {e.orderIndex ? ` - Game ${e.orderIndex}` : ''}
-                        {e.isPseudo && <span className="text-gray-400 ml-1">(scheduled)</span>}
-                        {e.isExclusiveToGold && <span className="ml-1 text-yellow-600"><i className="fas fa-crown text-xs" /> Gold</span>}
+                    {d}
+                  </div>
+                ))}
+                {Array.from({ length: firstDay }, (_, i) => (
+                  <div key={`e-${i}`} className="bg-white p-2 min-h-[100px]" />
+                ))}
+                {Array.from({ length: daysInMonth }, (_, i) => {
+                  const day = i + 1;
+                  const date = new Date(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth(),
+                    day,
+                  );
+                  const dayEvents = getEventsFor(date);
+                  const isToday = isSameDay(date, today);
+                  const isExpanded = expandedDates.has(dateKey(date));
+                  const limit = EVENTS_PER_DAY_LIMIT;
+                  const visibleEvents = isExpanded
+                    ? dayEvents
+                    : dayEvents.slice(0, limit);
+                  const hasMore = dayEvents.length > limit;
+                  return (
+                    <div
+                      key={day}
+                      className={`bg-white p-2 min-h-[100px] ${isToday ? "ring-2 ring-indigo-500 ring-inset" : ""}`}
+                    >
+                      <div
+                        className={`text-sm font-medium mb-1 ${isToday ? "text-indigo-600" : "text-gray-700"}`}
+                      >
+                        {day}
                       </div>
-                      <div className="text-xs text-gray-500">
-                        {formatHM(e.scheduledStartTime)} - {e.status}
-                        {e.teamAName && e.teamBName && ` | ${e.teamAName} vs ${e.teamBName}`}
+                      <div className="space-y-0.5">
+                        {visibleEvents.map((e) => (
+                          <EventPill key={e.id} ev={e} />
+                        ))}
+                        {hasMore && (
+                          <button
+                            onClick={() => toggleExpand(date)}
+                            className="text-xs text-indigo-600 hover:text-indigo-800 cursor-pointer w-full text-left px-1"
+                          >
+                            {isExpanded
+                              ? `Show less`
+                              : `+${dayEvents.length - limit} more`}
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <div className="text-xs text-gray-400">{e.isPseudo ? '-' : `${e.slotsReserved || 0}/${e.totalSlots || '?'} slots`}</div>
-                  </button>
-                );
-              })}
-            </div>
-          );
-        })()}
+                  );
+                })}
+              </div>
+            );
+          })()}
 
-        {view === 'list' && (
+        {view === "week" &&
+          (() => {
+            const weekStart = startOfWeek(currentDate);
+            const days = Array.from({ length: 7 }, (_, i) =>
+              addDays(weekStart, i),
+            );
+            return (
+              <div className="grid grid-cols-7 gap-px bg-gray-200 rounded overflow-hidden">
+                {days.map((d) => (
+                  <div
+                    key={d.toISOString()}
+                    className="bg-gray-50 p-2 text-center text-sm font-medium text-gray-600"
+                  >
+                    {WEEKDAY_LABELS_SUNDAY_FIRST[d.getDay()]} {d.getDate()}
+                  </div>
+                ))}
+                {days.map((d) => {
+                  const dayEvents = getEventsFor(d);
+                  const isToday = isSameDay(d, today);
+                  return (
+                    <div
+                      key={d.toISOString() + "-body"}
+                      className={`bg-white p-2 min-h-[200px] ${isToday ? "ring-2 ring-indigo-500 ring-inset" : ""}`}
+                    >
+                      <div className="space-y-1">
+                        {dayEvents.map((e) => (
+                          <div key={e.id}>
+                            <EventPill ev={e} compact />
+                          </div>
+                        ))}
+                        {dayEvents.length === 0 && (
+                          <p className="text-xs text-gray-300 text-center pt-4">
+                            No events
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+        {view === "day" &&
+          (() => {
+            const dayEvents = getEventsFor(currentDate);
+            return (
+              <div className="space-y-2">
+                {dayEvents.length === 0 && (
+                  <p className="text-center text-gray-400 py-8">
+                    No events for this day
+                  </p>
+                )}
+                {dayEvents.map((e) => {
+                  const icon = e.isPseudo
+                    ? CALENDAR_STATUS_ICONS.PSEUDO
+                    : CALENDAR_STATUS_ICONS[e.status] || "fa-circle";
+                  return (
+                    <button
+                      key={e.id}
+                      onClick={() => handleEventClick(e)}
+                      className="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer flex items-center gap-3"
+                    >
+                      <div
+                        className="w-1 h-10 rounded"
+                        style={{ backgroundColor: getEventColor(e) }}
+                      />
+                      <i
+                        className={`fas ${icon}`}
+                        style={{ color: getEventColor(e) }}
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">
+                          {e.schedule?.name ||
+                            e.scheduleName ||
+                            `Game #${e.id}`}
+                          {e.orderIndex ? ` - Game ${e.orderIndex}` : ""}
+                          {e.isPseudo && (
+                            <span className="text-gray-400 ml-1">
+                              (scheduled)
+                            </span>
+                          )}
+                          {e.isExclusiveToGold && (
+                            <span className="ml-1 text-yellow-600">
+                              <i className="fas fa-crown text-xs" /> Gold
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {formatHM(e.scheduledStartTime)} - {e.status}
+                          {e.teamAName &&
+                            e.teamBName &&
+                            ` | ${e.teamAName} vs ${e.teamBName}`}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {e.isPseudo
+                          ? "-"
+                          : `${e.slotsReserved || 0}/${e.totalSlots || "?"} slots`}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+        {view === "list" && (
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
@@ -385,70 +523,180 @@ export default function CalendarPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {events.sort((a, b) => new Date(a.scheduledStartTime).getTime() - new Date(b.scheduledStartTime).getTime()).map((e) => (
-                  <tr key={e.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleEventClick(e)}>
-                    <td className="px-3 py-2">{new Date(e.scheduledStartTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
-                    <td className="px-3 py-2">{formatHM(e.scheduledStartTime)}</td>
-                    <td className="px-3 py-2">
-                      <i className={`fas ${e.isPseudo ? CALENDAR_STATUS_ICONS.PSEUDO : (CALENDAR_STATUS_ICONS[e.status] || 'fa-circle')} mr-1`} style={{ color: getEventColor(e), fontSize: 10 }} />
-                      {e.schedule?.name || e.scheduleName || `Game #${e.id}`}
-                      {e.isPseudo && <span className="text-gray-400 ml-1">(scheduled)</span>}
-                      {e.isExclusiveToGold && <i className="fas fa-crown text-yellow-500 text-xs ml-1" />}
+                {events
+                  .sort(
+                    (a, b) =>
+                      new Date(a.scheduledStartTime).getTime() -
+                      new Date(b.scheduledStartTime).getTime(),
+                  )
+                  .map((e) => (
+                    <tr
+                      key={e.id}
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleEventClick(e)}
+                    >
+                      <td className="px-3 py-2">
+                        {new Date(e.scheduledStartTime).toLocaleDateString(
+                          "en-US",
+                          { month: "short", day: "numeric" },
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        {formatHM(e.scheduledStartTime)}
+                      </td>
+                      <td className="px-3 py-2">
+                        <i
+                          className={`fas ${e.isPseudo ? CALENDAR_STATUS_ICONS.PSEUDO : CALENDAR_STATUS_ICONS[e.status] || "fa-circle"} mr-1`}
+                          style={{ color: getEventColor(e), fontSize: 10 }}
+                        />
+                        {e.schedule?.name || e.scheduleName || `Game #${e.id}`}
+                        {e.isPseudo && (
+                          <span className="text-gray-400 ml-1">
+                            (scheduled)
+                          </span>
+                        )}
+                        {e.isExclusiveToGold && (
+                          <i className="fas fa-crown text-yellow-500 text-xs ml-1" />
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        <StatusBadge
+                          status={e.isPseudo ? "SCHEDULED" : e.status}
+                          colorMap={GAME_STATUS_COLORS}
+                          fallback="bg-gray-100 text-gray-500"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        {e.isPseudo
+                          ? "-"
+                          : `${e.slotsReserved || 0}/${e.totalSlots || "?"}`}
+                      </td>
+                    </tr>
+                  ))}
+                {events.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-3 py-8 text-center text-gray-400"
+                    >
+                      No events in this period
                     </td>
-                    <td className="px-3 py-2">
-                      <StatusBadge status={e.isPseudo ? 'SCHEDULED' : e.status} colorMap={GAME_STATUS_COLORS} fallback="bg-gray-100 text-gray-500" />
-                    </td>
-                    <td className="px-3 py-2">{e.isPseudo ? '-' : `${e.slotsReserved || 0}/${e.totalSlots || '?'}`}</td>
                   </tr>
-                ))}
-                {events.length === 0 && <tr><td colSpan={5} className="px-3 py-8 text-center text-gray-400">No events in this period</td></tr>}
+                )}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      <Dialog open={detail !== null} onClose={() => setDetail(null)} title="Game Details" className="max-w-2xl">
+      <Dialog
+        open={detail !== null}
+        onClose={() => setDetail(null)}
+        title="Game Details"
+        className="max-w-2xl"
+      >
         {detail && (
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Basic Info</h4>
+            <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+              Basic Info
+            </h4>
             <table className="w-full text-sm">
               <tbody className="divide-y divide-gray-100">
-                <tr><td className="py-2 font-medium w-1/3">ID</td><td>{detail.id}</td></tr>
-                <tr><td className="py-2 font-medium">Schedule</td><td>{detail.schedule?.name || detail.scheduleName || 'N/A'}</td></tr>
+                <tr>
+                  <td className="py-2 font-medium w-1/3">ID</td>
+                  <td>{detail.id}</td>
+                </tr>
+                <tr>
+                  <td className="py-2 font-medium">Schedule</td>
+                  <td>
+                    {detail.schedule?.name || detail.scheduleName || "N/A"}
+                  </td>
+                </tr>
                 <tr>
                   <td className="py-2 font-medium">Status</td>
-                  <td><StatusBadge status={detail.status} colorMap={GAME_STATUS_COLORS} /></td>
+                  <td>
+                    <StatusBadge
+                      status={detail.status}
+                      colorMap={GAME_STATUS_COLORS}
+                    />
+                  </td>
                 </tr>
-                <tr><td className="py-2 font-medium">Scheduled Start</td><td>{formatDate(detail.scheduledStartTime)}</td></tr>
-                <tr><td className="py-2 font-medium">Actual Start</td><td>{detail.actualStartTime ? formatDate(detail.actualStartTime) : 'N/A'}</td></tr>
-                <tr><td className="py-2 font-medium">Actual End</td><td>{detail.actualEndTime ? formatDate(detail.actualEndTime) : 'N/A'}</td></tr>
-                <tr><td className="py-2 font-medium">Gold Exclusive</td><td>{detail.isExclusiveToGold ? 'Yes' : 'No'}</td></tr>
-                <tr><td className="py-2 font-medium">Order Index</td><td>Game {detail.orderIndex || 1}</td></tr>
+                <tr>
+                  <td className="py-2 font-medium">Scheduled Start</td>
+                  <td>{formatDate(detail.scheduledStartTime)}</td>
+                </tr>
+                <tr>
+                  <td className="py-2 font-medium">Actual Start</td>
+                  <td>
+                    {detail.actualStartTime
+                      ? formatDate(detail.actualStartTime)
+                      : "N/A"}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 font-medium">Actual End</td>
+                  <td>
+                    {detail.actualEndTime
+                      ? formatDate(detail.actualEndTime)
+                      : "N/A"}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 font-medium">Gold Exclusive</td>
+                  <td>{detail.isExclusiveToGold ? "Yes" : "No"}</td>
+                </tr>
+                <tr>
+                  <td className="py-2 font-medium">Order Index</td>
+                  <td>Game {detail.orderIndex || 1}</td>
+                </tr>
               </tbody>
             </table>
 
-            <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Slots Info</h4>
+            <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+              Slots Info
+            </h4>
             <div className="grid grid-cols-4 gap-2">
               <div className="p-2 bg-blue-50 rounded text-center text-sm">
-                <div className="font-medium">{detail.totalSlots ?? (detail.slots ? detail.slots.length : 0)}</div>
+                <div className="font-medium">
+                  {detail.totalSlots ??
+                    (detail.slots ? detail.slots.length : 0)}
+                </div>
                 <div className="text-xs text-gray-500">Total</div>
               </div>
               <div className="p-2 bg-yellow-50 rounded text-center text-sm">
-                <div className="font-medium">{detail.slotsReserved ?? (detail.slots ? detail.slots.filter((s) => s.isReserved).length : 0)}</div>
+                <div className="font-medium">
+                  {detail.slotsReserved ??
+                    (detail.slots
+                      ? detail.slots.filter((s) => s.isReserved).length
+                      : 0)}
+                </div>
                 <div className="text-xs text-gray-500">Reserved</div>
               </div>
               <div className="p-2 bg-green-50 rounded text-center text-sm">
-                <div className="font-medium">{detail.slotsConfirmed ?? (detail.reservations ? detail.reservations.filter((r) => r.status === 'CONFIRMED').length : 0)}</div>
+                <div className="font-medium">
+                  {detail.slotsConfirmed ??
+                    (detail.reservations
+                      ? detail.reservations.filter(
+                          (r) => r.status === "CONFIRMED",
+                        ).length
+                      : 0)}
+                </div>
                 <div className="text-xs text-gray-500">Confirmed</div>
               </div>
               <div className="p-2 bg-gray-50 rounded text-center text-sm">
                 <div className="font-medium">
-                  {detail.slotsAvailable ?? (() => {
-                    const total = detail.totalSlots ?? (detail.slots ? detail.slots.length : 0);
-                    const reserved = detail.slotsReserved ?? (detail.slots ? detail.slots.filter((s) => s.isReserved).length : 0);
-                    return total - reserved;
-                  })()}
+                  {detail.slotsAvailable ??
+                    (() => {
+                      const total =
+                        detail.totalSlots ??
+                        (detail.slots ? detail.slots.length : 0);
+                      const reserved =
+                        detail.slotsReserved ??
+                        (detail.slots
+                          ? detail.slots.filter((s) => s.isReserved).length
+                          : 0);
+                      return total - reserved;
+                    })()}
                 </div>
                 <div className="text-xs text-gray-500">Available</div>
               </div>
@@ -456,7 +704,9 @@ export default function CalendarPage() {
 
             {detail.reservations && detail.reservations.length > 0 ? (
               <div>
-                <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Reservations</h4>
+                <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Reservations
+                </h4>
                 <div className="overflow-x-auto border border-gray-200 rounded-lg">
                   <table className="w-full text-xs">
                     <thead className="bg-gray-50 border-b">
@@ -471,13 +721,25 @@ export default function CalendarPage() {
                     <tbody className="divide-y divide-gray-100">
                       {detail.reservations.map((r) => (
                         <tr key={r.id}>
-                          <td className="px-2 py-1.5">{r.user?.email || `User #${r.userId}`}</td>
-                          <td className="px-2 py-1.5">Slot {r.slot?.slotNumber || r.id}</td>
                           <td className="px-2 py-1.5">
-                            <StatusBadge status={r.status} colorMap={RESERVATION_STATUS_COLORS} fallback="bg-yellow-100 text-yellow-700" />
+                            {r.user?.email || `User #${r.userId}`}
                           </td>
-                          <td className="px-2 py-1.5">{r.reservedAt ? formatDate(r.reservedAt) : 'N/A'}</td>
-                          <td className="px-2 py-1.5">{r.confirmedAt ? formatDate(r.confirmedAt) : 'N/A'}</td>
+                          <td className="px-2 py-1.5">
+                            Slot {r.slot?.slotNumber || r.id}
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <StatusBadge
+                              status={r.status}
+                              colorMap={RESERVATION_STATUS_COLORS}
+                              fallback="bg-yellow-100 text-yellow-700"
+                            />
+                          </td>
+                          <td className="px-2 py-1.5">
+                            {r.reservedAt ? formatDate(r.reservedAt) : "N/A"}
+                          </td>
+                          <td className="px-2 py-1.5">
+                            {r.confirmedAt ? formatDate(r.confirmedAt) : "N/A"}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -489,7 +751,10 @@ export default function CalendarPage() {
             )}
 
             <div className="flex justify-end">
-              <a href={`/admin/games?gameId=${detail.id}`} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+              <a
+                href={`/admin/games?gameId=${detail.id}`}
+                className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              >
                 View Full Game Details
               </a>
             </div>
@@ -497,39 +762,72 @@ export default function CalendarPage() {
         )}
       </Dialog>
 
-      <Dialog open={generateDialog !== null} onClose={() => setGenerateDialog(null)} title="Game Details" className="max-w-2xl">
-        {generateDialog && (() => {
-          const ev = generateDialog.event;
-          return (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
-                <i className="fas fa-info-circle" />
-                This is a pseudo game (not yet generated).
-              </div>
+      <Dialog
+        open={generateDialog !== null}
+        onClose={() => setGenerateDialog(null)}
+        title="Game Details"
+        className="max-w-2xl"
+      >
+        {generateDialog &&
+          (() => {
+            const ev = generateDialog.event;
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                  <i className="fas fa-info-circle" />
+                  This is a pseudo game (not yet generated).
+                </div>
 
-              <table className="w-full text-sm">
-                <tbody className="divide-y divide-gray-100">
-                  <tr><td className="py-2 font-medium w-1/3">Schedule</td><td>{ev.schedule?.name || ev.scheduleName || 'N/A'}</td></tr>
-                  <tr>
-                    <td className="py-2 font-medium">Status</td>
-                    <td><span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">PSEUDO</span></td>
-                  </tr>
-                  <tr><td className="py-2 font-medium">Scheduled Start Time</td><td>{formatDate(ev.scheduledStartTime)}</td></tr>
-                  <tr><td className="py-2 font-medium">Gold Exclusive</td><td>{ev.isExclusiveToGold ? 'Yes' : 'No'}</td></tr>
-                  <tr><td className="py-2 font-medium">Order Index</td><td>Game {ev.orderIndex || 1}</td></tr>
-                </tbody>
-              </table>
+                <table className="w-full text-sm">
+                  <tbody className="divide-y divide-gray-100">
+                    <tr>
+                      <td className="py-2 font-medium w-1/3">Schedule</td>
+                      <td>{ev.schedule?.name || ev.scheduleName || "N/A"}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-medium">Status</td>
+                      <td>
+                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                          PSEUDO
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-medium">Scheduled Start Time</td>
+                      <td>{formatDate(ev.scheduledStartTime)}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-medium">Gold Exclusive</td>
+                      <td>{ev.isExclusiveToGold ? "Yes" : "No"}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-medium">Order Index</td>
+                      <td>Game {ev.orderIndex || 1}</td>
+                    </tr>
+                  </tbody>
+                </table>
 
-              <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => setGenerateDialog(null)}>Cancel</Button>
-                <Button onClick={handleGenerate}>Generate Game</Button>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setGenerateDialog(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleGenerate}>Generate Game</Button>
+                </div>
               </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
       </Dialog>
 
-      <ConfirmDialog open={confirmAction !== null} title={confirmAction?.title || ''} message={confirmAction?.message || ''} onConfirm={() => confirmAction?.onConfirm()} onCancel={() => setConfirmAction(null)} />
+      <ConfirmDialog
+        open={confirmAction !== null}
+        title={confirmAction?.title || ""}
+        message={confirmAction?.message || ""}
+        onConfirm={() => confirmAction?.onConfirm()}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }

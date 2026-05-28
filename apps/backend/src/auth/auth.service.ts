@@ -362,7 +362,7 @@ export class AuthService {
     );
 
     const token = await this.refreshTokenRepository.findOne({
-      where: { token: refreshToken, isRevoked: false },
+      where: { token: this.hashToken(refreshToken), isRevoked: false },
       relations: ['user'],
     });
 
@@ -499,7 +499,7 @@ export class AuthService {
         `Revoking specific refresh token (prefix: ${tokenPrefix}) for user ID: ${userId}`,
       );
       const token = await this.refreshTokenRepository.findOne({
-        where: { token: refreshToken, userId },
+        where: { token: this.hashToken(refreshToken), userId },
       });
       if (token) {
         token.isRevoked = true;
@@ -575,6 +575,17 @@ export class AuthService {
    * @returns Object containing accessToken and refreshToken strings
    * @private
    */
+  /**
+   * Hash a refresh token for storage / lookup. We store only the SHA-256 of the
+   * token, never the token itself, so a DB leak does not hand an attacker usable
+   * refresh tokens. SHA-256 (not bcrypt) is deliberate: the JWT is already
+   * high-entropy, the hash is deterministic so we can look it up directly, and
+   * the digest is a fixed 64-char hex that fits the unique-indexed column.
+   */
+  private hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
   private async generateTokens(
     user: User,
   ): Promise<{ accessToken: string; refreshToken: string }> {
@@ -616,10 +627,11 @@ export class AuthService {
     this.logger.debug(
       `Storing refresh token in database, expires at: ${expiresAt.toISOString()}`,
     );
-    // Store refresh token in database for revocation tracking
+    // Store only the HASH of the refresh token for revocation tracking — the
+    // plaintext token lives only in the client's httpOnly cookie.
     const savedToken = await this.refreshTokenRepository.save({
       userId: user.id,
-      token: refreshToken,
+      token: this.hashToken(refreshToken),
       expiresAt,
       isRevoked: false,
     });
@@ -684,10 +696,10 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setUTCHours(expiresAt.getUTCHours() + 1); // Token expires in 1 hour
 
-    // Store reset token in database
+    // Store the hash; the plaintext token only travels to the user via email.
     await this.passwordResetTokenRepository.save({
       userId: user.id,
-      token: resetToken,
+      token: this.hashToken(resetToken),
       expiresAt,
       isUsed: false,
     });
@@ -745,7 +757,7 @@ export class AuthService {
     );
 
     const resetToken = await this.passwordResetTokenRepository.findOne({
-      where: { token: resetPasswordDto.token, isUsed: false },
+      where: { token: this.hashToken(resetPasswordDto.token), isUsed: false },
       relations: ['user'],
     });
 

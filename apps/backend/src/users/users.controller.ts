@@ -25,6 +25,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { StripeService } from '../stripe/stripe.service';
 import { ReservationsService } from '../reservations/reservations.service';
@@ -123,7 +124,7 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Admin role required' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async update(@Param('id') id: string, @Body() body: any) {
+  async update(@Param('id') id: string, @Body() body: UpdateUserDto) {
     return this.usersService.update(+id, body);
   }
 

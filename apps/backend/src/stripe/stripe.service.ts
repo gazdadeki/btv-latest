@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  ServiceUnavailableException,
   Inject,
   forwardRef,
   Logger,
@@ -371,14 +372,22 @@ export class StripeService {
       throw new BadRequestException('Product not found');
     }
 
-    // Archive in Stripe (set active=false, don't delete)
+    // Archive in Stripe (set active=false, don't delete). If Stripe rejects,
+    // fail the whole operation — do NOT flip the local flags, or the DB would
+    // read "archived" while Stripe still shows the product active (silent
+    // divergence). Surfacing the error lets the admin retry.
     try {
       await this.stripe.products.update(product.stripeProductId, {
         active: false,
       });
     } catch (error) {
-      // Log error but continue with local archiving
-      console.error(`Failed to archive product in Stripe: ${error.message}`);
+      this.logger.error(
+        `Failed to archive product ${product.stripeProductId} in Stripe: ${error.message}`,
+        error.stack,
+      );
+      throw new ServiceUnavailableException(
+        'Could not archive the product in Stripe. No changes were made; please retry.',
+      );
     }
 
     product.isArchived = true;

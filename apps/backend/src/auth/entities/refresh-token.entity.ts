@@ -19,11 +19,13 @@ export class RefreshToken {
   userId: number;
 
   /**
-   * Refresh token stored as VARCHAR(1000) to accommodate JWT tokens which can be 200-400+ characters.
-   * Unique constraint ensures each token can only be used once.
-   * Using VARCHAR instead of TEXT to support unique constraint in MySQL.
+   * SHA-256 hash (64-char hex) of the refresh token — the plaintext token is
+   * never stored, only its digest, so a DB leak yields no usable tokens. The
+   * fixed length lets us put a real UNIQUE index on it, which also enforces
+   * one-row-per-token and is the backstop for future reuse detection.
    */
-  @Column({ type: 'text' })
+  @Index('UQ_refresh_tokens_token', { unique: true })
+  @Column({ type: 'varchar', length: 64 })
   token: string;
 
   @Column({ type: 'datetime' })

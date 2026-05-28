@@ -42,6 +42,7 @@ import {
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import * as express from 'express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -70,6 +71,13 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });
+
+  // Security headers. `crossOriginResourcePolicy: 'cross-origin'` is required
+  // because this server also serves static assets (avatars, .well-known) that
+  // the web + mobile apps load from their own origins — Helmet's default
+  // `same-origin` CORP would block those cross-origin reads.
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  logger.log('Helmet security headers enabled');
 
   // Trust exactly one proxy hop in front of Node (nginx in prod, Next.js dev
   // server in local dev). If the topology changes (e.g., a managed load
