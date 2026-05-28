@@ -33,6 +33,27 @@ export class DatabaseSeedService implements OnModuleInit {
    * Seeds the database with default users if they don't exist.
    */
   async onModuleInit() {
+    const isProduction = process.env.NODE_ENV === 'production';
+    // Default accounts share a well-known password, so they are a day-one
+    // compromise in real prod. Production therefore skips seeding unless the
+    // operator explicitly opts in. The override exists for pre-prod, which runs
+    // with NODE_ENV=production but is a throwaway environment whose data never
+    // migrates to prod. NEVER set SEED_DEFAULT_USERS in the real prod env.
+    const forceSeed = process.env.SEED_DEFAULT_USERS === 'true';
+
+    if (isProduction && !forceSeed) {
+      this.logger.log('Skipping database seeding in production.');
+      return;
+    }
+
+    if (isProduction && forceSeed) {
+      this.logger.warn(
+        'SEED_DEFAULT_USERS=true with NODE_ENV=production — seeding default ' +
+          'accounts with a well-known password. Intended for PRE-PROD ONLY. ' +
+          'If this is the real production environment, unset the flag now.',
+      );
+    }
+
     this.logger.log('Starting database seeding...');
     await this.seedUsers();
     this.logger.log('Database seeding completed.');
@@ -43,7 +64,7 @@ export class DatabaseSeedService implements OnModuleInit {
    * Creates users only if they don't already exist.
    */
   private async seedUsers() {
-    const passwordHash = await bcrypt.hash('test123', 10);
+    const passwordHash = await bcrypt.hash('Test123#', 10);
 
     // Admin users
     const adminUsers = [

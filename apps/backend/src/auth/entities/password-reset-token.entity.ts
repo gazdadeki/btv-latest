@@ -23,10 +23,10 @@ export class PasswordResetToken {
   userId: number;
 
   /**
-   * Unique token string used for password reset.
-   * Generated as a secure random token.
+   * SHA-256 hash (64-char hex) of the password reset token. The plaintext token
+   * is emailed to the user and never persisted — a DB read leak yields only hashes.
    */
-  @Column({ unique: true, length: 255 })
+  @Column({ unique: true, length: 64 })
   token: string;
 
   @Column({ type: 'datetime' })
