@@ -115,10 +115,16 @@ export default function CalendarPage() {
   const load = useCallback(async () => {
     try {
       const { start, end } = getRange();
-      const wide = view === "list" ? addDays(start, 30) : end;
+      const rangeEnd = view === "list" ? addDays(start, 30) : end;
+      // These bounds are LOCAL midnights, but the backend keys events by UTC day
+      // (utcStartOfDay/utcEndOfDay of what we send). In a non-UTC timezone a local
+      // midnight falls on the adjacent UTC day, so without padding a boundary day
+      // is dropped — e.g. at UTC+2 the last day of the month never loads. Pad one
+      // day each side; per-cell bucketing (getEventsFor, local isSameDay) still
+      // places each game on its correct local day and out-of-grid days don't render.
       const res = await api.getCalendarEvents({
-        startDate: start.toISOString(),
-        endDate: wide.toISOString(),
+        startDate: addDays(start, -1).toISOString(),
+        endDate: addDays(rangeEnd, 1).toISOString(),
       });
       const data = res as {
         dates?: Array<{ date: string; games: CalendarEvent[] }>;
