@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class MakeUsernameRequired1743638500000 implements MigrationInterface {
-  name = 'MakeUsernameRequired1743638500000';
+export class MakeUsernameRequired1766000000001 implements MigrationInterface {
+  name = 'MakeUsernameRequired1766000000001';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Fill any remaining null usernames with email prefix
